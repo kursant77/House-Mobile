@@ -1,11 +1,13 @@
-import { Home, Search, Play, Heart, ShoppingBag, User } from "lucide-react";
+import { Home, Search, Play, Heart, ShoppingBag } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useCartStore } from "@/store/cartStore";
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  showBadge?: boolean;
 }
 
 const navItems: NavItem[] = [
@@ -13,7 +15,7 @@ const navItems: NavItem[] = [
   { icon: Search, label: "Products", path: "/products" },
   { icon: Play, label: "Reels", path: "/reels" },
   { icon: Heart, label: "Favorites", path: "/favorites" },
-  { icon: ShoppingBag, label: "Cart", path: "/cart" },
+  { icon: ShoppingBag, label: "Cart", path: "/cart", showBadge: true },
 ];
 
 interface BottomNavProps {
@@ -21,6 +23,9 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ isReelsPage = false }: BottomNavProps) {
+  const { getItemCount } = useCartStore();
+  const cartCount = getItemCount();
+
   return (
     <nav
       className={cn(
@@ -39,7 +44,7 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
           to={item.path}
           className={({ isActive }) =>
             cn(
-              "flex flex-col items-center justify-center gap-0.5 px-3 py-2",
+              "relative flex flex-col items-center justify-center gap-0.5 px-3 py-2",
               "transition-all duration-200 ease-out",
               "active:scale-95",
               isActive
@@ -54,13 +59,20 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
         >
           {({ isActive }) => (
             <>
-              <item.icon
-                className={cn(
-                  "h-6 w-6 transition-transform duration-200",
-                  isActive && "scale-110"
+              <div className="relative">
+                <item.icon
+                  className={cn(
+                    "h-6 w-6 transition-transform duration-200",
+                    isActive && "scale-110"
+                  )}
+                  strokeWidth={isActive ? 2.5 : 1.5}
+                />
+                {item.showBadge && cartCount > 0 && (
+                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                    {cartCount > 99 ? "99+" : cartCount}
+                  </span>
                 )}
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
+              </div>
               <span className="text-[10px] font-medium">{item.label}</span>
             </>
           )}

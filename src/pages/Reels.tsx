@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { ReelCard } from "@/components/reels/ReelCard";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { mockReels } from "@/data/mockReels";
-import { toast } from "sonner";
 
 export default function Reels() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -29,11 +28,6 @@ export default function Reels() {
     console.log("Liked:", id);
   };
 
-  const handleAddToCart = (id: string) => {
-    toast.success("Added to cart");
-    console.log("Added to cart:", id);
-  };
-
   return (
     <div className="fixed inset-0 bg-reels">
       <div
@@ -51,7 +45,6 @@ export default function Reels() {
               reel={reel}
               isActive={index === activeIndex}
               onLike={handleLike}
-              onAddToCart={handleAddToCart}
             />
           </div>
         ))}
