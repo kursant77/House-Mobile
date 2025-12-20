@@ -1,6 +1,7 @@
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Play } from "lucide-react";
+import { Play, User } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
@@ -9,6 +10,11 @@ export default function Home() {
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
           <h1 className="text-xl font-bold tracking-tight">House Mobile</h1>
+          <Link to="/auth">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </header>
 
