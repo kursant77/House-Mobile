@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import Reels from "./pages/Reels";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import Favorites from "./pages/Favorites";
 import Auth from "./pages/Auth";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
@@ -24,9 +25,9 @@ const App = () => (
           <Route path="/reels" element={<Reels />} />
           <Route path="/products" element={<Products />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/favorites" element={<Favorites />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/search" element={<Products />} />
-          <Route path="/favorites" element={<Placeholder />} />
           <Route path="/cart" element={<Placeholder />} />
           <Route path="/profile" element={<Placeholder />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

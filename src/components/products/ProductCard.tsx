@@ -2,14 +2,16 @@ import { Product } from "@/types/product";
 import { Heart, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useFavoritesStore } from "@/store/favoritesStore";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavoritesStore();
+  const isProductFavorite = isFavorite(product.id);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("uz-UZ").format(price);
@@ -18,6 +20,12 @@ export function ProductCard({ product }: ProductCardProps) {
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleFavorite(product);
+    toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
+  };
 
   return (
     <Link
@@ -34,16 +42,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Favorite button */}
         <button
-          onClick={(e) => {
-            e.preventDefault();
-            setIsFavorite(!isFavorite);
-          }}
+          onClick={handleFavoriteClick}
           className="absolute right-2 top-2 rounded-full bg-background/80 p-2 backdrop-blur-sm transition-all active:scale-95"
         >
           <Heart
             className={cn(
               "h-5 w-5 transition-colors",
-              isFavorite ? "fill-like text-like" : "text-foreground"
+              isProductFavorite ? "fill-like text-like" : "text-foreground"
             )}
           />
         </button>
