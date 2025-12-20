@@ -6,16 +6,14 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
-  activeOnReels?: boolean;
 }
 
 const navItems: NavItem[] = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Search", path: "/search" },
-  { icon: Play, label: "Reels", path: "/reels", activeOnReels: true },
+  { icon: Search, label: "Products", path: "/products" },
+  { icon: Play, label: "Reels", path: "/reels" },
   { icon: Heart, label: "Favorites", path: "/favorites" },
   { icon: ShoppingBag, label: "Cart", path: "/cart" },
-  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 interface BottomNavProps {
