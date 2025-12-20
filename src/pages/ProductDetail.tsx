@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, Star, ShoppingBag, Play, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Heart, Star, ShoppingBag, Play, ChevronLeft, ChevronRight, Check } from "lucide-react";
 import { getProductById } from "@/data/mockProducts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useFavoritesStore } from "@/store/favoritesStore";
+import { useCartStore } from "@/store/cartStore";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ export default function ProductDetail() {
   const product = getProductById(id || "");
   
   const { isFavorite, toggleFavorite } = useFavoritesStore();
+  const { addToCart, isInCart } = useCartStore();
   const [currentImage, setCurrentImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
 
@@ -30,6 +32,7 @@ export default function ProductDetail() {
   }
 
   const isProductFavorite = isFavorite(product.id);
+  const isProductInCart = isInCart(product.id);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("uz-UZ").format(price);
@@ -40,6 +43,7 @@ export default function ProductDetail() {
     : 0;
 
   const handleAddToCart = () => {
+    addToCart(product, quantity);
     toast.success(`Added ${quantity} item(s) to cart`);
   };
 
@@ -216,8 +220,17 @@ export default function ProductDetail() {
             disabled={!product.inStock}
             className="h-12 px-8 rounded-xl font-semibold gap-2"
           >
-            <ShoppingBag className="h-5 w-5" />
-            {product.inStock ? "Add to Cart" : "Out of Stock"}
+            {isProductInCart ? (
+              <>
+                <Check className="h-5 w-5" />
+                Add More
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="h-5 w-5" />
+                {product.inStock ? "Add to Cart" : "Out of Stock"}
+              </>
+            )}
           </Button>
         </div>
       </div>

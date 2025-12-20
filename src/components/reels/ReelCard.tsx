@@ -1,32 +1,33 @@
 import { useNavigate } from "react-router-dom";
 import { ReelItem } from "@/types/product";
 import { useState, useRef, useEffect } from "react";
-import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX, ExternalLink } from "lucide-react";
+import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX, ExternalLink, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
+import { useCartStore } from "@/store/cartStore";
 import { toast } from "sonner";
 
 interface ReelCardProps {
   reel: ReelItem;
   isActive: boolean;
   onLike: (id: string) => void;
-  onAddToCart: (id: string) => void;
 }
 
 export function ReelCard({
   reel,
   isActive,
   onLike,
-  onAddToCart,
 }: ReelCardProps) {
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavoritesStore();
+  const { addToCart, isInCart } = useCartStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likeAnimation, setLikeAnimation] = useState(false);
 
   const isProductFavorite = isFavorite(reel.product.id);
+  const isProductInCart = isInCart(reel.product.id);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -49,6 +50,11 @@ export function ReelCard({
   const handleFavorite = () => {
     toggleFavorite(reel.product);
     toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
+  };
+
+  const handleAddToCart = () => {
+    addToCart(reel.product);
+    toast.success("Added to cart");
   };
 
   const handleViewProduct = () => {
@@ -139,13 +145,19 @@ export function ReelCard({
 
         {/* Add to Cart */}
         <button
-          onClick={() => onAddToCart(reel.id)}
+          onClick={handleAddToCart}
           className="flex flex-col items-center gap-1 active:scale-95"
         >
           <div className="rounded-full bg-reels-foreground/10 p-3 backdrop-blur-sm transition-all">
-            <ShoppingBag className="h-7 w-7 text-reels-foreground" />
+            {isProductInCart ? (
+              <Check className="h-7 w-7 text-green-400" />
+            ) : (
+              <ShoppingBag className="h-7 w-7 text-reels-foreground" />
+            )}
           </div>
-          <span className="text-xs font-medium text-reels-foreground">Cart</span>
+          <span className="text-xs font-medium text-reels-foreground">
+            {isProductInCart ? "Added" : "Cart"}
+          </span>
         </button>
 
         {/* Share */}
