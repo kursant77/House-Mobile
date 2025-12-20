@@ -26,13 +26,7 @@ export default function Reels() {
   }, [activeIndex]);
 
   const handleLike = (id: string) => {
-    // Will connect to API later
     console.log("Liked:", id);
-  };
-
-  const handleFavorite = (id: string) => {
-    toast.success("Added to favorites");
-    console.log("Favorited:", id);
   };
 
   const handleAddToCart = (id: string) => {
@@ -57,7 +51,6 @@ export default function Reels() {
               reel={reel}
               isActive={index === activeIndex}
               onLike={handleLike}
-              onFavorite={handleFavorite}
               onAddToCart={handleAddToCart}
             />
           </div>

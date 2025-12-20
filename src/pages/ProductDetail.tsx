@@ -5,14 +5,15 @@ import { getProductById } from "@/data/mockProducts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useFavoritesStore } from "@/store/favoritesStore";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const product = getProductById(id || "");
   
+  const { isFavorite, toggleFavorite } = useFavoritesStore();
   const [currentImage, setCurrentImage] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
   if (!product) {
@@ -28,6 +29,8 @@ export default function ProductDetail() {
     );
   }
 
+  const isProductFavorite = isFavorite(product.id);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("uz-UZ").format(price);
   };
@@ -41,8 +44,8 @@ export default function ProductDetail() {
   };
 
   const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    toast.success(isFavorite ? "Removed from favorites" : "Added to favorites");
+    toggleFavorite(product);
+    toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const nextImage = () => {
@@ -70,7 +73,7 @@ export default function ProductDetail() {
           <Heart
             className={cn(
               "h-6 w-6 transition-colors",
-              isFavorite ? "fill-like text-like" : "text-foreground"
+              isProductFavorite ? "fill-like text-like" : "text-foreground"
             )}
           />
         </button>

@@ -1,31 +1,32 @@
 import { useNavigate } from "react-router-dom";
 import { ReelItem } from "@/types/product";
+import { useState, useRef, useEffect } from "react";
+import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useFavoritesStore } from "@/store/favoritesStore";
+import { toast } from "sonner";
 
 interface ReelCardProps {
   reel: ReelItem;
   isActive: boolean;
   onLike: (id: string) => void;
-  onFavorite: (id: string) => void;
   onAddToCart: (id: string) => void;
 }
-
-import { useState, useRef, useEffect } from "react";
-import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX, ExternalLink } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export function ReelCard({
   reel,
   isActive,
   onLike,
-  onFavorite,
   onAddToCart,
 }: ReelCardProps) {
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavoritesStore();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
-  const [isFavorite, setIsFavorite] = useState(reel.isFavorite);
   const [likeAnimation, setLikeAnimation] = useState(false);
+
+  const isProductFavorite = isFavorite(reel.product.id);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -46,8 +47,8 @@ export function ReelCard({
   };
 
   const handleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    onFavorite(reel.id);
+    toggleFavorite(reel.product);
+    toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const handleViewProduct = () => {
@@ -127,7 +128,7 @@ export function ReelCard({
             <Star
               className={cn(
                 "h-7 w-7 transition-colors",
-                isFavorite
+                isProductFavorite
                   ? "fill-yellow-400 text-yellow-400"
                   : "text-reels-foreground"
               )}
