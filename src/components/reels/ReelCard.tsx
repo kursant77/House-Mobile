@@ -1,6 +1,4 @@
-import { useState, useRef, useEffect } from "react";
-import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { ReelItem } from "@/types/product";
 
 interface ReelCardProps {
@@ -11,6 +9,10 @@ interface ReelCardProps {
   onAddToCart: (id: string) => void;
 }
 
+import { useState, useRef, useEffect } from "react";
+import { Heart, Star, ShoppingBag, Share2, Volume2, VolumeX, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 export function ReelCard({
   reel,
   isActive,
@@ -18,6 +20,7 @@ export function ReelCard({
   onFavorite,
   onAddToCart,
 }: ReelCardProps) {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
@@ -45,6 +48,10 @@ export function ReelCard({
   const handleFavorite = () => {
     setIsFavorite(!isFavorite);
     onFavorite(reel.id);
+  };
+
+  const handleViewProduct = () => {
+    navigate(`/product/${reel.product.id}`);
   };
 
   const formatPrice = (price: number) => {
@@ -149,12 +156,18 @@ export function ReelCard({
         </button>
       </div>
 
-      {/* Product info - Bottom */}
-      <div className="absolute bottom-20 left-4 right-20 animate-slide-up">
+      {/* Product info - Bottom (clickable) */}
+      <button
+        onClick={handleViewProduct}
+        className="absolute bottom-20 left-4 right-20 text-left animate-slide-up"
+      >
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-reels-foreground line-clamp-2">
-            {reel.product.title}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-reels-foreground line-clamp-2">
+              {reel.product.title}
+            </h3>
+            <ExternalLink className="h-4 w-4 text-reels-foreground/70 shrink-0" />
+          </div>
           <p className="text-sm text-reels-foreground/70 line-clamp-2">
             {reel.product.description}
           </p>
@@ -177,7 +190,7 @@ export function ReelCard({
             </div>
           )}
         </div>
-      </div>
+      </button>
     </div>
   );
 }

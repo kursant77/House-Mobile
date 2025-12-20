@@ -1,9 +1,13 @@
 import { BottomNav } from "@/components/layout/BottomNav";
-import { Play, User } from "lucide-react";
+import { Play, ShoppingBag, User } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ProductCard } from "@/components/products/ProductCard";
+import { mockProducts } from "@/data/mockProducts";
 
 export default function Home() {
+  const featuredProducts = mockProducts.slice(0, 4);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header */}
@@ -19,7 +23,7 @@ export default function Home() {
       </header>
 
       {/* Content */}
-      <main className="px-4 py-6">
+      <main className="px-4 py-6 space-y-8">
         {/* Hero - Go to Reels */}
         <Link
           to="/reels"
@@ -40,23 +44,44 @@ export default function Home() {
           <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full bg-primary-foreground/5" />
         </Link>
 
-        {/* Coming soon sections */}
-        <div className="mt-8 space-y-4">
-          <h3 className="text-lg font-semibold text-foreground">Coming Soon</h3>
-          
-          <div className="grid grid-cols-2 gap-3">
-            {["Products", "Categories", "Favorites", "Cart"].map((item) => (
-              <div
-                key={item}
-                className="rounded-xl bg-muted p-4 text-center"
-              >
-                <span className="text-sm font-medium text-muted-foreground">
-                  {item}
-                </span>
-              </div>
+        {/* Featured Products */}
+        <section>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Featured Products</h2>
+            <Link
+              to="/products"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              See all
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
-        </div>
+        </section>
+
+        {/* Shop by Category */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Shop by Category</h2>
+          <Link
+            to="/products"
+            className="block rounded-2xl bg-muted p-6 transition-transform active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-4">
+              <div className="rounded-full bg-background p-3">
+                <ShoppingBag className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-semibold">All Categories</h3>
+                <p className="text-sm text-muted-foreground">
+                  Browse our full collection
+                </p>
+              </div>
+            </div>
+          </Link>
+        </section>
       </main>
 
       <BottomNav />
