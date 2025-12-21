@@ -1,7 +1,8 @@
-import { Home, Search, Play, Heart, ShoppingBag } from "lucide-react";
+import { Home, Search, Heart, ShoppingBag, Film } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavItem {
   icon: React.ElementType;
@@ -12,8 +13,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Products", path: "/products" },
-  { icon: Play, label: "Reels", path: "/reels" },
+  { icon: Search, label: "Catalog", path: "/products" },
+  { icon: Film, label: "Reels", path: "/reels" },
   { icon: Heart, label: "Favorites", path: "/favorites" },
   { icon: ShoppingBag, label: "Cart", path: "/cart", showBadge: true },
 ];
@@ -25,17 +26,21 @@ interface BottomNavProps {
 export function BottomNav({ isReelsPage = false }: BottomNavProps) {
   const { getItemCount } = useCartStore();
   const cartCount = getItemCount();
+  const isMobile = useIsMobile();
 
+  // Desktopda ko'rinmasin (Sidebar bor)
+  if (!isMobile) {
+    return null;
+  }
+
+  // Mobile uchun pastda navbar (Uzum Market style)
   return (
     <nav
       className={cn(
         "fixed bottom-0 left-0 right-0 z-50 pb-safe",
         "flex items-center justify-around",
-        "h-16 border-t",
-        "backdrop-blur-xl transition-colors duration-300",
-        isReelsPage
-          ? "bg-reels/80 border-reels-foreground/10"
-          : "bg-nav/80 border-border"
+        "h-16 border-t bg-background/95 backdrop-blur-lg border-border",
+        isReelsPage && "bg-black/80 border-white/10 text-white"
       )}
     >
       {navItems.map((item) => (
@@ -44,16 +49,11 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
           to={item.path}
           className={({ isActive }) =>
             cn(
-              "relative flex flex-col items-center justify-center gap-0.5 px-3 py-2",
-              "transition-all duration-200 ease-out",
-              "active:scale-95",
+              "relative flex flex-col items-center justify-center gap-1 px-2 py-1 flex-1",
+              "transition-colors duration-200",
               isActive
-                ? isReelsPage
-                  ? "text-reels-foreground"
-                  : "text-nav-active"
-                : isReelsPage
-                ? "text-reels-foreground/50"
-                : "text-nav-foreground"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )
           }
         >
@@ -62,13 +62,13 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
               <div className="relative">
                 <item.icon
                   className={cn(
-                    "h-6 w-6 transition-transform duration-200",
-                    isActive && "scale-110"
+                    "h-6 w-6 mb-0.5",
+                    isActive && "fill-current"
                   )}
-                  strokeWidth={isActive ? 2.5 : 1.5}
+                  strokeWidth={2}
                 />
                 {item.showBadge && cartCount > 0 && (
-                  <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+                  <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white border-2 border-background">
                     {cartCount > 99 ? "99+" : cartCount}
                   </span>
                 )}

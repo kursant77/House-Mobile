@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 function CartItemCard({ item }: { item: CartItem }) {
   const { removeFromCart, incrementQuantity, decrementQuantity } = useCartStore();
@@ -69,6 +70,7 @@ function CartItemCard({ item }: { item: CartItem }) {
 export default function Cart() {
   const { items, getTotal, getItemCount, clearCart } = useCartStore();
   const [showCheckout, setShowCheckout] = useState(false);
+  const isMobile = useIsMobile();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("uz-UZ").format(price);
@@ -82,9 +84,11 @@ export default function Cart() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-36">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
+    <div className="min-h-screen bg-background pb-36 md:pb-0 md:pt-16">
+      <BottomNav />
+      {/* Header - faqat mobile uchun */}
+      {isMobile && (
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
         <div className="flex items-center justify-between px-4 py-3">
           <div>
             <h1 className="text-xl font-bold tracking-tight">Cart</h1>
@@ -102,14 +106,39 @@ export default function Cart() {
           )}
         </div>
       </header>
+      )}
+
+      {/* Desktop Header */}
+      {!isMobile && (
+        <div className="container mx-auto px-4 py-6 max-w-6xl">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Shopping Cart</h1>
+              <p className="text-muted-foreground">
+                {itemCount} {itemCount === 1 ? "item" : "items"} in your cart
+              </p>
+            </div>
+            {items.length > 0 && (
+              <button
+                onClick={clearCart}
+                className="text-sm text-muted-foreground hover:text-destructive transition-colors px-4 py-2 rounded-lg hover:bg-accent"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Content */}
-      <main className="px-4 py-4">
+      <main className="px-4 py-4 md:container md:mx-auto md:max-w-6xl">
         {items.length > 0 ? (
-          <div className="space-y-3">
-            {items.map((item) => (
-              <CartItemCard key={item.product.id} item={item} />
-            ))}
+          <div className="space-y-3 md:grid md:grid-cols-3 md:gap-6 md:space-y-0">
+            <div className="md:col-span-2 space-y-3">
+              {items.map((item) => (
+                <CartItemCard key={item.product.id} item={item} />
+              ))}
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -127,9 +156,39 @@ export default function Cart() {
         )}
       </main>
 
-      {/* Fixed Bottom Bar */}
-      {items.length > 0 && (
-        <div className="fixed bottom-16 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border px-4 py-4 pb-safe">
+      {/* Desktop Order Summary */}
+      {items.length > 0 && !isMobile && (
+        <div className="container mx-auto px-4 max-w-6xl mt-8">
+          <div className="bg-card rounded-2xl border border-border p-6 shadow-lg">
+            <h2 className="text-xl font-bold mb-4">Order Summary</h2>
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">{formatPrice(total)} UZS</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Delivery</span>
+                <span className="text-green-600 font-medium">Free</span>
+              </div>
+              <div className="flex justify-between font-semibold text-xl pt-3 border-t border-border">
+                <span>Total</span>
+                <span>{formatPrice(total)} UZS</span>
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowCheckout(true)}
+              className="w-full h-12 rounded-xl font-semibold gap-2"
+            >
+              Checkout
+              <ArrowRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Fixed Bottom Bar */}
+      {items.length > 0 && isMobile && (
+        <div className="fixed bottom-16 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border px-4 py-4 pb-safe z-40">
           {/* Order summary */}
           <div className="space-y-2 mb-4">
             <div className="flex justify-between text-sm">
@@ -155,8 +214,6 @@ export default function Cart() {
           </Button>
         </div>
       )}
-
-      <BottomNav />
     </div>
   );
 }

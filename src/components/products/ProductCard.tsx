@@ -1,16 +1,20 @@
 import { Product } from "@/types/product";
-import { Heart, Star } from "lucide-react";
+import { Heart, Star, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
+import { useCartStore } from "@/store/cartStore"; // Assume this exists or I'll check imports
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
   product: Product;
+  variant?: "default" | "wide";
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, variant = "default" }: ProductCardProps) {
   const { isFavorite, toggleFavorite } = useFavoritesStore();
+  const { addToCart } = useCartStore();
   const isProductFavorite = isFavorite(product.id);
 
   const formatPrice = (price: number) => {
@@ -27,77 +31,77 @@ export function ProductCard({ product }: ProductCardProps) {
     toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addToCart(product);
+    toast.success("Added to cart");
+  }
+
+  const aspectClass = variant === "wide" ? "aspect-video" : "aspect-[4/5]";
+
   return (
     <Link
       to={`/product/${product.id}`}
-      className="group block animate-fade-in"
+      className="group flex flex-col gap-3"
     >
-      <div className="relative overflow-hidden rounded-2xl bg-muted aspect-[3/4]">
-        {/* Image */}
+      {/* Image Container */}
+      <div className={cn("relative w-full rounded-2xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden isolate", aspectClass)}>
         <img
           src={product.images[0]}
           alt={product.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-110"
         />
 
-        {/* Favorite button */}
+        {/* Favorite Button (Top Right) */}
         <button
           onClick={handleFavoriteClick}
-          className="absolute right-2 top-2 rounded-full bg-background/80 p-2 backdrop-blur-sm transition-all active:scale-95"
+          className="absolute top-2.5 right-2.5 z-10 p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 active:scale-90 transition-all"
         >
           <Heart
             className={cn(
-              "h-5 w-5 transition-colors",
-              isProductFavorite ? "fill-like text-like" : "text-foreground"
+              "h-4 w-4 transition-colors",
+              isProductFavorite ? "fill-red-500 text-red-500 drop-shadow-sm" : "text-white fill-black/20"
             )}
           />
         </button>
 
-        {/* Discount badge */}
+        {/* Discount Badge (Top Left) */}
         {discount > 0 && (
-          <div className="absolute left-2 top-2 rounded-full bg-destructive px-2 py-1">
-            <span className="text-xs font-semibold text-destructive-foreground">
-              -{discount}%
-            </span>
+          <div className="absolute top-2.5 left-2.5 z-10 px-2.5 py-1 rounded-lg bg-red-500/90 backdrop-blur-sm shadow-sm">
+            <span className="text-[10px] font-bold text-white tracking-wide">-{discount}%</span>
           </div>
         )}
 
-        {/* Out of stock overlay */}
-        {!product.inStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-            <span className="rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground">
-              Out of Stock
-            </span>
-          </div>
-        )}
+        {/* Add to Cart Button */}
+        <button
+          onClick={handleAddToCart}
+          className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/40 active:scale-95 transition-all hover:shadow-blue-500/60 hover:scale-105"
+        >
+          <ShoppingCart className="h-4 w-4" />
+          <span className="text-xs font-semibold">Add to Cart</span>
+        </button>
       </div>
 
-      {/* Info */}
-      <div className="mt-3 space-y-1">
-        <h3 className="font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+      {/* Info Section */}
+      <div className="flex flex-col gap-1.5 px-0.5">
+        <h3 className="text-[13px] md:text-sm font-medium leading-snug line-clamp-2 text-foreground/90 h-[2.5em] md:h-auto">
           {product.title}
         </h3>
 
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-foreground">
-            {formatPrice(product.price)}
-          </span>
+        <div className="flex items-center gap-1.5">
+          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+          <span className="text-xs font-medium text-muted-foreground">{product.rating}</span>
+          <span className="text-[10px] text-muted-foreground/60">({product.reviewCount})</span>
+        </div>
+
+        <div className="flex items-baseline gap-2 mt-0.5">
+          <span className="text-sm md:text-base font-bold text-foreground tracking-tight">{formatPrice(product.price)} UZS</span>
           {product.originalPrice && (
-            <span className="text-sm text-muted-foreground line-through">
+            <span className="text-[10px] md:text-xs text-muted-foreground/70 line-through decoration-zinc-400/50">
               {formatPrice(product.originalPrice)}
             </span>
           )}
-          <span className="text-xs text-muted-foreground">{product.currency}</span>
         </div>
-
-        {product.rating && (
-          <div className="flex items-center gap-1">
-            <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
-            <span className="text-xs text-muted-foreground">
-              {product.rating} ({product.reviewCount})
-            </span>
-          </div>
-        )}
       </div>
     </Link>
   );
