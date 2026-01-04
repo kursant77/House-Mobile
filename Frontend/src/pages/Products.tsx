@@ -71,7 +71,7 @@ export default function Products() {
 
         {/* Desktop Header */}
         {!isMobile && (
-          <div className="container mx-auto px-4 py-6 max-w-6xl">
+          <div className="mx-auto px-4 py-6 max-w-[2000px]">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h1 className="text-3xl font-bold mb-2">Products</h1>
@@ -113,9 +113,9 @@ export default function Products() {
         )}
 
         {/* Product Grid */}
-        <main className="px-4 py-4 md:container md:mx-auto md:max-w-6xl">
+        <main className="px-4 py-4 md:mx-auto max-w-[2000px]">
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
               {filteredProducts.map((product, index) => (
                 <div
                   key={product.id}

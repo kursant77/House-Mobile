@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -22,12 +21,28 @@ import { Link } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { CheckCircle2, ShieldCheck, Zap } from "lucide-react";
 
 export default function Profile() {
   const isMobile = useIsMobile();
-  const { user, logout } = useAuthStore();
+  const { user, logout, upgradeToProfessional } = useAuthStore();
   const { favorites } = useFavoritesStore();
   const { items } = useCartStore();
+  const [isUpgrading, setIsUpgrading] = useState(false);
+
+  const handleUpgrade = async () => {
+    try {
+      setIsUpgrading(true);
+      await upgradeToProfessional();
+      toast.success("Successfully upgraded to Professional account!");
+    } catch (error) {
+      toast.error("Upgrade failed. Please try again.");
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
 
   const stats = [
     { label: "Favorites", value: favorites.length, icon: Heart, color: "text-red-500" },
@@ -46,15 +61,6 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-16">
       <BottomNav />
-      {/* Header - faqat mobile uchun */}
-      {isMobile && (
-        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h1 className="text-xl font-bold tracking-tight">Profile</h1>
-            <ThemeToggle />
-          </div>
-        </header>
-      )}
 
       <main className="px-4 py-6 space-y-6 md:container md:mx-auto md:max-w-4xl">
         {/* Profile Header */}
@@ -83,16 +89,36 @@ export default function Profile() {
                 <h2 className="text-2xl font-bold">
                   {user?.name || "Guest User"}
                 </h2>
+                {user?.isProfessional && (
+                  <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 gap-1">
+                    <ShieldCheck className="h-3 w-3" />
+                    Pro
+                  </Badge>
+                )}
                 <Button size="icon" variant="ghost" className="h-6 w-6">
                   <Edit className="h-4 w-4" />
                 </Button>
               </div>
               <p className="text-muted-foreground">{user?.email || "guest@example.com"}</p>
-              {!user && (
-                <Link to="/auth">
-                  <Button className="mt-4">Sign In</Button>
-                </Link>
-              )}
+
+              <div className="flex flex-col items-center gap-3 pt-4">
+                {user && !user.isProfessional && (
+                  <Button
+                    onClick={handleUpgrade}
+                    disabled={isUpgrading}
+                    variant="default"
+                    className="bg-gradient-to-r from-primary to-primary/80 hover:shadow-lg transition-all gap-2"
+                  >
+                    <Zap className="h-4 w-4 fill-current" />
+                    {isUpgrading ? "Upgrading..." : "Become Professional"}
+                  </Button>
+                )}
+                {!user && (
+                  <Link to="/auth">
+                    <Button>Sign In</Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

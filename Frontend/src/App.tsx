@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,10 +25,34 @@ const AppContent = () => {
 
   useEffect(() => {
     checkAuth();
+
+    // Listen to Supabase auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        const user = session?.user;
+        if (user) {
+          const userData = {
+            id: user.id,
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            email: user.email || '',
+            isProfessional: !!user.user_metadata?.is_professional,
+          };
+          localStorage.setItem("auth_token", session.access_token);
+          localStorage.setItem("user", JSON.stringify(userData));
+          useAuthStore.getState().setUser(userData);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("user");
+        useAuthStore.getState().setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [checkAuth]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />

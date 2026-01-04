@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store/authStore";
 
 type AuthMode = "login" | "register";
 
@@ -14,6 +15,7 @@ export default function Auth() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { login, register } = useAuthStore();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -63,32 +65,19 @@ export default function Auth() {
 
     setIsLoading(true);
 
-    // Simulate API call - replace with your Node.js backend
+    // Real API call via authStore
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
       if (mode === "login") {
-        // TODO: Call your backend API
-        // const response = await fetch('/api/auth/login', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ email: formData.email, password: formData.password })
-        // });
+        await login(formData.email, formData.password);
         toast.success("Login successful!");
         navigate("/");
       } else {
-        // TODO: Call your backend API
-        // const response = await fetch('/api/auth/register', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(formData)
-        // });
-        toast.success("Account created! Please login.");
-        setMode("login");
-        setFormData({ name: "", email: "", password: "" });
+        await register(formData.name, formData.email, formData.password);
+        toast.success("Account created successfully!");
+        navigate("/");
       }
-    } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+    } catch (error: any) {
+      toast.error(error.message || "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }

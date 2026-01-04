@@ -12,7 +12,6 @@ const sidebarItems = [
 
 const secondaryItems = [
     { icon: User, label: "Profile", path: "/profile" },
-    { icon: ShoppingBag, label: "Cart", path: "/cart" },
 ];
 
 export const Sidebar = () => {

@@ -1,10 +1,21 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuthStore } from "@/store/authStore";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Header = () => {
+    const { user, isAuthenticated, logout } = useAuthStore();
+
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
             <div className="flex items-center justify-between h-16 px-4 md:px-6">
@@ -50,21 +61,49 @@ export const Header = () => {
                         <Bell className="h-5 w-5" />
                     </Button>
 
-                    <Link to="/cart">
-                        <Button variant="ghost" size="icon" className="rounded-full relative">
-                            <ShoppingCart className="h-5 w-5" />
-                            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-                        </Button>
-                    </Link>
 
-                    <Link to="/auth">
-                        <Button variant="ghost" size="icon" className="rounded-full text-blue-600 font-medium w-auto px-2 md:px-4 gap-2">
-                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                <User className="h-5 w-5 text-blue-600" />
-                            </div>
-                            <span className="hidden md:inline">Sign in</span>
-                        </Button>
-                    </Link>
+                    {isAuthenticated ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-2 md:px-4 gap-2">
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                        <User className="h-5 w-5 text-primary" />
+                                    </div>
+                                    <span className="hidden md:inline">{user?.name}</span>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem asChild>
+                                    <Link to="/profile" className="flex items-center">
+                                        <User className="mr-2 h-4 w-4" />
+                                        <span>Profile</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                    <Link to="/settings" className="flex items-center">
+                                        <Settings className="mr-2 h-4 w-4" />
+                                        <span>Settings</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <Link to="/auth">
+                            <Button variant="ghost" size="icon" className="rounded-full text-blue-600 font-medium w-auto px-2 md:px-4 gap-2">
+                                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <User className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <span className="hidden md:inline">Sign in</span>
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             </div>
         </header>

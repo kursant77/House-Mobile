@@ -3,10 +3,15 @@ import { mockProducts, categories } from "@/data/mockProducts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Sparkles, User, LogIn, TrendingUp, Gift } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { Link } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
+  const { user, isAuthenticated } = useAuthStore();
 
   const filteredProducts = activeCategory === "all"
     ? mockProducts
@@ -64,14 +69,14 @@ export default function Home() {
       </div>
 
       {/* Desktop Title (YouTube Style) */}
-      <div className="hidden md:flex items-center justify-between px-8 mb-6 max-w-7xl mx-auto">
+      <div className="hidden md:flex items-center justify-between px-8 mb-6 mx-auto max-w-[2000px]">
         <h2 className="text-3xl font-bold">Recommended for You</h2>
         <Button variant="ghost" className="gap-2">View all <ChevronRight className="h-4 w-4" /></Button>
       </div>
 
       {/* Main Grid */}
-      <div className="px-3 md:px-8 pb-20">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-8 max-w-7xl mx-auto">
+      <div className="px-3 md:px-8 pb-20 max-w-[2000px] mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
           {filteredProducts.map((product) => (
             <ProductCard key={product.id} product={product} variant="wide" />
           ))}

@@ -5,19 +5,21 @@ interface User {
   id: string;
   name: string;
   email: string;
+  isProfessional: boolean;
 }
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  
+
   // Actions
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => void;
+  upgradeToProfessional: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -47,6 +49,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   checkAuth: () => {
     const user = authApi.getSavedUser();
     const isAuthenticated = authApi.isAuthenticated();
-    set({ user, isAuthenticated, isLoading: false });
+    set({ user: user as User | null, isAuthenticated, isLoading: false });
+  },
+
+  upgradeToProfessional: async () => {
+    await authApi.upgradeToProfessional();
+    const user = useAuthStore.getState().user;
+    if (user) {
+      const updatedUser = { ...user, isProfessional: true };
+      localStorage.setItem("user", JSON.stringify(updatedUser)); // Keep for persistence compat
+      set({ user: updatedUser });
+    }
   },
 }));

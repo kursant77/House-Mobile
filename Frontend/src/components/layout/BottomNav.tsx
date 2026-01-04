@@ -1,4 +1,4 @@
-import { Home, Search, Heart, ShoppingBag, Film } from "lucide-react";
+import { Home, Search, Heart, ShoppingBag, Film, User } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
@@ -13,10 +13,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Catalog", path: "/products" },
   { icon: Film, label: "Reels", path: "/reels" },
-  { icon: Heart, label: "Favorites", path: "/favorites" },
+  { icon: Search, label: "Catalog", path: "/products" },
   { icon: ShoppingBag, label: "Cart", path: "/cart", showBadge: true },
+  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 interface BottomNavProps {
