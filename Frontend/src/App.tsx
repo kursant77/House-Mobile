@@ -14,9 +14,16 @@ import Favorites from "./pages/Favorites";
 import Cart from "./pages/Cart";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import StoreProfile from "./pages/StoreProfile";
+import UploadProduct from "./pages/UploadProduct";
+import EditProfile from "./pages/EditProfile";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import { useAuthStore } from "@/store/authStore";
+import { authApi } from "@/services/api/auth";
+import { useCartStore } from "@/store/cartStore";
+import { useFavoritesStore } from "@/store/favoritesStore";
 
 const queryClient = new QueryClient();
 
@@ -31,20 +38,23 @@ const AppContent = () => {
       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
         const user = session?.user;
         if (user) {
-          const userData = {
-            id: user.id,
-            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-            email: user.email || '',
-            isProfessional: !!user.user_metadata?.is_professional,
-          };
-          localStorage.setItem("auth_token", session.access_token);
-          localStorage.setItem("user", JSON.stringify(userData));
-          useAuthStore.getState().setUser(userData);
+          // Use authApi to get full profile (syncs with profiles table)
+          authApi.getProfile().then(userData => {
+            if (session.access_token) {
+              localStorage.setItem("auth_token", session.access_token);
+              localStorage.setItem("user", JSON.stringify(userData));
+              useAuthStore.getState().setUser(userData as any);
+              useCartStore.getState().fetchCart();
+              useFavoritesStore.getState().fetchFavorites();
+            }
+          }).catch(console.error);
         }
       } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
         useAuthStore.getState().setUser(null);
+        useCartStore.getState().resetCart();
+        useFavoritesStore.getState().clearFavorites();
       }
     });
 
@@ -59,10 +69,14 @@ const AppContent = () => {
           <Route path="/reels" element={<Reels />} />
           <Route path="/products" element={<Products />} />
           <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/cart" element={<Cart />} />
+          <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/search" element={<Products />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+          <Route path="/profile/:id" element={<StoreProfile />} />
+          <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         </Route>
 
         <Route path="/auth" element={<Auth />} />

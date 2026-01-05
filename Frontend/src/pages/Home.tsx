@@ -1,21 +1,40 @@
 import { ProductCard } from "@/components/products/ProductCard";
-import { mockProducts, categories } from "@/data/mockProducts";
+import { categories } from "@/data/mockProducts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { ChevronRight, Sparkles, User, LogIn, TrendingUp, Gift } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { productService } from "@/services/api/products";
+import { Loader2, PackageSearch } from "lucide-react";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const { user, isAuthenticated } = useAuthStore();
 
-  const filteredProducts = activeCategory === "all"
-    ? mockProducts
-    : mockProducts.filter(p => p.category === activeCategory);
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: productService.getProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+
+  const dynamicCategories = useMemo(() => categories.map(cat => ({
+    ...cat,
+    count: cat.id === "all"
+      ? products.length
+      : products.filter(p => p.category === cat.id).length
+  })), [products]);
+
+  const filteredProducts = useMemo(() => activeCategory === "all"
+    ? products
+    : products.filter(p => p.category === activeCategory), [products, activeCategory]);
+
+  const stories = useMemo(() => Array.from(new Set(products.map(p => p.author?.id)))
+    .map(id => products.find(p => p.author?.id === id)?.author)
+    .filter(Boolean)
+    .slice(0, 10), [products]);
 
   return (
     <>
@@ -23,16 +42,31 @@ export default function Home() {
       <div className="md:hidden space-y-4 pt-2">
         {/* Stories / Highlights */}
         <div className="flex overflow-x-auto gap-3 px-4 pb-2 no-scrollbar">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex flex-col items-center gap-1 shrink-0">
-              <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-yellow-400 to-red-500 p-[2px]">
-                <div className="h-full w-full rounded-full bg-background border-2 border-background overflow-hidden relative">
-                  <img src={`https://picsum.photos/seed/${i}/200`} className="h-full w-full object-cover" alt="story" />
+          {stories.length > 0 ? (
+            stories.map((author: any) => (
+              <div key={author.id} className="flex flex-col items-center gap-1 shrink-0">
+                <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-yellow-400 to-red-500 p-[2px]">
+                  <div className="h-full w-full rounded-full bg-background border-2 border-background overflow-hidden relative">
+                    <img
+                      src={author.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${author.fullName}`}
+                      className="h-full w-full object-cover"
+                      alt={author.fullName}
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
+                <span className="text-[10px] text-center w-16 truncate">{author.fullName?.split(' ')[0]}</span>
               </div>
-              <span className="text-[10px] text-center w-16 truncate">Special {i}</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            isLoading ? (
+              [1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="h-16 w-16 rounded-full bg-muted animate-pulse shrink-0" />
+              ))
+            ) : (
+              <div className="px-4 py-2 text-xs text-muted-foreground italic">No stories available</div>
+            )
+          )}
         </div>
 
         {/* Hero Banner */}
@@ -51,18 +85,24 @@ export default function Home() {
       {/* Categories / Chips (Both Desktop & Mobile) */}
       <div className="sticky top-14 z-30 bg-background/95 backdrop-blur-xl border-b border-white/5 py-3 px-4 md:px-8 mb-4 overflow-x-auto no-scrollbar -mx-4 md:mx-0">
         <div className="flex items-center gap-2 md:gap-3 min-w-max px-1">
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap active:scale-95",
+                "px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5",
                 activeCategory === cat.id
                   ? "bg-white text-black shadow-sm"
                   : "bg-zinc-100 dark:bg-white/10 text-muted-foreground hover:bg-zinc-200 dark:hover:bg-white/20"
               )}
             >
               {cat.name}
+              <span className={cn(
+                "text-[10px] opacity-60",
+                activeCategory === cat.id ? "text-black" : "text-muted-foreground"
+              )}>
+                ({cat.count})
+              </span>
             </button>
           ))}
         </div>
@@ -76,15 +116,28 @@ export default function Home() {
 
       {/* Main Grid */}
       <div className="px-3 md:px-8 pb-20 max-w-[2000px] mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} variant="wide" />
-          ))}
-          {/* Duplicating products to fill grid for demo */}
-          {filteredProducts.map((product) => (
-            <ProductCard key={`${product.id}-copy`} product={{ ...product, id: `${product.id}-copy` }} variant="wide" />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground animate-pulse">Loading products...</p>
+          </div>
+        ) : filteredProducts.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} variant="wide" />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="bg-muted p-6 rounded-full mb-4">
+              <PackageSearch className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h3 className="text-xl font-semibold mb-2">No products found</h3>
+            <p className="text-muted-foreground max-w-sm">
+              Be the first one to post a product in this category!
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

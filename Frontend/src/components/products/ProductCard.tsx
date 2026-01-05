@@ -1,9 +1,11 @@
+import { memo } from "react";
 import { Product } from "@/types/product";
 import { Heart, Star, ShoppingCart } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
-import { useCartStore } from "@/store/cartStore"; // Assume this exists or I'll check imports
+import { useCartStore } from "@/store/cartStore";
+import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -12,7 +14,9 @@ interface ProductCardProps {
   variant?: "default" | "wide";
 }
 
-export function ProductCard({ product, variant = "default" }: ProductCardProps) {
+export const ProductCard = memo(({ product, variant = "default" }: ProductCardProps) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuthStore();
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const { addToCart } = useCartStore();
   const isProductFavorite = isFavorite(product.id);
@@ -27,12 +31,22 @@ export function ProductCard({ product, variant = "default" }: ProductCardProps) 
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Iltimos, avval tizimga kiring");
+      navigate("/auth");
+      return;
+    }
     toggleFavorite(product);
     toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      toast.error("Iltimos, avval tizimga kiring");
+      navigate("/auth");
+      return;
+    }
     addToCart(product);
     toast.success("Added to cart");
   }
@@ -50,6 +64,8 @@ export function ProductCard({ product, variant = "default" }: ProductCardProps) 
           src={product.images[0]}
           alt={product.title}
           className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-110"
+          loading="lazy"
+          decoding="async"
         />
 
         {/* Favorite Button (Top Right) */}
@@ -105,4 +121,4 @@ export function ProductCard({ product, variant = "default" }: ProductCardProps) 
       </div>
     </Link>
   );
-}
+});

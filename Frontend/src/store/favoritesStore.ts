@@ -1,53 +1,62 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { Product } from "@/types/product";
+import { userDataService } from "@/services/api/userData";
 
 interface FavoritesState {
   favorites: Product[];
-  
+  isLoading: boolean;
+
   // Actions
-  addFavorite: (product: Product) => void;
-  removeFavorite: (productId: string) => void;
-  toggleFavorite: (product: Product) => void;
+  fetchFavorites: () => Promise<void>;
+  addFavorite: (product: Product) => Promise<void>;
+  removeFavorite: (productId: string) => Promise<void>;
+  toggleFavorite: (product: Product) => Promise<void>;
   isFavorite: (productId: string) => boolean;
   clearFavorites: () => void;
 }
 
-export const useFavoritesStore = create<FavoritesState>()(
-  persist(
-    (set, get) => ({
-      favorites: [],
+export const useFavoritesStore = create<FavoritesState>((set, get) => ({
+  favorites: [],
+  isLoading: false,
 
-      addFavorite: (product) => {
-        const { favorites } = get();
-        if (!favorites.find((p) => p.id === product.id)) {
-          set({ favorites: [...favorites, product] });
-        }
-      },
-
-      removeFavorite: (productId) => {
-        set({ favorites: get().favorites.filter((p) => p.id !== productId) });
-      },
-
-      toggleFavorite: (product) => {
-        const { favorites, addFavorite, removeFavorite } = get();
-        if (favorites.find((p) => p.id === product.id)) {
-          removeFavorite(product.id);
-        } else {
-          addFavorite(product);
-        }
-      },
-
-      isFavorite: (productId) => {
-        return get().favorites.some((p) => p.id === productId);
-      },
-
-      clearFavorites: () => {
-        set({ favorites: [] });
-      },
-    }),
-    {
-      name: "house-mobile-favorites",
+  fetchFavorites: async () => {
+    set({ isLoading: true });
+    try {
+      const favorites = await userDataService.getFavorites();
+      set({ favorites, isLoading: false });
+    } catch (error) {
+      console.error("Failed to fetch favorites", error);
+      set({ isLoading: false });
     }
-  )
-);
+  },
+
+  addFavorite: async (product) => {
+    const { favorites } = get();
+    if (!favorites.find((p) => p.id === product.id)) {
+      set({ favorites: [...favorites, product] });
+      await userDataService.addFavorite(product.id);
+    }
+  },
+
+  removeFavorite: async (productId) => {
+    set({ favorites: get().favorites.filter((p) => p.id !== productId) });
+    await userDataService.removeFavorite(productId);
+  },
+
+  toggleFavorite: async (product) => {
+    const { favorites, addFavorite, removeFavorite } = get();
+    if (favorites.find((p) => p.id === product.id)) {
+      await removeFavorite(product.id);
+    } else {
+      await addFavorite(product);
+    }
+  },
+
+  isFavorite: (productId) => {
+    return get().favorites.some((p) => p.id === productId);
+  },
+
+  clearFavorites: () => {
+    set({ favorites: [] });
+  },
+}));

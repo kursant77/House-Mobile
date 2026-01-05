@@ -1,4 +1,4 @@
-import { Home, Search, Heart, ShoppingBag, Film, User } from "lucide-react";
+import { Home, Search, Heart, ShoppingBag, Film, User, PlusSquare } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
@@ -13,9 +13,9 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: Home, label: "Home", path: "/" },
-  { icon: Film, label: "Reels", path: "/reels" },
   { icon: Search, label: "Catalog", path: "/products" },
-  { icon: ShoppingBag, label: "Cart", path: "/cart", showBadge: true },
+  { icon: PlusSquare, label: "Add", path: "/upload" },
+  { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
@@ -52,8 +52,8 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
               "relative flex flex-col items-center justify-center gap-1 px-2 py-1 flex-1",
               "transition-colors duration-200",
               isActive
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
+                ? (isReelsPage ? "text-white" : "text-primary")
+                : (isReelsPage ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")
             )
           }
         >

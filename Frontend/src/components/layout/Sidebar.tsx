@@ -1,12 +1,14 @@
-import { Home, Repeat, Flag, Mic2, Gamepad2, Trophy, Flame, Music2, Search, Menu, ShoppingBag, Heart, User } from "lucide-react";
+import { Home, Repeat, Flag, Mic2, Gamepad2, Trophy, Flame, Music2, Search, Menu, ShoppingBag, Heart, User, ShoppingCart } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useCartStore } from "@/store/cartStore";
 
 const sidebarItems = [
     { icon: Home, label: "Home", path: "/" },
-    { icon: Repeat, label: "Reels", path: "/reels" }, // Using Repeat as a proxy for 'Shorts' icon style or similar
+    { icon: Repeat, label: "Reels", path: "/reels" },
     { icon: ShoppingBag, label: "Products", path: "/products" },
+    { icon: ShoppingCart, label: "Cart", path: "/cart" },
     { icon: Heart, label: "Favorites", path: "/favorites" },
 ];
 
@@ -16,6 +18,8 @@ const secondaryItems = [
 
 export const Sidebar = () => {
     const location = useLocation();
+    const { getItemCount } = useCartStore();
+    const itemCount = getItemCount();
 
     return (
         <aside className="hidden md:flex flex-col w-64 h-[calc(100vh-64px)] fixed top-16 left-0 overflow-y-auto border-r border-border bg-background pt-2 px-3">
@@ -32,7 +36,12 @@ export const Sidebar = () => {
                                 )}
                             >
                                 <item.icon className="h-6 w-6" />
-                                {item.label}
+                                <span className="flex-1 text-left">{item.label}</span>
+                                {item.label === "Cart" && itemCount > 0 && (
+                                    <span className="bg-primary text-primary-foreground text-[10px] font-bold h-5 w-5 rounded-full flex items-center justify-center">
+                                        {itemCount}
+                                    </span>
+                                )}
                             </Button>
                         </Link>
                     );

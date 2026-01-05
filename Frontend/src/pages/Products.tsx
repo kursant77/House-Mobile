@@ -1,21 +1,37 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { ProductCard } from "@/components/products/ProductCard";
-import { categories, getProductsByCategory } from "@/data/mockProducts";
+import { categories } from "@/data/mockProducts";
 import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { useQuery } from "@tanstack/react-query";
+import { productService } from "@/services/api/products";
 
 export default function Products() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
 
-  const products = getProductsByCategory(activeCategory);
+  const { data: allProducts = [], isLoading } = useQuery({
+    queryKey: ["products"],
+    queryFn: productService.getProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+
+  const dynamicCategories = useMemo(() => categories.map(cat => ({
+    ...cat,
+    count: cat.id === "all"
+      ? allProducts.length
+      : allProducts.filter(p => p.category === cat.id).length
+  })), [allProducts]);
+
+  const products = activeCategory === "all"
+    ? allProducts
+    : allProducts.filter(p => p.category === activeCategory);
 
   const filteredProducts = searchQuery
     ? products.filter((p) =>
@@ -51,18 +67,19 @@ export default function Products() {
 
             {/* Categories */}
             <div className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-none">
-              {categories.map((category) => (
+              {dynamicCategories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-95",
+                    "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-all active:scale-95 flex items-center gap-1.5",
                     activeCategory === category.id
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-accent"
                   )}
                 >
                   {category.name}
+                  <span className="text-[10px] opacity-60">({category.count})</span>
                 </button>
               ))}
             </div>
@@ -94,18 +111,24 @@ export default function Products() {
 
             {/* Categories */}
             <div className="flex gap-3 mb-8 overflow-x-auto scrollbar-none pb-2">
-              {categories.map((category) => (
+              {dynamicCategories.map((category) => (
                 <button
                   key={category.id}
                   onClick={() => setActiveCategory(category.id)}
                   className={cn(
-                    "shrink-0 rounded-full px-6 py-2.5 text-sm font-medium transition-all hover:scale-105 active:scale-95",
+                    "shrink-0 rounded-full px-6 py-2.5 text-sm font-medium transition-all hover:scale-105 active:scale-95 flex items-center gap-2",
                     activeCategory === category.id
                       ? "bg-primary text-primary-foreground shadow-lg"
                       : "bg-muted text-muted-foreground hover:bg-accent"
                   )}
                 >
-                  {category.name} ({category.count})
+                  {category.name}
+                  <span className={cn(
+                    "text-[10px] font-bold px-1.5 py-0.5 rounded-full",
+                    activeCategory === category.id ? "bg-white/20" : "bg-zinc-200 dark:bg-zinc-800"
+                  )}>
+                    {category.count}
+                  </span>
                 </button>
               ))}
             </div>
@@ -114,7 +137,12 @@ export default function Products() {
 
         {/* Product Grid */}
         <main className="px-4 py-4 md:mx-auto max-w-[2000px]">
-          {filteredProducts.length > 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <p className="text-muted-foreground animate-pulse">Loading products...</p>
+            </div>
+          ) : filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 md:gap-6">
               {filteredProducts.map((product, index) => (
                 <div
@@ -127,7 +155,7 @@ export default function Products() {
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-20 animate-fade-in">
+            <div className="flex flex-col items-center justify-center py-20 animate-fade-in text-center">
               <div className="mb-4 rounded-full bg-muted p-6">
                 <Search className="h-12 w-12 text-muted-foreground" />
               </div>

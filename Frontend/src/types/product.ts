@@ -1,3 +1,11 @@
+export interface Profile {
+  id: string;
+  fullName?: string;
+  avatarUrl?: string;
+  bio?: string;
+  sellerRating?: number;
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -11,6 +19,9 @@ export interface Product {
   inStock: boolean;
   rating?: number;
   reviewCount?: number;
+  sellerId: string;
+  views?: number;
+  author?: Profile;
 }
 
 export interface ReelItem {
@@ -19,6 +30,7 @@ export interface ReelItem {
   thumbnailUrl: string;
   product: Product;
   likes: number;
+  author?: Profile;
   isLiked: boolean;
   isFavorite: boolean;
 }

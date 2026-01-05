@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,12 +62,24 @@ export const Header = () => {
                     </Button>
 
 
+                    <Link to="/upload" className="hidden md:block">
+                        <Button className="rounded-full gap-2 px-6">
+                            <PlusSquare className="h-4 w-4" />
+                            Post
+                        </Button>
+                    </Link>
+
+
                     {isAuthenticated ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-2 md:px-4 gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-                                        <User className="h-5 w-5 text-primary" />
+                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
+                                        {user?.avatarUrl ? (
+                                            <img src={user.avatarUrl} className="h-full w-full object-cover" alt="avatar" />
+                                        ) : (
+                                            <User className="h-5 w-5 text-primary" />
+                                        )}
                                     </div>
                                     <span className="hidden md:inline">{user?.name}</span>
                                 </Button>
