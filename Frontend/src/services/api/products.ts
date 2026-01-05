@@ -119,6 +119,9 @@ export const productService = {
      * Fetch reels (products with videos)
      */
     getReels: async (): Promise<ReelItem[]> => {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData?.user?.id;
+
         const { data, error } = await supabase
             .from('products')
             .select(`
@@ -130,45 +133,55 @@ export const productService = {
 
         if (error) throw error;
 
-        // Filter only those that have a video
-        const productsWithVideo = data.filter((p: any) =>
-            p.product_media.some((m: any) => m.type === 'video')
+        // Fetch meta information for each reel (likes, comments, etc.)
+        const reels = await Promise.all(
+            data.filter((p: any) => p.product_media.some((m: any) => m.type === 'video'))
+                .map(async (p: any) => {
+                    const videoMedia = p.product_media.find((m: any) => m.type === 'video');
+                    const images = p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url);
+                    const author = p.profiles ? {
+                        id: p.profiles.id,
+                        fullName: p.profiles.full_name,
+                        avatarUrl: p.profiles.avatar_url,
+                    } : undefined;
+
+                    // Fetch real counts
+                    const [likes, comments, userLike] = await Promise.all([
+                        supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
+                        supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
+                        userId ? supabase.from('product_likes').select('*').eq('user_id', userId).eq('product_id', p.id).maybeSingle() : Promise.resolve({ data: null }),
+                    ]);
+
+                    return {
+                        id: `reel-${p.id}`,
+                        videoUrl: videoMedia.url,
+                        thumbnailUrl: videoMedia.thumbnail_url || images[0],
+                        author,
+                        product: {
+                            id: p.id,
+                            title: p.title,
+                            description: p.description,
+                            price: p.price,
+                            currency: p.currency,
+                            category: p.category,
+                            inStock: p.in_stock,
+                            rating: p.rating,
+                            reviewCount: p.review_count,
+                            sellerId: p.seller_id,
+                            images,
+                            videoUrl: videoMedia.url,
+                            author,
+                            commentCount: comments.count || 0, // Add comment count to product if needed
+                        },
+                        likes: likes.count || 0,
+                        commentCount: comments.count || 0,
+                        isLiked: !!userLike.data,
+                        isFavorite: false, // This will be handled by the store
+                    };
+                })
         );
 
-        return productsWithVideo.map((p: any) => {
-            const videoMedia = p.product_media.find((m: any) => m.type === 'video');
-            const images = p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url);
-            const author = p.profiles ? {
-                id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
-            } : undefined;
-
-            return {
-                id: `reel-${p.id}`,
-                videoUrl: videoMedia.url,
-                thumbnailUrl: videoMedia.thumbnail_url || images[0],
-                author,
-                product: {
-                    id: p.id,
-                    title: p.title,
-                    description: p.description,
-                    price: p.price,
-                    currency: p.currency,
-                    category: p.category,
-                    inStock: p.in_stock,
-                    rating: p.rating,
-                    reviewCount: p.review_count,
-                    sellerId: p.seller_id,
-                    images,
-                    videoUrl: videoMedia.url,
-                    author,
-                },
-                likes: Math.floor(Math.random() * 10000),
-                isLiked: false,
-                isFavorite: false,
-            };
-        });
+        return reels;
     },
 
     /**

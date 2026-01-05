@@ -1,0 +1,149 @@
+import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, ChevronLeft, ChevronRight, BarChart3, Bell, ShieldCheck, PieChart, Table, Box, Mail, MessageSquare, HelpCircle, X, Menu } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/authStore";
+
+const menuGroups = [
+    {
+        name: "MENU",
+        items: [
+            { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
+            { icon: Users, label: "Foydalanuvchilar", path: "/admin/users" },
+            { icon: ShoppingBag, label: "Mahsulotlar", path: "/admin/products" },
+            { icon: Clapperboard, label: "Reels", path: "/admin/reels" },
+            { icon: BarChart3, label: "Analitika", path: "/admin/analytics" },
+            { icon: Bell, label: "Bildirishnomalar", path: "/admin/notifications" },
+        ]
+    },
+    {
+        name: "SUPPORT",
+        items: [
+            { icon: MessageSquare, label: "Xabarlar", path: "/admin/messages" },
+            { icon: Mail, label: "Email", path: "/admin/email" },
+            { icon: HelpCircle, label: "Yordam", path: "/admin/support" },
+        ]
+    },
+    {
+        name: "OTHERS",
+        items: [
+            { icon: Settings, label: "Sozlamalar", path: "/admin/settings" },
+        ]
+    }
+];
+
+interface SidebarProps {
+    sidebarOpen: boolean;
+    setSidebarOpen: (v: boolean) => void;
+}
+
+export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
+    const location = useLocation();
+    const { logout, user } = useAuthStore();
+
+    return (
+        <>
+            {/* Mobile Overlay */}
+            <div
+                className={cn(
+                    "fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden",
+                    sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+                )}
+                onClick={() => setSidebarOpen(false)}
+            />
+
+            {/* Sidebar Container */}
+            <aside
+                className={cn(
+                    "fixed left-0 top-0 z-[100] flex h-screen w-72 flex-col overflow-y-hidden bg-[#1c2434] duration-300 ease-linear lg:static lg:translate-x-0",
+                    sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                )}
+            >
+                {/* Sidebar Header */}
+                <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5 border-b border-[#2e3a47]">
+                    <Link to="/admin" className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-[#3C50E0] flex items-center justify-center shrink-0 shadow-lg shadow-[#3C50E0]/20">
+                            <ShieldCheck className="text-white h-6 w-6" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-white tracking-tight text-xl">House Admin</span>
+                            <span className="text-[10px] text-zinc-500 font-medium uppercase tracking-widest -mt-1">Management</span>
+                        </div>
+                    </Link>
+
+                    <button
+                        onClick={() => setSidebarOpen(false)}
+                        className="block lg:hidden text-zinc-400 hover:text-white"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                {/* Sidebar Content */}
+                <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto px-4 py-8 duration-300 ease-linear">
+                    <nav className="space-y-8">
+                        {menuGroups.map((group) => (
+                            <div key={group.name} className="space-y-1.5">
+                                <h3 className="mb-4 ml-4 text-xs font-black text-[#5c6e88] uppercase tracking-[3px]">
+                                    {group.name}
+                                </h3>
+                                <ul className="space-y-1">
+                                    {group.items.map((item) => {
+                                        const isActive = location.pathname === item.path;
+                                        return (
+                                            <li key={item.path}>
+                                                <Link
+                                                    to={item.path}
+                                                    onClick={() => setSidebarOpen(false)}
+                                                    className={cn(
+                                                        "group relative flex items-center gap-4 rounded-lg px-4 py-3 font-medium transition-all duration-200",
+                                                        isActive
+                                                            ? "bg-[#333a48] text-white"
+                                                            : "text-[#dee4ee] hover:bg-[#333a48] hover:text-white"
+                                                    )}
+                                                >
+                                                    <item.icon className={cn("h-5 w-5 shrink-0 opacity-70 group-hover:opacity-100", isActive && "text-[#3C50E0] opacity-100")} />
+                                                    {item.label}
+                                                    {isActive && (
+                                                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-[#3C50E0] rounded-l-full shadow-[0_0_10px_#3C50E0]" />
+                                                    )}
+                                                </Link>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
+                    </nav>
+                </div>
+
+                {/* Sidebar Footer / User Profile */}
+                <div className="border-t border-[#2e3a47] p-4 bg-[#1c2434]/50 backdrop-blur-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full border-2 border-[#3C50E0]/30 p-0.5 overflow-hidden">
+                            {user?.avatarUrl ? (
+                                <img src={user.avatarUrl} alt="" className="h-full w-full rounded-full object-cover" />
+                            ) : (
+                                <div className="h-full w-full rounded-full bg-[#3c50e0]/10 flex items-center justify-center text-sm font-black text-[#3c50e0]">
+                                    {user?.name?.charAt(0) || "A"}
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-white truncate leading-none mb-1">{user?.name || "Admin"}</p>
+                            <p className="text-[10px] text-[#5c6e88] font-bold tracking-tight uppercase">Super Administrator</p>
+                        </div>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={logout}
+                            className="text-[#5c6e88] hover:text-red-500 hover:bg-red-500/10 h-8 w-8"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            </aside>
+        </>
+    );
+};

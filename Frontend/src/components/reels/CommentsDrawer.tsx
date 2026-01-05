@@ -18,9 +18,10 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface CommentsDrawerProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    productId: string;
 }
 
-export function CommentsDrawer({ isOpen, onOpenChange }: CommentsDrawerProps) {
+export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDrawerProps) {
     const isMobile = useIsMobile();
 
     if (isMobile) {
@@ -36,7 +37,7 @@ export function CommentsDrawer({ isOpen, onOpenChange }: CommentsDrawerProps) {
                                 </button>
                             </DrawerClose>
                         </DrawerHeader>
-                        <CommentsList className="bg-transparent" />
+                        <CommentsList className="bg-transparent" productId={productId} />
                     </div>
                 </DrawerContent>
             </Drawer>
@@ -49,6 +50,7 @@ export function CommentsDrawer({ isOpen, onOpenChange }: CommentsDrawerProps) {
             <SheetContent side="right" className="bg-zinc-950 border-l border-white/10 text-white w-[400px] p-0 gap-0 focus:outline-none">
                 <CommentsList
                     className="bg-transparent h-full"
+                    productId={productId}
                     header={
                         <div className="flex items-center justify-between p-4 border-b border-white/10">
                             <SheetTitle className="font-bold text-sm text-white">Comments</SheetTitle>

@@ -20,6 +20,14 @@ import EditProfile from "./pages/EditProfile";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
+import { AdminLayout } from "./components/admin/AdminLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import UsersList from "./pages/admin/UsersList";
+import ProductsList from "./pages/admin/ProductsList";
+import ReelsList from "./pages/admin/ReelsList";
+import Analytics from "./pages/admin/Analytics";
+import NotificationsAdmin from "./pages/admin/NotificationsAdmin";
+import AdminUserProfile from "./pages/admin/AdminUserProfile";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api/auth";
 import { useCartStore } from "@/store/cartStore";
@@ -76,7 +84,22 @@ const AppContent = () => {
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/profile/:id" element={<StoreProfile />} />
           <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        </Route>
+
+        {/* Admin Routes */}
+        <Route path="/admin" element={
+          <ProtectedRoute role="super_admin">
+            <AdminLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+          <Route path="users" element={<UsersList />} />
+          <Route path="users/:id" element={<AdminUserProfile />} />
+          <Route path="products" element={<ProductsList />} />
+          <Route path="reels" element={<ReelsList />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="notifications" element={<NotificationsAdmin />} />
+          <Route path="settings" element={<Dashboard />} />
         </Route>
 
         <Route path="/auth" element={<Auth />} />

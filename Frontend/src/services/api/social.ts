@@ -76,5 +76,107 @@ export const socialService = {
             .eq('following_id', followingId);
 
         if (error) throw error;
+    },
+
+    // --- Likes ---
+    isLiked: async (productId: string): Promise<boolean> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        const { data } = await supabase
+            .from('product_likes')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('product_id', productId)
+            .maybeSingle();
+
+        return !!data;
+    },
+
+    toggleLike: async (productId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Auth required");
+
+        const isLiked = await socialService.isLiked(productId);
+
+        if (isLiked) {
+            await supabase
+                .from('product_likes')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('product_id', productId);
+        } else {
+            await supabase
+                .from('product_likes')
+                .insert([{ user_id: user.id, product_id: productId }]);
+        }
+    },
+
+    getLikesCount: async (productId: string): Promise<number> => {
+        const { count, error } = await supabase
+            .from('product_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('product_id', productId);
+
+        if (error) return 0;
+        return count || 0;
+    },
+
+    // --- Comments ---
+    getComments: async (productId: string) => {
+        const { data, error } = await supabase
+            .from('product_comments')
+            .select(`
+                *,
+                profiles(id, full_name, avatar_url)
+            `)
+            .eq('product_id', productId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return data.map((c: any) => ({
+            id: c.id,
+            userId: c.user_id,
+            text: c.text,
+            createdAt: c.created_at,
+            user: {
+                id: c.profiles.id,
+                fullName: c.profiles.full_name,
+                avatarUrl: c.profiles.avatar_url,
+            }
+        }));
+    },
+
+    addComment: async (productId: string, text: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Auth required");
+
+        const { data, error } = await supabase
+            .from('product_comments')
+            .insert([{
+                user_id: user.id,
+                product_id: productId,
+                text
+            }])
+            .select(`
+                *,
+                profiles(id, full_name, avatar_url)
+            `)
+            .single();
+
+        if (error) throw error;
+
+        return {
+            id: data.id,
+            userId: data.user_id,
+            text: data.text,
+            createdAt: data.created_at,
+            user: {
+                id: data.profiles.id,
+                fullName: data.profiles.full_name,
+                avatarUrl: data.profiles.avatar_url,
+            }
+        };
     }
 };

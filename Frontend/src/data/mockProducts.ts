@@ -12,7 +12,7 @@ const productImages = [
   "https://images.unsplash.com/photo-1606220588913-b3aacb4d2f46?w=400&h=500&fit=crop", // Charger/Accessory
 ];
 
-export const mockProducts: Product[] = [
+const products: Product[] = [
   {
     id: "p1",
     title: "iPhone 15 Pro Max",
@@ -26,6 +26,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.9,
     reviewCount: 1245,
+    sellerId: "s1",
   },
   {
     id: "p2",
@@ -39,6 +40,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.8,
     reviewCount: 980,
+    sellerId: "s1",
   },
   {
     id: "p3",
@@ -52,6 +54,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.9,
     reviewCount: 456,
+    sellerId: "s1",
   },
   {
     id: "p4",
@@ -65,6 +68,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.7,
     reviewCount: 2100,
+    sellerId: "s1",
   },
   {
     id: "p5",
@@ -79,6 +83,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.6,
     reviewCount: 890,
+    sellerId: "s1",
   },
   {
     id: "p6",
@@ -91,6 +96,7 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.9,
     reviewCount: 3400,
+    sellerId: "s1",
   },
   {
     id: "p7",
@@ -104,6 +110,7 @@ export const mockProducts: Product[] = [
     inStock: false,
     rating: 4.8,
     reviewCount: 560,
+    sellerId: "s1",
   },
   {
     id: "p8",
@@ -116,27 +123,30 @@ export const mockProducts: Product[] = [
     inStock: true,
     rating: 4.8,
     reviewCount: 1200,
+    sellerId: "s1",
   },
 ];
 
+export const mockProducts = products;
+
 // Get product by ID
 export const getProductById = (id: string): Product | undefined => {
-  return mockProducts.find((p) => p.id === id);
+  return products.find((p) => p.id === id);
 };
 
 // Get products by category
 export const getProductsByCategory = (category: string): Product[] => {
-  if (category === "all") return mockProducts;
-  return mockProducts.filter((p) => p.category === category);
+  if (category === "all") return products;
+  return products.filter((p) => p.category === category);
 };
 
 // Product categories
 export const categories = [
-  { id: "all", name: "All", icon: "Grid3X3", count: mockProducts.length },
-  { id: "smartphones", name: "Smartphones", icon: "Smartphone", count: mockProducts.filter(p => p.category === "smartphones").length },
-  { id: "laptops", name: "Laptops", icon: "Laptop", count: mockProducts.filter(p => p.category === "laptops").length },
-  { id: "audio", name: "Audio", icon: "Headphones", count: mockProducts.filter(p => p.category === "audio").length },
-  { id: "watches", name: "Watches", icon: "Watch", count: mockProducts.filter(p => p.category === "watches").length },
-  { id: "accessories", name: "Accessories", icon: "Cable", count: mockProducts.filter(p => p.category === "accessories").length },
-  { id: "tablets", name: "Tablets", icon: "Tablet", count: mockProducts.filter(p => p.category === "tablets").length },
+  { id: "all", name: "All", icon: "Grid3X3", count: products.length },
+  { id: "smartphones", name: "Smartphones", icon: "Smartphone", count: products.filter(p => p.category === "smartphones").length },
+  { id: "laptops", name: "Laptops", icon: "Laptop", count: products.filter(p => p.category === "laptops").length },
+  { id: "audio", name: "Audio", icon: "Headphones", count: products.filter(p => p.category === "audio").length },
+  { id: "watches", name: "Watches", icon: "Watch", count: products.filter(p => p.category === "watches").length },
+  { id: "accessories", name: "Accessories", icon: "Cable", count: products.filter(p => p.category === "accessories").length },
+  { id: "tablets", name: "Tablets", icon: "Tablet", count: products.filter(p => p.category === "tablets").length },
 ];

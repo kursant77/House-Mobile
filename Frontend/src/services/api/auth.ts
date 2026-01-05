@@ -20,6 +20,7 @@ export interface AuthResponse {
     avatarUrl?: string;
     bio?: string;
     isProfessional: boolean;
+    isBlocked: boolean;
   };
   token: string;
 }
@@ -41,7 +42,7 @@ export const authApi = {
     // Ensure profile exists in public.profiles
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, role, is_professional')
+      .select('id, full_name, avatar_url, role, is_professional, is_blocked')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -55,6 +56,11 @@ export const authApi = {
       }]);
     }
 
+    if (profile?.is_blocked) {
+      await supabase.auth.signOut();
+      throw new Error("Sizning hisobingiz bloklangan. Iltimos, ma'muriyatga murojaat qiling.");
+    }
+
     return {
       user: {
         id: user.id,
@@ -63,6 +69,7 @@ export const authApi = {
         role: profile?.role || user.user_metadata?.role || 'user',
         avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url,
         isProfessional: profile?.is_professional || !!user.user_metadata?.is_professional,
+        isBlocked: !!profile?.is_blocked,
       },
       token: authData.session?.access_token || '',
     };
@@ -95,6 +102,7 @@ export const authApi = {
         email: user.email || '',
         role: 'user',
         isProfessional: false,
+        isBlocked: false,
       },
       token: authData.session?.access_token || '',
     };
@@ -122,7 +130,7 @@ export const authApi = {
     // Fetch profile from public.profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, role, is_professional, bio')
+      .select('id, full_name, avatar_url, role, is_professional, bio, is_blocked')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -135,7 +143,13 @@ export const authApi = {
         role: user.user_metadata?.role || 'user',
         avatarUrl: user.user_metadata?.avatar_url,
         isProfessional: !!user.user_metadata?.is_professional,
+        isBlocked: false,
       };
+    }
+
+    if (profile.is_blocked) {
+      await supabase.auth.signOut();
+      throw new Error("Sizning hisobingiz bloklangan.");
     }
 
     return {
@@ -146,6 +160,7 @@ export const authApi = {
       avatarUrl: profile.avatar_url,
       bio: profile.bio,
       isProfessional: profile.is_professional,
+      isBlocked: profile.is_blocked,
     };
   },
 
@@ -180,8 +195,8 @@ export const authApi = {
   },
 
   /**
- * Upgrade to professional status
- */
+   * Upgrade to professional status
+   */
   upgradeToProfessional: async (): Promise<void> => {
     const { error } = await supabase.auth.updateUser({
       data: { is_professional: true }

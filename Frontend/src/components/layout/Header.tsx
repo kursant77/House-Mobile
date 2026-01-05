@@ -1,5 +1,6 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -15,6 +16,15 @@ import {
 
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
+    const [searchQuery, setSearchQuery] = useState("");
+    const navigate = useNavigate();
+
+    const handleSearch = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        if (searchQuery.trim()) {
+            navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+        }
+    };
 
     return (
         <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
@@ -38,19 +48,23 @@ export const Header = () => {
 
                 {/* Center Section: Search (Hidden on small mobile, visible on desktop) */}
                 <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8">
-                    <div className="flex w-full items-center space-x-2">
+                    <form onSubmit={handleSearch} className="flex w-full items-center">
                         <div className="relative w-full">
                             <Input
                                 type="search"
                                 placeholder="Search"
-                                className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
                             />
                         </div>
-                        <Button className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6">
+                        <Button
+                            type="submit"
+                            className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
+                        >
                             <Search className="h-5 w-5" />
                         </Button>
-                    </div>
-
+                    </form>
                 </div>
 
                 {/* Right Section: Actions */}
@@ -85,8 +99,19 @@ export const Header = () => {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-zinc-900 dark:text-white">Profile</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
+                                {user?.role === 'super_admin' && (
+                                    <>
+                                        <Link to="/admin">
+                                            <DropdownMenuItem className="cursor-pointer font-bold text-primary">
+                                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                                Admin Panel
+                                            </DropdownMenuItem>
+                                        </Link>
+                                        <DropdownMenuSeparator />
+                                    </>
+                                )}
                                 <DropdownMenuItem asChild>
                                     <Link to="/profile" className="flex items-center">
                                         <User className="mr-2 h-4 w-4" />

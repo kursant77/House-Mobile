@@ -1,9 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ReelCard } from "@/components/reels/ReelCard";
-import { BottomNav } from "@/components/layout/BottomNav";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -82,15 +79,15 @@ export default function Reels() {
         </div>
         <h3 className="text-2xl font-bold text-white mb-2">Hali videolar yo'q</h3>
         <p className="text-zinc-500 max-w-xs mb-8">Ma'lumotlar topilmadi. Birinchilardan bo'lib video yuklang!</p>
-        <BottomNav isReelsPage />
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden select-none z-0">
-      <BottomNav isReelsPage />
-
+    <div className={cn(
+      "bg-black overflow-hidden select-none",
+      isMobile ? "fixed inset-0 z-[60]" : "relative h-[calc(100vh-64px)] w-full"
+    )}>
       {/* Immersive Scroll Container */}
       <div
         ref={containerRef}

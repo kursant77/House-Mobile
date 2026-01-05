@@ -20,6 +20,8 @@ import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { socialService } from "@/services/api/social";
+import { CommentsDrawer } from "./CommentsDrawer";
 
 interface ReelCardProps {
   reel: ReelItem;
@@ -42,8 +44,10 @@ export function ReelCard({
 
   const [isMuted, setIsMuted] = useState(true);
   const [isLiked, setIsLiked] = useState(reel.isLiked);
+  const [likesCount, setLikesCount] = useState(reel.likes);
   const [showHeart, setShowHeart] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
 
   const isProductFavorite = isFavorite(reel.product.id);
   const isProductInCart = isInCart(reel.product.id);
@@ -66,12 +70,25 @@ export function ReelCard({
     }
   };
 
-  const handleLike = () => {
-    if (!isLiked) {
-      setIsLiked(true);
-      onLike(reel.id);
-    } else {
-      setIsLiked(false);
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      toast.error("Iltimos, avval tizimga kiring");
+      navigate("/auth");
+      return;
+    }
+
+    try {
+      const newLikedState = !isLiked;
+      setIsLiked(newLikedState);
+      setLikesCount(prev => newLikedState ? prev + 1 : Math.max(0, prev - 1));
+
+      await socialService.toggleLike(reel.product.id);
+      onLike(reel.id); // Keep visual feedback for parent if needed
+    } catch (error) {
+      // Revert on error
+      setIsLiked(!isLiked);
+      setLikesCount(prev => !isLiked ? prev - 1 : prev + 1);
+      toast.error("Xatolik yuz berdi");
     }
   };
 
@@ -80,8 +97,7 @@ export function ReelCard({
     const DOUBLE_PRESS_DELAY = 300;
     if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
       if (!isLiked) {
-        setIsLiked(true);
-        onLike(reel.id);
+        handleLike();
       }
       setShowHeart(true);
       setTimeout(() => setShowHeart(false), 1000);
@@ -108,9 +124,29 @@ export function ReelCard({
     toast.success("Savatchaga qo'shildi");
   };
 
-  const formatLikes = (likes: number) => {
-    if (likes >= 1000) return `${(likes / 1000).toFixed(1)}K`;
-    return likes.toString();
+  const formatCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: reel.product.title,
+      text: reel.product.description,
+      url: `${window.location.origin}/reels?id=${reel.product.id}`,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success("Havola nusxalandi!");
+      }
+    } catch (err) {
+      console.error("Share error:", err);
+    }
   };
 
   return (
@@ -155,15 +191,18 @@ export function ReelCard({
           <button onClick={(e) => { e.stopPropagation(); handleLike(); }} className="transition-transform active:scale-125">
             <Heart className={cn("h-8 w-8 drop-shadow-lg", isLiked ? "text-red-500 fill-red-500" : "text-white fill-none")} />
           </button>
-          <span className="text-[11px] font-bold text-white drop-shadow-md">{formatLikes(reel.likes + (isLiked ? 1 : 0))}</span>
+          <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(likesCount)}</span>
         </div>
 
         {/* Comment */}
-        <div className="flex flex-col items-center gap-1.5 grayscale opacity-80 cursor-not-allowed">
-          <button className="transition-transform active:scale-125">
+        <div className="flex flex-col items-center gap-1.5">
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
+            className="transition-transform active:scale-125"
+          >
             <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
           </button>
-          <span className="text-[11px] font-bold text-white drop-shadow-md">842</span>
+          <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(reel.commentCount)}</span>
         </div>
 
         {/* Save/Favorite */}
@@ -185,7 +224,10 @@ export function ReelCard({
         </button>
 
         {/* Share */}
-        <button className="transition-transform active:scale-125 grayscale opacity-60">
+        <button
+          onClick={(e) => { e.stopPropagation(); handleShare(); }}
+          className="transition-transform active:scale-125"
+        >
           <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
         </button>
 
@@ -246,13 +288,11 @@ export function ReelCard({
         </div>
       </div>
 
-      {/* --- VIDEO PROGRESS BAR --- */}
-      <div className="absolute bottom-0 left-0 right-0 h-[1.5px] bg-white/20 z-30">
-        <div
-          className="h-full bg-white transition-all duration-100 ease-linear shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
+      <CommentsDrawer
+        isOpen={isCommentsOpen}
+        onOpenChange={setIsCommentsOpen}
+        productId={reel.product.id}
+      />
     </div>
   );
 }

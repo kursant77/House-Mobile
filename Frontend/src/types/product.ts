@@ -30,6 +30,7 @@ export interface ReelItem {
   thumbnailUrl: string;
   product: Product;
   likes: number;
+  commentCount: number;
   author?: Profile;
   isLiked: boolean;
   isFavorite: boolean;

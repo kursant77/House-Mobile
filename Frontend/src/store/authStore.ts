@@ -11,6 +11,7 @@ interface User {
   avatarUrl?: string;
   bio?: string;
   isProfessional: boolean;
+  isBlocked: boolean;
 }
 
 interface AuthState {
@@ -63,20 +64,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     const isAuthenticated = authApi.isAuthenticated();
 
     if (isAuthenticated && savedUser) {
-      set({ user: savedUser as User, isAuthenticated: true, isLoading: false });
+      // Use saved user as initial state but keep loading true while we sync
+      set({ user: savedUser as User, isAuthenticated: true });
 
-      // Background sync: check if profile still exists/correct in DB
       try {
         const freshUser = await authApi.getProfile();
-        set({ user: freshUser as User, isAuthenticated: true });
+        set({ user: freshUser as User, isAuthenticated: true, isLoading: false });
         localStorage.setItem("user", JSON.stringify(freshUser));
 
-        // Fetch user specific data on successful check
+        // Fetch user specific data
         useCartStore.getState().fetchCart();
         useFavoritesStore.getState().fetchFavorites();
       } catch (e) {
-        // If profile fetch fails, user might be deleted or session invalid
         console.error("Auth sync failed", e);
+        // If sync fails, we can still use saved data or logout if it's a 401
+        set({ isLoading: false });
       }
     } else {
       set({ user: null, isAuthenticated: false, isLoading: false });
