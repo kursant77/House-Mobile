@@ -178,5 +178,49 @@ export const socialService = {
                 avatarUrl: data.profiles.avatar_url,
             }
         };
+    },
+
+    // --- Comment Likes ---
+    isCommentLiked: async (commentId: string): Promise<boolean> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        const { data } = await supabase
+            .from('comment_likes')
+            .select('*')
+            .eq('user_id', user.id)
+            .eq('comment_id', commentId)
+            .maybeSingle();
+
+        return !!data;
+    },
+
+    toggleCommentLike: async (commentId: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Auth required");
+
+        const isLiked = await socialService.isCommentLiked(commentId);
+
+        if (isLiked) {
+            await supabase
+                .from('comment_likes')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('comment_id', commentId);
+        } else {
+            await supabase
+                .from('comment_likes')
+                .insert([{ user_id: user.id, comment_id: commentId }]);
+        }
+    },
+
+    getCommentLikesCount: async (commentId: string): Promise<number> => {
+        const { count, error } = await supabase
+            .from('comment_likes')
+            .select('*', { count: 'exact', head: true })
+            .eq('comment_id', commentId);
+
+        if (error) return 0;
+        return count || 0;
     }
 };

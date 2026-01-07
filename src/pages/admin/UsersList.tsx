@@ -141,11 +141,6 @@ export default function UsersList() {
                                                     )}>
                                                         {u.role}
                                                     </span>
-                                                    {u.is_professional && (
-                                                        <span className="bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md border flex items-center gap-1">
-                                                            <ShieldCheck className="h-3 w-3" /> PRO
-                                                        </span>
-                                                    )}
                                                 </div>
                                                 <span className={cn(
                                                     "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5",
@@ -180,9 +175,6 @@ export default function UsersList() {
                                                     <DropdownMenuContent align="end" className="w-52 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl p-1.5">
                                                         <DropdownMenuItem className="hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer px-4 py-2.5 text-sm font-bold flex items-center gap-3">
                                                             <UserPlus className="h-4 w-4 text-[#3C50E0]" /> Profilni ko'rish
-                                                        </DropdownMenuItem>
-                                                        <DropdownMenuItem className="hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer px-4 py-2.5 text-sm font-bold flex items-center gap-3">
-                                                            <Shield className="h-4 w-4 text-[#10B981]" /> Professional qilish
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
                                                         <DropdownMenuItem

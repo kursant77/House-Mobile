@@ -48,9 +48,25 @@ export function ReelCard({
   const [showHeart, setShowHeart] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
 
   const isProductFavorite = isFavorite(reel.product.id);
   const isProductInCart = isInCart(reel.product.id);
+
+  useEffect(() => {
+    const checkFollow = async () => {
+      if (isAuthenticated && reel.author?.id) {
+        try {
+          const status = await socialService.isFollowing(reel.author.id);
+          setIsFollowing(status);
+        } catch (error) {
+          console.error("Check follow status error:", error);
+        }
+      }
+    };
+    checkFollow();
+  }, [reel.author?.id, isAuthenticated]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -103,6 +119,32 @@ export function ReelCard({
       setTimeout(() => setShowHeart(false), 1000);
     }
     lastTapRef.current = now;
+  };
+
+  const handleFollow = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isAuthenticated) {
+      toast.error("Iltimos, avval tizimga kiring");
+      navigate("/auth");
+      return;
+    }
+
+    setIsFollowLoading(true);
+    try {
+      if (isFollowing) {
+        await socialService.unfollow(reel.author?.id || reel.product.sellerId);
+        setIsFollowing(false);
+        toast.success("Obuna bekor qilindi");
+      } else {
+        await socialService.follow(reel.author?.id || reel.product.sellerId);
+        setIsFollowing(true);
+        toast.success("Obuna bo'lindi");
+      }
+    } catch (error) {
+      toast.error("Xatolik yuz berdi");
+    } finally {
+      setIsFollowLoading(false);
+    }
   };
 
   const handleFavorite = () => {
@@ -260,8 +302,19 @@ export function ReelCard({
             <span className="text-white font-bold text-sm drop-shadow-md">
               {reel.author?.fullName || "House Mobile"}
             </span>
-            <Button size="sm" variant="outline" className="h-6 px-3 text-[10px] font-bold border-white/40 bg-zinc-800/20 text-white backdrop-blur-md rounded-md">
-              Obuna bo'lish
+            <Button
+              size="sm"
+              variant={isFollowing ? "secondary" : "outline"}
+              disabled={isFollowLoading}
+              onClick={handleFollow}
+              className={cn(
+                "h-7 px-3 text-[10px] font-black uppercase tracking-widest backdrop-blur-md rounded-md transition-all active:scale-95",
+                isFollowing
+                  ? "bg-white/10 text-white border-white/20"
+                  : "bg-primary text-primary-foreground border-transparent border-primary/40"
+              )}
+            >
+              {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Obuna bo'lish"}
             </Button>
           </div>
 

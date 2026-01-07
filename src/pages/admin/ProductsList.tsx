@@ -93,9 +93,25 @@ export default function ProductsList() {
         }
     };
 
+    const toggleStock = async (id: string, currentStatus: boolean) => {
+        try {
+            const { error } = await supabase
+                .from('products')
+                .update({ in_stock: !currentStatus })
+                .eq('id', id);
+
+            if (error) throw error;
+            toast.success("Statut yangilandi");
+            fetchProducts();
+        } catch (error: any) {
+            toast.error("Xatolik: " + error.message);
+        }
+    };
+
     const filteredProducts = products.filter(p =>
-        p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.category?.toLowerCase().includes(searchQuery.toLowerCase())
+        (p.title?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (p.category?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (p.id?.toString() || "").includes(searchQuery)
     );
 
     return (
@@ -172,15 +188,18 @@ export default function ProductsList() {
                                             </div>
                                         </td>
                                         <td className="py-5 px-6">
-                                            <span className={cn(
-                                                "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                                p.in_stock
-                                                    ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20"
-                                                    : "bg-red-500/10 text-red-500 border-red-500/20"
-                                            )}>
+                                            <button
+                                                onClick={() => toggleStock(p.id, p.in_stock)}
+                                                className={cn(
+                                                    "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800",
+                                                    p.in_stock
+                                                        ? "bg-[#10B981]/10 text-[#10B981] border-[#10B981]/20"
+                                                        : "bg-red-500/10 text-red-500 border-red-500/20"
+                                                )}
+                                            >
                                                 <div className={cn("h-1.5 w-1.5 rounded-full", p.in_stock ? "bg-[#10B981]" : "bg-red-500")} />
                                                 {p.in_stock ? "Sotuvda" : "Tugagan"}
-                                            </span>
+                                            </button>
                                         </td>
                                         <td className="py-5 px-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -243,6 +262,27 @@ export default function ProductsList() {
                                         onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
                                         className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
                                     />
+                                </div>
+                            </div>
+                            <div className="grid gap-2">
+                                <label className="text-xs font-black uppercase tracking-widest text-zinc-500 ml-1">Holati</label>
+                                <div className="flex items-center gap-4">
+                                    <Button
+                                        type="button"
+                                        variant={editingProduct.in_stock ? "default" : "outline"}
+                                        onClick={() => setEditingProduct({ ...editingProduct, in_stock: true })}
+                                        className="flex-1 h-10 rounded-lg font-bold"
+                                    >
+                                        Sotuvda
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant={!editingProduct.in_stock ? "destructive" : "outline"}
+                                        onClick={() => setEditingProduct({ ...editingProduct, in_stock: false })}
+                                        className="flex-1 h-10 rounded-lg font-bold"
+                                    >
+                                        Tugagan
+                                    </Button>
                                 </div>
                             </div>
                             <div className="grid gap-2">

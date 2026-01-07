@@ -86,11 +86,6 @@ export default function AdminUserProfile() {
                                         <User className="h-16 w-16 text-zinc-300 m-auto mt-6" />
                                     )}
                                 </div>
-                                {profile.is_professional && (
-                                    <div className="absolute bottom-1 right-1 h-8 w-8 bg-[#10B981] rounded-full border-4 border-white dark:border-zinc-900 flex items-center justify-center">
-                                        <Shield className="h-4 w-4 text-white" />
-                                    </div>
-                                )}
                             </div>
 
                             <h3 className="text-xl font-black text-zinc-800 dark:text-white leading-none mb-1">{profile.full_name}</h3>
@@ -105,18 +100,10 @@ export default function AdminUserProfile() {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-4 py-6 border-y border-zinc-100 dark:border-zinc-800">
+                            <div className="grid grid-cols-1 gap-4 py-6 border-y border-zinc-100 dark:border-zinc-800">
                                 <div className="text-center">
                                     <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">{products.length}</p>
-                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter mt-1">E'lonlar</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">0</p>
-                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter mt-1">Sotuvlar</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-lg font-black text-zinc-800 dark:text-white leading-none">4.8</p>
-                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter mt-1">Reyting</p>
+                                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter mt-1">E'lonlar soni</p>
                                 </div>
                             </div>
 
@@ -142,7 +129,9 @@ export default function AdminUserProfile() {
                                 )}>
                                     {profile.is_blocked ? "Blokdan yechish" : "Bloklash"}
                                 </Button>
-                                <Button variant="outline" className="flex-1 font-black uppercase tracking-widest text-[10px] h-12 rounded-xl">Xabar yozish</Button>
+                                <a href={`mailto:${profile.email}`} className="flex-1">
+                                    <Button variant="outline" className="w-full font-black uppercase tracking-widest text-[10px] h-12 rounded-xl">Xabar yozish</Button>
+                                </a>
                             </div>
                         </div>
                     </div>

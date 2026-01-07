@@ -91,8 +91,8 @@ export default function Reels() {
 
   return (
     <div className={cn(
-      "bg-black overflow-hidden select-none",
-      isMobile ? "fixed inset-0 z-[60]" : "relative h-[calc(100vh-64px)] w-full"
+      "bg-black overflow-hidden select-none relative",
+      isMobile ? "h-[calc(100vh-64px)] z-[60]" : "h-[calc(100vh-64px)] w-full"
     )}>
       {/* Immersive Scroll Container */}
       <div

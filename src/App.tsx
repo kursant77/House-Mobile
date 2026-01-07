@@ -28,6 +28,7 @@ import ReelsList from "./pages/admin/ReelsList";
 import Analytics from "./pages/admin/Analytics";
 import NotificationsAdmin from "./pages/admin/NotificationsAdmin";
 import AdminUserProfile from "./pages/admin/AdminUserProfile";
+import SupportAdmin from "./pages/admin/SupportAdmin";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api/auth";
 import { useCartStore } from "@/store/cartStore";
@@ -99,7 +100,10 @@ const AppContent = () => {
           <Route path="reels" element={<ReelsList />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="notifications" element={<NotificationsAdmin />} />
-          <Route path="settings" element={<Dashboard />} />
+          <Route path="messages" element={<SupportAdmin type="messages" />} />
+          <Route path="email" element={<SupportAdmin type="email" />} />
+          <Route path="support" element={<SupportAdmin type="support" />} />
+          <Route path="settings" element={<SupportAdmin type="settings" />} />
         </Route>
 
         <Route path="/auth" element={<Auth />} />

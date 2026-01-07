@@ -77,31 +77,11 @@ export function CommentsList({
                     </div>
                 ) : (
                     comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3">
-                            <div className="h-8 w-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
-                                {comment.user?.avatarUrl ? (
-                                    <img src={comment.user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                                ) : (
-                                    comment.user?.fullName?.charAt(0) || "U"
-                                )}
-                            </div>
-                            <div className="flex-1 space-y-1">
-                                <div className="flex items-baseline gap-2">
-                                    <span className="text-xs font-bold text-zinc-300">
-                                        {comment.user?.fullName || "Foydalanuvchi"}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-500">
-                                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: uz })}
-                                    </span>
-                                </div>
-                                <p className="text-sm text-zinc-200 leading-relaxed">{comment.text}</p>
-                                <button className="text-[10px] font-semibold text-zinc-500 mt-1 hover:text-zinc-300">Reply</button>
-                            </div>
-                            <div className="flex flex-col items-center gap-1">
-                                <Heart className="h-4 w-4 text-zinc-500 hover:text-red-500 cursor-pointer" />
-                                <span className="text-[10px] text-zinc-500">0</span>
-                            </div>
-                        </div>
+                        <CommentItem
+                            key={comment.id}
+                            comment={comment}
+                            currentUser={currentUser}
+                        />
                     ))
                 )}
             </div>
@@ -110,10 +90,10 @@ export function CommentsList({
             <div className="p-3 border-t border-white/10 bg-zinc-950 pb-8 md:pb-3 shrink-0">
                 <div className="flex items-center gap-2 bg-zinc-900 rounded-full px-4 py-2 border border-zinc-800 focus-within:border-zinc-700">
                     <div className="h-6 w-6 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] overflow-hidden">
-                        {currentUser?.avatar_url ? (
-                            <img src={currentUser.avatar_url} alt="" className="h-full w-full object-cover" />
+                        {currentUser?.avatarUrl ? (
+                            <img src={currentUser.avatarUrl} alt="" className="h-full w-full object-cover" />
                         ) : (
-                            currentUser?.full_name?.charAt(0) || "U"
+                            currentUser?.name?.charAt(0) || "U"
                         )}
                     </div>
                     <input
@@ -132,6 +112,78 @@ export function CommentsList({
                     </button>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function CommentItem({ comment, currentUser }: { comment: any, currentUser: any }) {
+    const [isLiked, setIsLiked] = useState(false);
+    const [likesCount, setLikesCount] = useState(0);
+
+    useEffect(() => {
+        const fetchLikeStatus = async () => {
+            try {
+                const [liked, count] = await Promise.all([
+                    socialService.isCommentLiked(comment.id),
+                    socialService.getCommentLikesCount(comment.id)
+                ]);
+                setIsLiked(liked);
+                setLikesCount(count);
+            } catch (error) {
+                console.error("Failed to fetch comment like status:", error);
+            }
+        };
+        fetchLikeStatus();
+    }, [comment.id]);
+
+    const handleLike = async () => {
+        if (!currentUser) {
+            toast.error("Iltimos, avval tizimga kiring");
+            return;
+        }
+
+        try {
+            const newStatus = !isLiked;
+            setIsLiked(newStatus);
+            setLikesCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
+            await socialService.toggleCommentLike(comment.id);
+        } catch (error) {
+            // Revert
+            setIsLiked(!isLiked);
+            setLikesCount(prev => !isLiked ? prev - 1 : prev + 1);
+            toast.error("Xatolik yuz berdi");
+        }
+    };
+
+    return (
+        <div className="flex gap-3 group">
+            <div className="h-8 w-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                {comment.user?.avatarUrl ? (
+                    <img src={comment.user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                    comment.user?.fullName?.charAt(0) || "U"
+                )}
+            </div>
+            <div className="flex-1 space-y-0.5">
+                <div className="flex items-baseline gap-2">
+                    <span className="text-[11px] font-black text-zinc-200 uppercase tracking-tighter">
+                        {comment.user?.fullName || "User"}
+                    </span>
+                    <span className="text-[9px] font-bold text-zinc-600 uppercase">
+                        {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: uz }).replace('avval', '')}
+                    </span>
+                </div>
+                <p className="text-[13px] text-zinc-300 leading-snug font-medium">{comment.text}</p>
+                <div className="flex items-center gap-4 mt-1">
+                    <button className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-zinc-300">Reply</button>
+                    {likesCount > 0 && (
+                        <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{likesCount} likes</span>
+                    )}
+                </div>
+            </div>
+            <button onClick={handleLike} className="flex flex-col items-center pt-1 transition-transform active:scale-125">
+                <Heart className={cn("h-3.5 w-3.5 transition-colors", isLiked ? "text-red-500 fill-red-500" : "text-zinc-600")} />
+            </button>
         </div>
     );
 }
