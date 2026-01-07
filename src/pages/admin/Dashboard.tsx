@@ -135,26 +135,26 @@ export default function Dashboard() {
     }
 
     return (
-        <div className="space-y-6">
-            {/* Stats Grid - TailAdmin Cards */}
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 xl:grid-cols-4 2xl:gap-7.5">
+        <div className="space-y-4 md:space-y-6">
+            {/* Stats Grid - Responsive: 1 col mobile, 2 col tablet, 4 col desktop */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 xl:grid-cols-4 2xl:gap-6">
                 {[
                     { label: 'Total Views', value: stats.views, icon: Eye, color: '#3C50E0', trend: '0.43%', up: true },
                     { label: 'Total Products', value: stats.products, icon: ShoppingBag, color: '#10B981', trend: '4.35%', up: true },
                     { label: 'Total Users', value: stats.users, icon: Users, color: '#FFB81C', trend: '2.59%', up: true },
                     { label: 'Total Reels', value: stats.reels, icon: Clapperboard, color: '#E11D48', trend: '0.95%', up: false },
                 ].map((card, i) => (
-                    <div key={i} className="rounded-lg border border-zinc-200 bg-white py-6 px-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-transform hover:scale-[1.02] duration-300">
-                        <div className="flex h-11.5 w-11.5 items-center justify-center rounded-full bg-[#f1f5f9] dark:bg-zinc-800">
-                            <card.icon className="h-6 w-6" style={{ color: card.color }} />
+                    <div key={i} className="rounded-lg border border-zinc-200 bg-white py-5 px-5 md:py-6 md:px-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-transform hover:scale-[1.02] duration-300">
+                        <div className="flex h-10 w-10 md:h-11.5 md:w-11.5 items-center justify-center rounded-full bg-[#f1f5f9] dark:bg-zinc-800">
+                            <card.icon className="h-5 w-5 md:h-6 md:w-6" style={{ color: card.color }} />
                         </div>
 
-                        <div className="mt-4 flex items-end justify-between">
+                        <div className="mt-3 md:mt-4 flex items-end justify-between">
                             <div>
-                                <h4 className="text-2xl font-black text-zinc-800 dark:text-white">
+                                <h4 className="text-xl md:text-2xl font-black text-zinc-800 dark:text-white">
                                     {card.value >= 1000 ? `${(card.value / 1000).toFixed(1)}K` : card.value}
                                 </h4>
-                                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{card.label}</span>
+                                <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest">{card.label}</span>
                             </div>
 
                             <span className={cn(
@@ -162,7 +162,7 @@ export default function Dashboard() {
                                 card.up ? "text-[#10B981]" : "text-[#E11D48]"
                             )}>
                                 {card.trend}
-                                {card.up ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
+                                {card.up ? <ArrowUpRight className="h-3 w-3 md:h-4 md:w-4" /> : <ArrowDownRight className="h-3 w-3 md:h-4 md:w-4" />}
                             </span>
                         </div>
                     </div>
@@ -196,7 +196,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="h-[350px] w-full mt-4">
+                    <div className="h-[250px] sm:h-[300px] md:h-[350px] w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
                                 <defs>
@@ -206,13 +206,13 @@ export default function Dashboard() {
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
-                                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
+                                <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
+                                <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                 />
-                                <Area type="monotone" dataKey="total" stroke="#3C50E0" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
-                                <Area type="monotone" dataKey="active" stroke="#80CAEE" strokeWidth={3} fill="transparent" />
+                                <Area type="monotone" dataKey="total" stroke="#3C50E0" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
+                                <Area type="monotone" dataKey="active" stroke="#80CAEE" strokeWidth={2} fill="transparent" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
@@ -257,17 +257,17 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Products Table */}
-            <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-xl font-black text-black dark:text-white uppercase tracking-tighter">Recent Activities</h4>
+            <div className="rounded-lg border border-zinc-200 bg-white p-4 md:p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                    <h4 className="text-lg md:text-xl font-black text-black dark:text-white uppercase tracking-tighter">Recent Activities</h4>
                     <Link to="/admin/products">
-                        <Button variant="outline" className="text-xs font-black uppercase tracking-widest px-6 h-10 border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-[#3C50E0] hover:text-white transition-all">
+                        <Button variant="outline" className="text-xs font-black uppercase tracking-widest px-4 md:px-6 h-9 md:h-10 border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-[#3C50E0] hover:text-white transition-all">
                             View All
                         </Button>
                     </Link>
                 </div>
 
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto -mx-4 md:mx-0 scrollbar-thin">
                     <table className="w-full">
                         <thead>
                             <tr className="bg-[#f7f9fc] dark:bg-zinc-800/50">

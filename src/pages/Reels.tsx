@@ -98,11 +98,20 @@ export default function Reels() {
       <div
         ref={containerRef}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none flex flex-col items-center"
+        style={{
+          scrollSnapType: 'y mandatory',
+          scrollBehavior: 'smooth',
+          overscrollBehavior: 'contain'
+        }}
       >
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="h-screen w-full snap-start shrink-0 flex items-center justify-center relative border-b border-white/5 md:border-none"
+            className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-white/5 md:border-none"
+            style={{
+              scrollSnapAlign: 'start',
+              scrollSnapStop: 'always'
+            }}
           >
             <div className="h-full w-full md:h-[95vh] md:max-w-[450px] md:my-auto relative md:rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]">
               <ReelCard

@@ -30,11 +30,17 @@ export default function ReelsList() {
             if (error) throw error;
 
             // Format data to expose videoUrl easily
-            const formattedReels = data.map(p => ({
-                ...p,
-                video_url: p.product_media.find((m: any) => m.type === 'video')?.url,
-                thumbnail_url: p.product_media.find((m: any) => m.type === 'image')?.url || p.product_media[0]?.url
-            }));
+            const formattedReels = data.map(p => {
+                const mediaArray = Array.isArray(p.product_media) ? p.product_media : [p.product_media];
+                const videoMedia = mediaArray.find((m: any) => m.type === 'video');
+                const imageMedia = mediaArray.find((m: any) => m.type === 'image');
+
+                return {
+                    ...p,
+                    video_url: videoMedia?.url || null,
+                    thumbnail_url: imageMedia?.url || null  // Only use actual images, not video
+                };
+            });
 
             setReels(formattedReels || []);
         } catch (error: any) {
@@ -93,9 +99,36 @@ export default function ReelsList() {
                     reels.map((reel) => (
                         <div key={reel.id} className="group relative aspect-[9/16] rounded-2xl bg-zinc-900 overflow-hidden shadow-xl border border-white/10 transition-transform duration-500 hover:scale-[1.02]">
                             {/* Video / Thumbnail Overlay */}
-                            <div className="absolute inset-0 z-0">
-                                <img src={reel.thumbnail_url} alt="" className="h-full w-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                            <div className="absolute inset-0 z-0 bg-gradient-to-br from-zinc-800 to-zinc-900">
+                                {reel.thumbnail_url ? (
+                                    <>
+                                        <img
+                                            src={reel.thumbnail_url}
+                                            alt={reel.title}
+                                            className="h-full w-full object-cover opacity-60 group-hover:opacity-40 transition-opacity"
+                                            onError={(e) => {
+                                                // Fallback if image fails to load
+                                                e.currentTarget.style.display = 'none';
+                                            }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                                    </>
+                                ) : reel.video_url ? (
+                                    <>
+                                        <video
+                                            src={reel.video_url}
+                                            className="h-full w-full object-cover opacity-60"
+                                            muted
+                                            playsInline
+                                            preload="metadata"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                                    </>
+                                ) : (
+                                    <div className="h-full w-full flex items-center justify-center">
+                                        <Film className="h-20 w-20 text-zinc-700 opacity-30" />
+                                    </div>
+                                )}
                             </div>
 
                             {/* Interaction Icons Overlay */}

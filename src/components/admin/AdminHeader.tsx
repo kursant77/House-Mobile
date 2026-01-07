@@ -44,8 +44,8 @@ export const AdminHeader = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
                     </Link>
                 </div>
 
-                {/* Desktop Search */}
-                <div className="hidden sm:block flex-1 max-w-[480px]">
+                {/* Desktop Search - Hidden on mobile */}
+                <div className="hidden md:block flex-1 max-w-[480px]">
                     <form action="#" method="POST">
                         <div className="relative group">
                             <button className="absolute left-0 top-1/2 -translate-y-1/2">
@@ -58,7 +58,7 @@ export const AdminHeader = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
                                 className="w-full bg-transparent pl-9 pr-4 font-medium focus:outline-none dark:text-white text-sm"
                             />
 
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-[10px] text-zinc-400 font-bold">
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 text-[10px] text-zinc-400 font-bold">
                                 <Keyboard className="h-3 w-3" />
                                 <span>⌘K</span>
                             </div>
@@ -76,18 +76,22 @@ export const AdminHeader = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
 
                         {/* Notifications */}
                         <li className="relative">
-                            <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-[#f7f9fc] text-zinc-500 hover:text-[#3C50E0] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-[#3C50E0] transition-colors">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute -top-0.5 right-0 z-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-950"></span>
-                            </button>
+                            <Link to="/admin/notifications">
+                                <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-[#f7f9fc] text-zinc-500 hover:text-[#3C50E0] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-[#3C50E0] transition-colors">
+                                    <Bell className="h-5 w-5" />
+                                    <span className="absolute -top-0.5 right-0 z-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-950"></span>
+                                </button>
+                            </Link>
                         </li>
 
                         {/* Messages */}
                         <li className="relative hidden xsm:block">
-                            <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-[#f7f9fc] text-zinc-500 hover:text-[#3C50E0] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-[#3C50E0] transition-colors">
-                                <MessageSquare className="h-5 w-5" />
-                                <span className="absolute -top-0.5 right-0 z-1 h-2 w-2 rounded-full bg-primary ring-2 ring-white dark:ring-zinc-950"></span>
-                            </button>
+                            <Link to="/admin/messages">
+                                <button className="relative flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-[#f7f9fc] text-zinc-500 hover:text-[#3C50E0] dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:text-[#3C50E0] transition-colors">
+                                    <MessageSquare className="h-5 w-5" />
+                                    <span className="absolute -top-0.5 right-0 z-1 h-2 w-2 rounded-full bg-primary ring-2 ring-white dark:ring-zinc-950"></span>
+                                </button>
+                            </Link>
                         </li>
                     </ul>
 
@@ -120,15 +124,21 @@ export const AdminHeader = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
                                 <p className="text-sm font-black text-zinc-800 dark:text-white">{user?.name}</p>
                                 <p className="text-[11px] text-zinc-500 truncate">{user?.email}</p>
                             </div>
-                            <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
-                                <User className="h-4 w-4" /> My Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
-                                <Globe className="h-4 w-4" /> Visit Site
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
-                                <Settings className="h-4 w-4" /> Account Settings
-                            </DropdownMenuItem>
+                            <Link to="/profile">
+                                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
+                                    <User className="h-4 w-4" /> My Profile
+                                </DropdownMenuItem>
+                            </Link>
+                            <Link to="/">
+                                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
+                                    <Globe className="h-4 w-4" /> Visit Site
+                                </DropdownMenuItem>
+                            </Link>
+                            <Link to="/admin/settings">
+                                <DropdownMenuItem className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer">
+                                    <Settings className="h-4 w-4" /> Account Settings
+                                </DropdownMenuItem>
+                            </Link>
                             <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-900 my-2" />
                             <DropdownMenuItem onClick={logout} className="flex items-center gap-3 px-4 py-3 text-sm font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg cursor-pointer">
                                 <LogOut className="h-4 w-4" /> Log Out
