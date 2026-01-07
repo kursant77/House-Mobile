@@ -1,10 +1,13 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuthStore } from "@/store/authStore";
+import { useNotificationStore } from "@/store/notificationStore";
+import { formatDistanceToNow } from "date-fns";
+import { uz } from "date-fns/locale";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,11 +16,21 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
+    const { notifications, unreadCount, fetchNotifications, markAsRead, subscribe } = useNotificationStore();
     const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchNotifications();
+            const unsubscribe = subscribe();
+            return () => unsubscribe();
+        }
+    }, [isAuthenticated]);
 
     const handleSearch = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
@@ -71,9 +84,69 @@ export const Header = () => {
                 <div className="flex items-center gap-1 md:gap-2">
                     <ThemeToggle />
 
-                    <Button variant="ghost" size="icon" className="hidden md:flex rounded-full">
-                        <Bell className="h-5 w-5" />
-                    </Button>
+                    {isAuthenticated && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="relative rounded-full">
+                                    <Bell className="h-5 w-5" />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                                            {unreadCount > 9 ? "9+" : unreadCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-80 max-h-[500px] overflow-y-auto">
+                                <DropdownMenuLabel className="flex items-center justify-between">
+                                    <span>Bildirishnomalar</span>
+                                    {unreadCount > 0 && (
+                                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase font-black">
+                                            {unreadCount} yangi
+                                        </span>
+                                    )}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {notifications.length === 0 ? (
+                                    <div className="p-8 text-center text-zinc-500">
+                                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                                        <p className="text-xs font-bold uppercase tracking-widest">Hozircha xabarlar yo'q</p>
+                                    </div>
+                                ) : (
+                                    notifications.slice(0, 10).map((n) => (
+                                        <DropdownMenuItem
+                                            key={n.id}
+                                            className={cn(
+                                                "p-4 flex flex-col items-start gap-1 cursor-pointer focus:bg-zinc-50 dark:focus:bg-zinc-800/50",
+                                                !n.read_by.includes(user?.id || '') && "bg-blue-50/30 dark:bg-primary/5"
+                                            )}
+                                            onClick={() => markAsRead(n.id)}
+                                        >
+                                            <div className="flex items-center gap-2 w-full">
+                                                <div className={cn(
+                                                    "h-2 w-2 rounded-full shrink-0",
+                                                    n.type === 'info' && "bg-blue-500",
+                                                    n.type === 'success' && "bg-green-500",
+                                                    n.type === 'warning' && "bg-orange-500",
+                                                    n.type === 'error' && "bg-red-500",
+                                                )} />
+                                                <span className="text-xs font-black uppercase tracking-tight truncate flex-1">{n.title}</span>
+                                                <span className="text-[9px] font-bold text-zinc-400 whitespace-nowrap">
+                                                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: uz })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[11px] font-medium text-zinc-500 line-clamp-2 pl-4">
+                                                {n.message}
+                                            </p>
+                                        </DropdownMenuItem>
+                                    ))
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="justify-center text-xs font-black uppercase tracking-widest text-primary cursor-pointer py-3">
+                                    Barchasini ko'rish
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
 
 
                     <Link to="/upload" className="hidden md:block">

@@ -1,28 +1,64 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Search, Filter, Send, Trash2, Mail, Info, AlertTriangle, CheckCircle, MoreHorizontal, User, Smartphone, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-
-const mockNotifications = [
-    { id: 1, type: 'info', title: 'Tizim yangilanishi', message: 'Yangi versiya 2.4.0 muvaffaqiyatli o\'rnatildi.', date: '2 soat oldin', read: false },
-    { id: 2, type: 'error', title: 'Server xatoligi', message: 'API serveri bilan ulanishda uzilish yuz berdi.', date: '5 soat oldin', read: false },
-    { id: 3, type: 'success', title: 'Yangi foydalanuvchi', message: 'Sardorbek loyihaga qo\'shildi.', date: 'Kecha', read: true },
-    { id: 4, type: 'warning', title: 'Xotira kam qoldi', message: 'Bazadagi disk maydoni 90% ga yetdi.', date: '2 kun oldin', read: true },
-];
+import { notificationService, Notification } from "@/services/api/notifications";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { uz } from "date-fns/locale";
 
 export default function NotificationsAdmin() {
     const [activeTab, setActiveTab] = useState('all');
-    const [sending, setSending] = useState(false);
+    const [title, setTitle] = useState("");
+    const [message, setMessage] = useState("");
+    const [type, setType] = useState<'info' | 'success' | 'warning' | 'error'>('info');
+    const [target, setTarget] = useState<'all' | 'admin' | 'seller'>('all');
+
+    const queryClient = useQueryClient();
+
+    const { data: notifications = [], isLoading } = useQuery({
+        queryKey: ['admin-notifications'],
+        queryFn: notificationService.getNotifications
+    });
+
+    const sendMutation = useMutation({
+        mutationFn: notificationService.sendNotification,
+        onSuccess: () => {
+            toast.success("Bildirishnoma muvaffaqiyatli yuborildi!");
+            setTitle("");
+            setMessage("");
+            queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+        },
+        onError: () => {
+            toast.error("Xabar yuborishda xatolik yuz berdi");
+        }
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: notificationService.deleteNotification,
+        onSuccess: () => {
+            toast.success("O'chirildi");
+            queryClient.invalidateQueries({ queryKey: ['admin-notifications'] });
+        }
+    });
 
     const handleSend = () => {
-        setSending(true);
-        setTimeout(() => {
-            setSending(false);
-            toast.success("Bildirishnoma muvaffaqiyatli yuborildi!");
-        }, 1500);
+        if (!title || !message) {
+            toast.error("Sarlavha va matnni to'ldiring");
+            return;
+        }
+        sendMutation.mutate({ title, message, type, target });
     };
+
+    const sortedNotifications = notifications.filter(n => {
+        if (activeTab === 'all') return true;
+        // Since we are admin, we don't have "read/unread" in the same sense as users
+        // But we can filter by type or other criteria if needed.
+        // For now let's keep it simple.
+        return true;
+    });
 
     return (
         <div className="space-y-6">
@@ -47,12 +83,19 @@ export default function NotificationsAdmin() {
                         <div className="space-y-4 font-medium">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Sarlavha</label>
-                                <Input placeholder="Xabar mavzusi..." className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold" />
+                                <Input
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="Xabar mavzusi..."
+                                    className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                />
                             </div>
 
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Xabar matni</label>
                                 <textarea
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
                                     placeholder="Xabarni shu yerga yozing..."
                                     className="min-h-[120px] w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#3C50E0]/20"
                                 />
@@ -61,29 +104,37 @@ export default function NotificationsAdmin() {
                             <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Turi</label>
-                                    <select className="flex h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 outline-none">
-                                        <option>Ma'lumot (Info)</option>
-                                        <option>Ogohlantirish</option>
-                                        <option>Xatolik</option>
-                                        <option>Muvaffaqiyat</option>
+                                    <select
+                                        value={type}
+                                        onChange={(e) => setType(e.target.value as any)}
+                                        className="flex h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 outline-none"
+                                    >
+                                        <option value="info">Ma'lumot (Info)</option>
+                                        <option value="warning">Ogohlantirish</option>
+                                        <option value="error">Xatolik</option>
+                                        <option value="success">Muvaffaqiyat</option>
                                     </select>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Maqsad</label>
-                                    <select className="flex h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 outline-none">
-                                        <option>Barcha foydalanuvchilar</option>
-                                        <option>Faqat adminlar</option>
-                                        <option>Sotuvchilar</option>
+                                    <select
+                                        value={target}
+                                        onChange={(e) => setTarget(e.target.value as any)}
+                                        className="flex h-11 w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 outline-none"
+                                    >
+                                        <option value="all">Barcha foydalanuvchilar</option>
+                                        <option value="admin">Faqat adminlar</option>
+                                        <option value="seller">Sotuvchilar</option>
                                     </select>
                                 </div>
                             </div>
 
                             <Button
                                 onClick={handleSend}
-                                disabled={sending}
+                                disabled={sendMutation.isPending}
                                 className="w-full bg-[#3C50E0] hover:bg-[#2b3cb5] text-white font-black uppercase tracking-widest text-[10px] h-12 rounded-xl shadow-lg shadow-[#3C50E0]/20 mt-4 transition-all"
                             >
-                                {sending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                                {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                                 Xabarni yuborish
                             </Button>
                         </div>
@@ -136,10 +187,18 @@ export default function NotificationsAdmin() {
                         </div>
 
                         <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                            {mockNotifications.map((n) => (
+                            {isLoading ? (
+                                <div className="p-20 flex flex-col items-center gap-4">
+                                    <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                                    <p className="text-zinc-500 font-bold">Yuklanmoqda...</p>
+                                </div>
+                            ) : sortedNotifications.length === 0 ? (
+                                <div className="p-20 text-center">
+                                    <p className="text-zinc-400 font-bold">Xabarlar topilmadi</p>
+                                </div>
+                            ) : sortedNotifications.map((n) => (
                                 <div key={n.id} className={cn(
                                     "p-6 flex items-start gap-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/20 transition-all",
-                                    !n.read && "bg-blue-50/20 dark:bg-[#3C50E0]/5"
                                 )}>
                                     <div className={cn(
                                         "h-10 w-10 shrink-0 rounded-full flex items-center justify-center border-2 shadow-sm",
@@ -157,15 +216,25 @@ export default function NotificationsAdmin() {
                                     <div className="flex-1 space-y-1">
                                         <div className="flex items-center justify-between">
                                             <h5 className="text-sm font-black text-zinc-800 dark:text-white uppercase tracking-tight">{n.title}</h5>
-                                            <span className="text-[10px] font-bold text-zinc-400">{n.date}</span>
+                                            <span className="text-[10px] font-bold text-zinc-400">
+                                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: uz })}
+                                            </span>
                                         </div>
                                         <p className="text-sm font-medium text-zinc-500 leading-relaxed dark:text-zinc-400">{n.message}</p>
-                                        {!n.read && (
-                                            <span className="inline-block mt-2 px-2 py-0.5 bg-[#3C50E0] text-white text-[9px] font-black uppercase tracking-widest rounded">New</span>
-                                        )}
+                                        <div className="flex items-center gap-2 mt-2">
+                                            <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 text-[9px] font-black uppercase tracking-widest rounded">
+                                                To: {n.target}
+                                            </span>
+                                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-500 text-[9px] font-black uppercase tracking-widest rounded">
+                                                Views: {n.read_by?.length || 0}
+                                            </span>
+                                        </div>
                                     </div>
 
-                                    <button className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                                    <button
+                                        onClick={() => n.id && deleteMutation.mutate(n.id)}
+                                        className="h-8 w-8 rounded-lg flex items-center justify-center text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all"
+                                    >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
                                 </div>
