@@ -64,7 +64,10 @@ export default function Reels() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-4 z-50">
+      <div className={cn(
+        "bg-black flex flex-col items-center justify-center gap-4",
+        isMobile ? "fixed inset-0 z-50" : "relative h-[calc(100vh-64px)] w-full"
+      )}>
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-zinc-500 font-medium animate-pulse">Reels yuklanmoqda...</p>
       </div>
@@ -73,7 +76,10 @@ export default function Reels() {
 
   if (reels.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center text-center px-6 z-50">
+      <div className={cn(
+        "bg-black flex flex-col items-center justify-center text-center px-6",
+        isMobile ? "fixed inset-0 z-50" : "relative h-[calc(100vh-64px)] w-full"
+      )}>
         <div className="bg-zinc-900/50 p-8 rounded-full mb-6">
           <Clapperboard className="h-16 w-16 text-zinc-700" />
         </div>
