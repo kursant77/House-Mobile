@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Mail, HelpCircle, Settings as SettingsIcon, Send, Inbox, Clock, CheckCircle, User, Plus, Search, Trash2, Edit, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle, X, Check, Info } from "lucide-react";
+import { MessageSquare, Mail, HelpCircle, Settings as SettingsIcon, Send as SendIcon, Inbox, Clock, CheckCircle, User, Plus, Search, Trash2, Edit, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle, X, Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -294,7 +294,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                             </>
                                         ) : (
                                             <>
-                                                <Send className="h-4 w-4 mr-2" />
+                                                <SendIcon className="h-4 w-4 mr-2" />
                                                 Xabarni yuborish
                                             </>
                                         )}
@@ -406,7 +406,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                     disabled={createMutation.isPending}
                                     className="w-full bg-[#3C50E0] hover:bg-[#2b3cb5] h-11 font-black uppercase text-xs"
                                 >
-                                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                                    {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SendIcon className="h-4 w-4 mr-2" />}
                                     Yaratish
                                 </Button>
                             </div>
@@ -443,7 +443,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                                             size="icon"
                                                             className="h-8 w-8"
                                                         >
-                                                            <Send className="h-3.5 w-3.5" />
+                                                            <SendIcon className="h-3.5 w-3.5" />
                                                         </Button>
                                                     )}
                                                 </div>
@@ -584,7 +584,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
 
     // Platform Settings with Real Data
     const SettingsPage = () => {
-        const { data: settings = [], isLoading } = useQuery({
+        const { data: settings = [], isLoading, error } = useQuery({
             queryKey: ['platform-settings'],
             queryFn: platformSettingsApi.getSettings
         });
@@ -595,13 +595,45 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                 queryClient.invalidateQueries({ queryKey: ['platform-settings'] });
                 toast.success(`${data.setting_key} ${data.is_enabled ? 'yoqildi' : 'o\'chirildi'}`);
             },
-            onError: () => toast.error("Xatolik yuz berdi")
+            onError: (err: any) => toast.error("Xatolik: " + err.message)
         });
 
         if (isLoading) {
             return (
                 <div className="h-[60vh] flex items-center justify-center">
                     <Loader2 className="h-10 w-10 text-[#3C50E0] animate-spin" />
+                </div>
+            );
+        }
+
+        if (error) {
+            const isTableMissing = (error as any).message?.includes("relation \"platform_settings\" does not exist");
+            return (
+                <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 md:p-12 rounded-2xl text-center shadow-xl">
+                    <div className="bg-red-50 dark:bg-red-900/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertCircle className="h-8 w-8 text-red-500" />
+                    </div>
+                    <h3 className="text-xl font-black text-zinc-800 dark:text-white mb-3">Sozlamalarni yuklashda xatolik</h3>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mb-8 leading-relaxed">
+                        {isTableMissing
+                            ? "Ma'lumotlar bazasida 'platform_settings' jadvali topilmadi. Iltimos, 'supabase_migration.sql' faylidagi SQL kodini Supabase SQL Editor-da ishga tushiring."
+                            : ((error as any).message || "Noma'lum xatolik yuz berdi. Internet aloqasi va tizim ruxsatlarini tekshiring.")}
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                        <Button
+                            onClick={() => queryClient.invalidateQueries({ queryKey: ['platform-settings'] })}
+                            className="bg-[#3C50E0] hover:bg-[#2b3cb5] text-white px-8 h-12 rounded-xl font-bold uppercase tracking-wider transition-all"
+                        >
+                            Qayta urinish
+                        </Button>
+                        <Button
+                            variant="outline"
+                            onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
+                            className="px-8 h-12 rounded-xl font-bold uppercase tracking-wider"
+                        >
+                            Supabase Dashboard
+                        </Button>
+                    </div>
                 </div>
             );
         }

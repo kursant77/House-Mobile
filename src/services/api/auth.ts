@@ -25,6 +25,10 @@ export interface AuthResponse {
     phone?: string;
     isProfessional: boolean;
     isBlocked: boolean;
+    address?: string;
+    telegram?: string;
+    instagram?: string;
+    facebook?: string;
   };
   token: string;
 }
@@ -180,9 +184,14 @@ export const authApi = {
     }
 
     // Fetch profile from public.profiles table
+    // Selecting only existing columns if migration wasn't run yet
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, full_name, username, phone, avatar_url, role, is_professional, bio, is_blocked')
+      .select(`
+        id, full_name, username, phone, avatar_url, role, 
+        is_professional, bio, is_blocked, address, 
+        telegram, instagram, facebook
+      `)
       .eq('id', user.id)
       .maybeSingle();
 
@@ -215,6 +224,10 @@ export const authApi = {
       isBlocked: profile.is_blocked,
       username: profile.username,
       phone: profile.phone,
+      address: profile.address,
+      telegram: profile.telegram,
+      instagram: profile.instagram,
+      facebook: profile.facebook,
     };
   },
 
@@ -269,7 +282,17 @@ export const authApi = {
   /**
    * Update user profile information
    */
-  updateProfile: async (updates: { name?: string; bio?: string; avatarUrl?: string }): Promise<void> => {
+  updateProfile: async (updates: {
+    name?: string;
+    bio?: string;
+    avatarUrl?: string;
+    address?: string;
+    telegram?: string;
+    instagram?: string;
+    facebook?: string;
+    phone?: string;
+    username?: string;
+  }): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
@@ -280,6 +303,12 @@ export const authApi = {
         full_name: updates.name,
         avatar_url: updates.avatarUrl,
         bio: updates.bio,
+        address: updates.address,
+        telegram: updates.telegram,
+        instagram: updates.instagram,
+        facebook: updates.facebook,
+        phone: updates.phone,
+        username: updates.username,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);
@@ -319,5 +348,23 @@ export const authApi = {
       .getPublicUrl(filePath);
 
     return data.publicUrl;
+  },
+  /**
+   * Admin: Delete user from platform
+   */
+  deleteUser: async (userId: string): Promise<void> => {
+    const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId });
+    if (error) throw error;
+  },
+
+  /**
+   * Admin: Block/Unblock user
+   */
+  toggleBlock: async (userId: string, isBlocked: boolean): Promise<void> => {
+    const { error } = await supabase.rpc('toggle_user_block', {
+      target_user_id: userId,
+      block_status: isBlocked
+    });
+    if (error) throw error;
   },
 };

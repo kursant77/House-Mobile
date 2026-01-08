@@ -31,7 +31,7 @@ import { supabase } from "@/lib/supabase";
 // Real-time comment count component
 function CommentCount({ productId }: { productId: string }) {
   const queryClient = useQueryClient();
-  
+
   const { data: count = 0 } = useQuery({
     queryKey: ["comment-count", productId],
     queryFn: async () => {
@@ -99,7 +99,7 @@ export function ReelCard({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
-  const { isMobile } = useIsMobile();
+  const isMobile = useIsMobile();
 
   const [isMuted, setIsMuted] = useState(false); // Default ovozli
   const [isLiked, setIsLiked] = useState(reel.isLiked);
@@ -290,7 +290,7 @@ export function ReelCard({
 
   return (
     <div
-      className="relative h-full w-full bg-black flex items-center justify-center overflow-hidden"
+      className="relative h-full w-full bg-reels flex items-center justify-center overflow-hidden transition-colors duration-300"
       onClick={handleDoubleTap}
       onTouchStart={handleVideoTouchStart}
     >

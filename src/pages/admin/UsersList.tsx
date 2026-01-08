@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { authApi } from "@/services/api/auth";
 import { Link } from "react-router-dom";
 import { Search, Filter, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,19 +55,11 @@ export default function UsersList() {
         }
     };
 
-    const toggleBlock = async (id: string, isBlocked: boolean) => {
+    const toggleBlock = async (id: string, isBlockedNow: boolean) => {
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ is_blocked: !isBlocked })
-                .eq('id', id);
+            await authApi.toggleBlock(id, !isBlockedNow);
 
-            if (error) throw error;
-
-            // Agar bloklangan bo'lsa, auth'dan ham chiqarish
-            if (!isBlocked) {
-                // User bloklandi, auth jadvalidan ham o'chirish kerak (admin uchun)
-                // Supabase auth admin API orqali amalga oshiriladi
+            if (!isBlockedNow) {
                 toast.success("Foydalanuvchi muvaffaqiyatli bloklandi");
             } else {
                 toast.success("Foydalanuvchi blokdan chiqarildi");
@@ -83,18 +76,7 @@ export default function UsersList() {
 
         setIsDeleting(true);
         try {
-            // Avval user'ning barcha ma'lumotlarini o'chirish
-            // Profiles jadvalidan o'chirish (CASCADE bilan barcha bog'liq ma'lumotlar ham o'chadi)
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .delete()
-                .eq('id', userToDelete);
-
-            if (profileError) throw profileError;
-
-            // Auth'dan ham o'chirish (admin API orqali)
-            // Bu qism Supabase Admin API yoki Database function orqali amalga oshirilishi kerak
-            // Hozircha profiles jadvalidan o'chirish yetarli (CASCADE bilan)
+            await authApi.deleteUser(userToDelete);
 
             toast.success("Foydalanuvchi muvaffaqiyatli o'chirildi");
             setDeleteDialogOpen(false);

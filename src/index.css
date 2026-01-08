@@ -39,9 +39,9 @@
 
     --radius: 1rem;
 
-    /* Reels specific */
-    --reels-bg: 0 0% 0%;
-    --reels-foreground: 0 0% 100%;
+    /* Reels specific - Light Mode */
+    --reels-bg: 0 0% 100%;
+    --reels-foreground: 0 0% 15%;
     --reels-overlay: 0 0% 0%;
 
     /* Navigation */
@@ -85,6 +85,10 @@
     --nav-bg: 0 0% 8%;
     --nav-foreground: 0 0% 65%;
     --nav-active: 0 0% 100%;
+
+    /* Reels specific - Dark Mode */
+    --reels-bg: 0 0% 0%;
+    --reels-foreground: 0 0% 100%;
   }
 }
 

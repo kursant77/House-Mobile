@@ -1,5 +1,5 @@
 import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,11 +37,20 @@ export const Header = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Determine search context based on route
+    const isReelsPage = location.pathname === "/reels";
+    const isProductsPage = location.pathname === "/products" || location.pathname.startsWith("/product/");
+
+    // Default context is 'users' (Global/Home)
+    const searchContext = isReelsPage ? 'reels' : isProductsPage ? 'products' : 'users';
 
     const { data: searchResults = [], isLoading: isSearching } = useQuery({
         queryKey: ["user-search", searchQuery],
         queryFn: () => socialService.searchUsers(searchQuery),
-        enabled: searchQuery.trim().length > 0 && searchOpen,
+        // Only fetch user search results if we are NOT in products or reels context
+        enabled: searchContext === 'users' && searchQuery.trim().length > 0 && searchOpen,
         staleTime: 1000 * 30,
     });
 
@@ -53,10 +62,27 @@ export const Header = () => {
         }
     }, [isAuthenticated]);
 
+    // Clear search when navigating to a different page
+    useEffect(() => {
+        setSearchQuery("");
+        setSearchOpen(false);
+    }, [location.pathname]);
+
     const handleSearch = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
-        if (searchQuery.trim()) {
+        setSearchOpen(false);
+
+        if (!searchQuery.trim()) return;
+
+        if (searchContext === 'reels') {
+            navigate(`/reels?search=${encodeURIComponent(searchQuery.trim())}`);
+        } else if (searchContext === 'products') {
             navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+        } else {
+            // For user search, we don't navigate on enter, just keep popover open or maybe go to a dedicated page if we had one.
+            // But user request says "asosiy menuda... faqat profill...". The popover already shows profiles.
+            // If they insist on pressing Enter, maybe valid to do nothing or open popover.
+            setSearchOpen(true);
         }
     };
 
@@ -64,6 +90,14 @@ export const Header = () => {
         setSearchOpen(false);
         setSearchQuery("");
         navigate(`/profile/${userId}`);
+    };
+
+    const getSearchPlaceholder = () => {
+        switch (searchContext) {
+            case 'reels': return "Reels qidirish...";
+            case 'products': return "Mahsulot qidirish...";
+            default: return "Foydalanuvchi qidirish...";
+        }
     };
 
     return (
@@ -76,9 +110,6 @@ export const Header = () => {
                         <Menu className="h-6 w-6" />
                     </Button>
                     <Link to="/" className="flex items-center gap-1">
-                        <div className="bg-primary/10 p-1.5 rounded-lg md:hidden">
-                            <span className="text-xl font-bold text-primary">H</span>
-                        </div>
                         <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent hidden md:block">
                             House Mobile
                         </span>
@@ -87,76 +118,90 @@ export const Header = () => {
                 </div>
 
                 {/* Center Section: Search (Hidden on small mobile, visible on desktop) */}
-                <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8">
-                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
-                        <PopoverTrigger asChild>
-                            <div className="flex w-full items-center">
-                                <div className="relative w-full">
-                                    <Input
-                                        type="search"
-                                        placeholder="Username bo'yicha qidirish..."
-                                        value={searchQuery}
-                                        onChange={(e) => {
-                                            setSearchQuery(e.target.value);
-                                            setSearchOpen(true);
-                                        }}
-                                        onFocus={() => setSearchOpen(true)}
-                                        className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
-                                    />
+                <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8 relative z-50">
+                    <form onSubmit={handleSearch} className="flex w-full items-center relative">
+                        <div className="relative w-full">
+                            <Input
+                                type="search"
+                                placeholder={getSearchPlaceholder()}
+                                value={searchQuery}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setSearchOpen(true);
+                                }}
+                                onFocus={() => setSearchOpen(true)}
+                                // We wait a bit before closing to allow clicking on results
+                                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                                className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
+                            />
+                        </div>
+                        <Button
+                            type="submit"
+                            className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
+                        >
+                            <Search className="h-5 w-5" />
+                        </Button>
+                    </form>
+
+                    {/* Search Results Dropdown */}
+                    {searchOpen && searchContext === 'users' && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden max-h-[400px] overflow-y-auto z-[100]">
+                            {isSearching ? (
+                                <div className="p-8 text-center text-muted-foreground">
+                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
+                                    <p className="text-sm">Qidirilmoqda...</p>
                                 </div>
-                                <Button
-                                    type="button"
-                                    onClick={handleSearch}
-                                    className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
-                                >
-                                    <Search className="h-5 w-5" />
-                                </Button>
-                            </div>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0" align="start">
-                            <div className="max-h-[400px] overflow-y-auto">
-                                {isSearching ? (
-                                    <div className="p-8 text-center text-muted-foreground">
-                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
-                                        <p className="text-sm">Qidirilmoqda...</p>
-                                    </div>
-                                ) : searchResults.length > 0 ? (
-                                    <div className="p-2">
-                                        {searchResults.map((userResult) => (
-                                            <button
-                                                key={userResult.id}
-                                                onClick={() => handleUserClick(userResult.id)}
-                                                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                                            >
-                                                <Avatar className="h-10 w-10">
-                                                    <AvatarImage src={userResult.avatarUrl} />
-                                                    <AvatarFallback>
-                                                        {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div className="flex-1 text-left">
-                                                    <p className="font-semibold text-sm">{userResult.username}</p>
-                                                    <p className="text-xs text-muted-foreground">{userResult.fullName}</p>
-                                                </div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : searchQuery.trim() ? (
-                                    <div className="p-8 text-center text-muted-foreground">
-                                        <p className="text-sm">Hech narsa topilmadi</p>
-                                    </div>
-                                ) : (
-                                    <div className="p-8 text-center text-muted-foreground">
-                                        <p className="text-sm">Username yoki ism bo'yicha qidiring</p>
-                                    </div>
-                                )}
-                            </div>
-                        </PopoverContent>
-                    </Popover>
+                            ) : searchResults.length > 0 ? (
+                                <div className="p-2">
+                                    {searchResults.map((userResult) => (
+                                        <button
+                                            key={userResult.id}
+                                            onClick={() => handleUserClick(userResult.id)}
+                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                                        >
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={userResult.avatarUrl} />
+                                                <AvatarFallback>
+                                                    {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 text-left">
+                                                <p className="font-semibold text-sm">{userResult.username}</p>
+                                                <p className="text-xs text-muted-foreground">{userResult.fullName}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : searchQuery.trim() ? (
+                                <div className="p-8 text-center text-muted-foreground">
+                                    <p className="text-sm">Hech narsa topilmadi</p>
+                                </div>
+                            ) : (
+                                <div className="p-8 text-center text-muted-foreground">
+                                    <p className="text-sm">Username yoki ism bo'yicha qidiring</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Section: Actions */}
                 <div className="flex items-center gap-1 md:gap-2">
+                    {/* Mobile Search Icon */}
+                    {isMobile && !isProductsPage && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="md:hidden"
+                            onClick={() => {
+                                const type = isReelsPage ? 'reels' : isProductsPage ? 'products' : 'users';
+                                navigate(`/search?type=${type}`);
+                            }}
+                        >
+                            <Search className="h-5 w-5" />
+                        </Button>
+                    )}
+
                     <ThemeToggle />
 
                     {/* Mobile Cart Icon */}
@@ -261,7 +306,7 @@ export const Header = () => {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel className="text-zinc-900 dark:text-white">Profile</DropdownMenuLabel>
+                                <DropdownMenuLabel className="text-zinc-900 dark:text-white">Profil</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 {user?.role === 'super_admin' && (
                                     <>
@@ -277,19 +322,19 @@ export const Header = () => {
                                 <DropdownMenuItem asChild>
                                     <Link to="/profile" className="flex items-center">
                                         <User className="mr-2 h-4 w-4" />
-                                        <span>Profile</span>
+                                        <span>Profil</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
                                     <Link to="/settings" className="flex items-center">
                                         <Settings className="mr-2 h-4 w-4" />
-                                        <span>Settings</span>
+                                        <span>Sozlamalar</span>
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
                                     <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Log out</span>
+                                    <span>Chiqish</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
@@ -299,7 +344,7 @@ export const Header = () => {
                                 <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                                     <User className="h-5 w-5 text-blue-600" />
                                 </div>
-                                <span className="hidden md:inline">Sign in</span>
+                                <span className="hidden md:inline">Kirish</span>
                             </Button>
                         </Link>
                     )}

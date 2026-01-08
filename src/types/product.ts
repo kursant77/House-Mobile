@@ -3,6 +3,10 @@ export interface Profile {
   fullName?: string;
   avatarUrl?: string;
   bio?: string;
+  address?: string;
+  telegram?: string;
+  instagram?: string;
+  facebook?: string;
   sellerRating?: number;
 }
 

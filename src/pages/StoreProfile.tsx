@@ -1,15 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, Grid, Play, Settings, Share2, Loader2, UserPlus, UserCheck } from "lucide-react";
+import { ArrowLeft, MapPin, Grid, Play, Settings, Share2, Loader2, UserPlus, UserCheck, Instagram, Facebook, Send as SendIcon, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
+import { notificationService } from "@/services/api/notifications";
 import { useAuthStore } from "@/store/authStore";
 import { ProductCard } from "@/components/products/ProductCard";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function StoreProfile() {
     const { id } = useParams<{ id: string }>();
@@ -17,6 +20,11 @@ export default function StoreProfile() {
     const queryClient = useQueryClient();
     const { user: currentUser, isAuthenticated } = useAuthStore();
     const isOwnProfile = currentUser?.id === id;
+    const isAdmin = currentUser?.role === 'super_admin';
+
+    const [message, setMessage] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
     const { data: profile, isLoading: profileLoading } = useQuery({
         queryKey: ["profile", id],
@@ -74,6 +82,31 @@ export default function StoreProfile() {
         }
     };
 
+    const handleSendMessage = async () => {
+        if (!message.trim()) {
+            toast.error("Xabar matnini kiriting");
+            return;
+        }
+
+        setIsSending(true);
+        try {
+            await notificationService.sendNotification({
+                title: `${currentUser?.name || 'Foydalanuvchi'}dan xabar`, // Send as current user, not Admin
+                message: message.trim(),
+                type: 'info',
+                target: 'user' as any, // Cast to any if type definition is strict, though we should update type def
+                user_id: id,
+            });
+            toast.success("Xabar yuborildi");
+            setMessage("");
+            setDialogOpen(false);
+        } catch (error: any) {
+            toast.error("Xatolik: " + error.message);
+        } finally {
+            setIsSending(false);
+        }
+    };
+
     if (profileLoading || statsLoading) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center">
@@ -117,18 +150,51 @@ export default function StoreProfile() {
                                         Tahrirlash
                                     </Button>
                                 ) : (
-                                    <Button
-                                        variant={followingStatus ? "outline" : "default"}
-                                        size="sm"
-                                        className="min-w-[120px]"
-                                        onClick={handleFollowToggle}
-                                    >
-                                        {followingStatus ? (
-                                            <><UserCheck className="h-4 w-4 mr-2" /> Obunadasiz</>
-                                        ) : (
-                                            <><UserPlus className="h-4 w-4 mr-2" /> Obuna bo'lish</>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant={followingStatus ? "outline" : "default"}
+                                            size="sm"
+                                            className="min-w-[120px]"
+                                            onClick={handleFollowToggle}
+                                        >
+                                            {followingStatus ? (
+                                                <><UserCheck className="h-4 w-4 mr-2" /> Obunadasiz</>
+                                            ) : (
+                                                <><UserPlus className="h-4 w-4 mr-2" /> Obuna bo'lish</>
+                                            )}
+                                        </Button>
+
+                                        {isAdmin && (
+                                            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="secondary" size="sm">
+                                                        <MessageSquare className="h-4 w-4 mr-2" />
+                                                        Xabar yuborish
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Foydalanuvchiga xabar yuborish</DialogTitle>
+                                                    </DialogHeader>
+                                                    <div className="py-4">
+                                                        <Textarea
+                                                            placeholder="Xabar matnini kiriting..."
+                                                            value={message}
+                                                            onChange={(e) => setMessage(e.target.value)}
+                                                            className="min-h-[120px]"
+                                                        />
+                                                    </div>
+                                                    <DialogFooter>
+                                                        <Button variant="outline" onClick={() => setDialogOpen(false)}>Bekor qilish</Button>
+                                                        <Button onClick={handleSendMessage} disabled={isSending}>
+                                                            {isSending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SendIcon className="h-4 w-4 mr-2" />}
+                                                            Yuborish
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
                                         )}
-                                    </Button>
+                                    </div>
                                 )}
                             </div>
                         </div>
@@ -150,10 +216,32 @@ export default function StoreProfile() {
                         </div>
 
                         {/* Bio */}
-                        <div className="max-w-md">
+                        <div className="max-w-md w-full space-y-2">
                             <p className="text-sm leading-relaxed text-muted-foreground">
                                 {profile.bio || "Bio ma'lumotlari kiritilmagan."}
                             </p>
+                            {profile.address && (
+                                <p className="text-xs text-muted-foreground flex items-center justify-center md:justify-start gap-1">
+                                    <MapPin className="h-3 w-3" /> {profile.address}
+                                </p>
+                            )}
+                            <div className="flex justify-center md:justify-start gap-4 mt-4">
+                                {profile.telegram && (
+                                    <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                                        <SendIcon className="h-5 w-5" />
+                                    </a>
+                                )}
+                                {profile.instagram && (
+                                    <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                                        <Instagram className="h-5 w-5" />
+                                    </a>
+                                )}
+                                {profile.facebook && (
+                                    <a href={profile.facebook.startsWith('http') ? profile.facebook : `https://facebook.com/${profile.facebook}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                                        <Facebook className="h-5 w-5" />
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -12,11 +12,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Catalog", path: "/products" },
-  { icon: PlusSquare, label: "Add", path: "/upload" },
+  { icon: Home, label: "Bosh sahifa", path: "/" },
+  { icon: Search, label: "Katalog", path: "/products" },
+  { icon: PlusSquare, label: "Yuklash", path: "/upload" },
   { icon: Film, label: "Reels", path: "/reels" },
-  { icon: User, label: "Profile", path: "/profile" },
+  { icon: User, label: "Profil", path: "/profile" },
 ];
 
 interface BottomNavProps {

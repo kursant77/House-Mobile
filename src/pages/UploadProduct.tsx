@@ -29,8 +29,10 @@ export default function UploadProduct() {
     const { user } = useAuthStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(false);
-    const [media, setMedia] = useState<MediaFile[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [images, setImages] = useState<MediaFile[]>([]);
+    const [video, setVideo] = useState<MediaFile | null>(null);
+    const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         title: "",
@@ -53,14 +55,15 @@ export default function UploadProduct() {
                             category: product.category,
                         });
 
-                        const existingMedia: MediaFile[] = [];
+                        const existingImages: MediaFile[] = [];
                         if (product.images) {
-                            product.images.forEach(url => existingMedia.push({ preview: url, type: 'image', existingUrl: url }));
+                            product.images.forEach(url => existingImages.push({ preview: url, type: 'image', existingUrl: url }));
                         }
+                        setImages(existingImages);
+
                         if (product.videoUrl) {
-                            existingMedia.push({ preview: product.videoUrl, type: 'video', existingUrl: product.videoUrl });
+                            setVideo({ preview: product.videoUrl, type: 'video', existingUrl: product.videoUrl });
                         }
-                        setMedia(existingMedia);
                     }
                 } catch (err) {
                     toast.error("Mahsulotni yuklashda xatolik");
@@ -72,40 +75,64 @@ export default function UploadProduct() {
         }
     }, [editId]);
 
-    const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB for images
 
-        const filteredFiles = files.filter(file => {
-            if (file.size > MAX_SIZE) {
-                toast.error(`${file.name} juda katta. Maksimal hajm: 50MB`);
-                return false;
-            }
-            return true;
-        });
+        const newImages: MediaFile[] = files
+            .filter(file => {
+                if (file.size > MAX_SIZE) {
+                    toast.error(`${file.name} juda katta. Maksimal hajm: 10MB`);
+                    return false;
+                }
+                return file.type.startsWith('image/');
+            })
+            .map(file => ({
+                file,
+                preview: URL.createObjectURL(file),
+                type: 'image',
+            }));
 
-        const newMedia: MediaFile[] = filteredFiles.map(file => ({
-            file,
-            preview: URL.createObjectURL(file),
-            type: file.type.startsWith('video/') ? 'video' : 'image',
-        }));
-        setMedia(prev => [...prev, ...newMedia]);
-
-        // Reset input
-        if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-        }
+        setImages(prev => [...prev, ...newImages]);
+        if (imageInputRef.current) imageInputRef.current.value = "";
     };
 
-    const removeMedia = (index: number) => {
-        setMedia(prev => {
+    const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const MAX_SIZE = 100 * 1024 * 1024; // 100MB for video
+        if (file.size > MAX_SIZE) {
+            toast.error("Video hajmi 100MB dan oshmasligi kerak");
+            return;
+        }
+
+        if (!file.type.startsWith('video/')) {
+            toast.error("Iltimos, video fayl yuklang");
+            return;
+        }
+
+        setVideo({
+            file,
+            preview: URL.createObjectURL(file),
+            type: 'video'
+        });
+
+        if (videoInputRef.current) videoInputRef.current.value = "";
+    };
+
+    const removeImage = (index: number) => {
+        setImages(prev => {
             const updated = [...prev];
-            if (updated[index].file) {
-                URL.revokeObjectURL(updated[index].preview);
-            }
+            if (updated[index].file) URL.revokeObjectURL(updated[index].preview);
             updated.splice(index, 1);
             return updated;
         });
+    };
+
+    const removeVideo = () => {
+        if (video?.file) URL.revokeObjectURL(video.preview);
+        setVideo(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -137,22 +164,22 @@ export default function UploadProduct() {
             return;
         }
 
-        if (media.length === 0) {
+        if (images.length === 0) {
             toast.error("Iltimos, kamida bitta rasm yuklang");
             return;
         }
 
-        if (!media.some(m => m.type === 'video')) {
+        if (!video) {
             toast.error("Video yuklash majburiy (Reels bo'limi uchun)");
             return;
         }
 
         try {
             setIsSubmitting(true);
-            const mediaUploads = media.filter(m => m.file).map(m => ({
-                file: m.file as File,
-                type: m.type
-            }));
+            const mediaUploads = [
+                ...images.filter(img => img.file).map(img => ({ file: img.file as File, type: 'image' as const })),
+                ...(video.file ? [{ file: video.file, type: 'video' as const }] : [])
+            ];
 
             await productService.createProduct(
                 {
@@ -211,67 +238,85 @@ export default function UploadProduct() {
                                 <Card>
                                     <CardHeader>
                                         <CardTitle className="flex items-center gap-2">
-                                            Media <span className="text-destructive">*</span>
+                                            Mahsulot Rasmlari <span className="text-destructive">*</span>
                                         </CardTitle>
                                         <CardDescription>
-                                            Mahsulot rasmlari va <span className="font-bold text-primary italic">kamida bitta video (reel)</span> yuklang.
+                                            Mahsulotning yuqori sifatli rasmlarini yuklang
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {media.map((m, index) => (
+                                        <div className="grid grid-cols-3 gap-4">
+                                            {images.map((img, index) => (
                                                 <div key={index} className="relative aspect-square rounded-xl overflow-hidden group border border-border">
-                                                    {m.type === 'video' ? (
-                                                        <video src={m.preview} className="h-full w-full object-cover" />
-                                                    ) : (
-                                                        <img src={m.preview} className="h-full w-full object-cover" alt="preview" />
-                                                    )}
+                                                    <img src={img.preview} className="h-full w-full object-cover" alt="preview" />
                                                     <button
                                                         type="button"
-                                                        onClick={() => removeMedia(index)}
-                                                        className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                                                        onClick={() => removeImage(index)}
+                                                        className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white"
                                                     >
-                                                        <X className="h-4 w-4" />
+                                                        <X className="h-3 w-3" />
                                                     </button>
-                                                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 rounded-md text-[10px] text-white flex items-center gap-1 backdrop-blur-sm">
-                                                        {m.type === 'video' ? <Film className="h-3 w-3" /> : <LucideImage className="h-3 w-3" />}
-                                                        {m.type === 'video' ? 'Reel' : 'Rasm'}
-                                                    </div>
                                                 </div>
                                             ))}
-
-                                            {!editId && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => fileInputRef.current?.click()}
-                                                    className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary group"
-                                                >
-                                                    <div className="p-3 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
-                                                        <Plus className="h-6 w-6" />
-                                                    </div>
-                                                    <span className="text-xs font-medium">Qo'shish</span>
-                                                </button>
-                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => imageInputRef.current?.click()}
+                                                className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                                            >
+                                                <Plus className="h-6 w-6" />
+                                                <span className="text-[10px]">Rasm</span>
+                                            </button>
                                         </div>
                                         <input
                                             type="file"
-                                            ref={fileInputRef}
-                                            onChange={handleMediaSelect}
+                                            ref={imageInputRef}
+                                            onChange={handleImageSelect}
                                             className="hidden"
                                             multiple
-                                            accept="image/*,video/*"
+                                            accept="image/*"
                                         />
-                                        {!media.some(m => m.type === 'video') && !editId && (
-                                            <p className="text-xs text-destructive mt-3 flex items-center gap-1 font-medium italic">
-                                                <Film className="h-3 w-3" />
-                                                Video yuklash majburiy (Reels bo'limi uchun)
-                                            </p>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            Reel Video <span className="text-destructive">*</span>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Qisqa video sharh (Reels uchun)
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {video ? (
+                                            <div className="relative aspect-[9/16] w-full max-w-[200px] rounded-xl overflow-hidden border border-border bg-black">
+                                                <video src={video.preview} className="h-full w-full object-cover" controls />
+                                                <button
+                                                    type="button"
+                                                    onClick={removeVideo}
+                                                    className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                onClick={() => videoInputRef.current?.click()}
+                                                className="w-full h-32 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                                            >
+                                                <Film className="h-8 w-8" />
+                                                <span className="text-sm font-medium">Video Yuklash</span>
+                                                <span className="text-xs text-muted-foreground">MP4, max 100MB</span>
+                                            </button>
                                         )}
-                                        {editId && (
-                                            <p className="text-xs text-muted-foreground mt-3 italic">
-                                                Tahrirlash rejimida rasmlarni o'zgartirish hozircha mavjud emas.
-                                            </p>
-                                        )}
+                                        <input
+                                            type="file"
+                                            ref={videoInputRef}
+                                            onChange={handleVideoSelect}
+                                            className="hidden"
+                                            accept="video/*"
+                                        />
                                     </CardContent>
                                 </Card>
                             </div>
@@ -324,6 +369,9 @@ export default function UploadProduct() {
 
                                         <div className="space-y-2">
                                             <Label htmlFor="description">Tavsif <span className="text-destructive">*</span></Label>
+                                            <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 mb-2">
+                                                <strong>Maslahat:</strong> Bioga qurilmaning barcha texnik xususiyatlarini (xotira, kamera, protsessor va h.k.) to'liq kiritishni unutmang. Bu xaridorlarga tanlashda yordam beradi.
+                                            </div>
                                             <Textarea
                                                 id="description"
                                                 placeholder="Mahsulot haqida batafsil ma'lumot bering..."

@@ -4,15 +4,17 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Layout = () => {
     const location = useLocation();
+    const isMobile = useIsMobile();
     const isReelsPage = location.pathname === "/reels";
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Fixed Header */}
-            {!isReelsPage && <Header />}
+            {/* Fixed Header: Show on all pages except mobile reels */}
+            {(!isReelsPage || !isMobile) && <Header />}
 
             {/* Fixed Sidebar (Desktop) */}
             <Sidebar />

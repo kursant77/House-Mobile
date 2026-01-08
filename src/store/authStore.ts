@@ -14,6 +14,10 @@ interface User {
   phone?: string;
   isProfessional: boolean;
   isBlocked: boolean;
+  address?: string;
+  telegram?: string;
+  instagram?: string;
+  facebook?: string;
 }
 
 interface AuthState {

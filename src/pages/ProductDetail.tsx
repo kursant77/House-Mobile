@@ -39,7 +39,7 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-muted-foreground">Oshilmoqda...</p>
+        <p className="text-muted-foreground">Yuklanmoqda...</p>
       </div>
     );
   }
@@ -48,9 +48,9 @@ export default function ProductDetail() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">Product not found</p>
+          <p className="text-muted-foreground mb-4">Mahsulot topilmadi</p>
           <Button variant="outline" onClick={() => navigate("/products")}>
-            Go to Products
+            Mahsulotlarga qaytish
           </Button>
         </div>
       </div>
@@ -75,7 +75,7 @@ export default function ProductDetail() {
       return;
     }
     addToCart(product, quantity);
-    toast.success(`Added ${quantity} item(s) to cart`);
+    toast.success(`${quantity} ta mahsulot savatchaga qo'shildi`);
   };
 
   const handleFavorite = () => {
@@ -85,7 +85,8 @@ export default function ProductDetail() {
       return;
     }
     toggleFavorite(product);
-    toast.success(isProductFavorite ? "Removed from favorites" : "Added to favorites");
+    toggleFavorite(product);
+    toast.success(isProductFavorite ? "Sevimlilardan olib tashlandi" : "Sevimlilarga qo'shildi");
   };
 
   const nextImage = () => {
@@ -128,7 +129,7 @@ export default function ProductDetail() {
             className="mb-6 flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span>Back</span>
+            <span>Orqaga</span>
           </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -225,7 +226,7 @@ export default function ProductDetail() {
                         <span className="font-semibold text-lg">{product.rating}</span>
                       </div>
                       <span className="text-muted-foreground">
-                        ({product.reviewCount} reviews)
+                        ({product.reviewCount} sharhlar)
                       </span>
                     </div>
                   )}
@@ -258,7 +259,7 @@ export default function ProductDetail() {
 
               {/* Description */}
               <div className="space-y-2">
-                <h2 className="text-xl font-semibold">Description</h2>
+                <h2 className="text-xl font-semibold">Ta'rif</h2>
                 <p className="text-muted-foreground leading-relaxed text-lg">
                   {product.description}
                 </p>
@@ -266,7 +267,7 @@ export default function ProductDetail() {
 
               {/* Quantity */}
               <div className="space-y-3">
-                <h2 className="text-xl font-semibold">Quantity</h2>
+                <h2 className="text-xl font-semibold">Miqdor</h2>
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -294,12 +295,12 @@ export default function ProductDetail() {
                 {isProductInCart ? (
                   <>
                     <Check className="h-6 w-6" />
-                    Add More to Cart
+                    Yana qo'shish
                   </>
                 ) : (
                   <>
                     <ShoppingBag className="h-6 w-6" />
-                    {product.inStock ? "Add to Cart" : "Out of Stock"}
+                    {product.inStock ? "Savatchaga qo'shish" : "Sotuvda yo'q"}
                   </>
                 )}
               </Button>
@@ -307,11 +308,11 @@ export default function ProductDetail() {
               {/* Video link */}
               {product.videoUrl && (
                 <Link
-                  to="/reels"
+                  to={`/reels?productId=${product.id}`}
                   className="flex items-center justify-center gap-2 rounded-xl border border-border px-6 py-3 hover:bg-accent transition-colors"
                 >
                   <Play className="h-5 w-5 fill-foreground" />
-                  <span className="font-medium">Watch Product Video</span>
+                  <span className="font-medium">Videoni ko'rish</span>
                 </Link>
               )}
             </div>
@@ -330,11 +331,11 @@ export default function ProductDetail() {
             {/* Video badge */}
             {product.videoUrl && (
               <Link
-                to="/reels"
+                to={`/reels?productId=${product.id}`}
                 className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-background/80 px-3 py-2 backdrop-blur-sm transition-all active:scale-95"
               >
                 <Play className="h-4 w-4 fill-foreground" />
-                <span className="text-sm font-medium">Watch Video</span>
+                <span className="text-sm font-medium">Videoni ko'rish</span>
               </Link>
             )}
 
@@ -407,7 +408,7 @@ export default function ProductDetail() {
                     <span className="font-medium">{product.rating}</span>
                   </div>
                   <span className="text-muted-foreground">
-                    ({product.reviewCount} reviews)
+                    ({product.reviewCount} sharhlar)
                   </span>
                 </div>
               )}
@@ -428,7 +429,7 @@ export default function ProductDetail() {
 
             {/* Description */}
             <div className="space-y-2">
-              <h2 className="font-semibold text-foreground">Description</h2>
+              <h2 className="font-semibold text-foreground">Ta'rif</h2>
               <p className="text-muted-foreground leading-relaxed">
                 {product.description}
               </p>
@@ -436,7 +437,7 @@ export default function ProductDetail() {
 
             {/* Quantity */}
             <div className="space-y-2">
-              <h2 className="font-semibold text-foreground">Quantity</h2>
+              <h2 className="font-semibold text-foreground">Miqdor</h2>
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -459,7 +460,7 @@ export default function ProductDetail() {
           <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-xl border-t border-border px-4 py-3 pb-safe z-40">
             <div className="flex items-center gap-3">
               <div className="flex-1">
-                <p className="text-xs text-muted-foreground">Total</p>
+                <p className="text-xs text-muted-foreground">Jami</p>
                 <p className="text-xl font-bold">
                   {formatPrice(product.price * quantity)} {product.currency}
                 </p>
@@ -472,12 +473,12 @@ export default function ProductDetail() {
                 {isProductInCart ? (
                   <>
                     <Check className="h-5 w-5" />
-                    Add More
+                    Yana qo'shish
                   </>
                 ) : (
                   <>
                     <ShoppingBag className="h-5 w-5" />
-                    {product.inStock ? "Add to Cart" : "Out of Stock"}
+                    {product.inStock ? "Savatchaga qo'shish" : "Sotuvda yo'q"}
                   </>
                 )}
               </Button>

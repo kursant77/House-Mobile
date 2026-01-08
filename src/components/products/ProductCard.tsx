@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
   product: Product;
-  variant?: "default" | "wide";
+  variant?: "default" | "wide" | "review";
 }
 
 export const ProductCard = memo(({ product, variant = "default" }: ProductCardProps) => {
@@ -51,7 +51,57 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
     toast.success("Added to cart");
   }
 
-  const aspectClass = variant === "wide" ? "aspect-video" : "aspect-[4/5]";
+  const aspectClass = variant === "wide" || variant === "review" ? "aspect-video" : "aspect-[4/5]";
+
+  if (variant === "review") {
+    return (
+      <Link to={`/product/${product.id}`} className="group relative w-full rounded-2xl overflow-hidden bg-black isolate aspect-video block">
+        {/* Background Image/Video */}
+        <img
+          src={product.images[0]}
+          alt={product.title}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-60"
+        />
+
+        {/* Play Button Overlay */}
+        <div className="absolute inset-0 flex items-center justify-center z-10 transition-transform duration-300 group-hover:scale-110">
+          <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 group-hover:bg-white/30">
+            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-lg">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-black ml-0.5"><path d="M8 5v14l11-7z" /></svg>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-20 flex flex-col justify-end p-5">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full bg-red-600 text-[10px] font-bold text-white uppercase tracking-wider">
+              {product.category || "Review"}
+            </span>
+            <div className="flex items-center gap-1 text-white/70 text-xs">
+              <span className="w-1 h-1 rounded-full bg-white/70" />
+              <span>{product.views} views</span>
+            </div>
+          </div>
+
+          <h3 className="text-lg md:text-xl font-bold text-white leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+            {product.title}
+          </h3>
+
+          <div className="flex items-center gap-2">
+            <img
+              src={product.author?.avatarUrl || "https://github.com/shadcn.png"}
+              className="w-6 h-6 rounded-full border border-white/10"
+              alt="author"
+            />
+            <span className="text-xs font-medium text-white/90">
+              {product.author?.fullName || "Admin"}
+            </span>
+          </div>
+        </div>
+      </Link>
+    );
+  }
 
   return (
     <Link

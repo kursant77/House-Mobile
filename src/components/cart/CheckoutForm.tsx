@@ -41,20 +41,20 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
     let isValid = true;
 
     if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = "Ism kiritilishi shart";
       isValid = false;
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = "Phone number is required";
+      newErrors.phone = "Telefon raqam kiritilishi shart";
       isValid = false;
     } else if (!/^[\d\s+()-]{9,}$/.test(formData.phone)) {
-      newErrors.phone = "Please enter a valid phone number";
+      newErrors.phone = "Iltimos, to'g'ri telefon raqam kiriting";
       isValid = false;
     }
 
     if (!formData.address.trim()) {
-      newErrors.address = "Address is required";
+      newErrors.address = "Manzil kiritilishi shart";
       isValid = false;
     }
 
@@ -94,7 +94,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
       setOrderPlaced(true);
       clearCart();
     } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
     } finally {
       setIsLoading(false);
     }
@@ -107,12 +107,12 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
           <div className="mb-6 mx-auto w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
             <Check className="h-10 w-10 text-green-600" />
           </div>
-          <h1 className="text-2xl font-bold mb-2">Order Placed!</h1>
+          <h1 className="text-2xl font-bold mb-2">Buyurtma qabul qilindi!</h1>
           <p className="text-muted-foreground mb-8 max-w-xs mx-auto">
-            Thank you for your order. We'll contact you shortly to confirm.
+            Buyurtmangiz uchun rahmat. Tez orada siz bilan bog'lanamiz.
           </p>
           <Button onClick={() => navigate("/")} className="rounded-xl">
-            Continue Shopping
+            Xaridni davom ettirish
           </Button>
         </div>
       </div>
@@ -130,7 +130,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-xl font-bold tracking-tight">Checkout</h1>
+          <h1 className="text-xl font-bold tracking-tight">Rasmiylashtirish</h1>
         </div>
       </header>
 
@@ -139,17 +139,17 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Contact Info */}
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Contact Information</h2>
+            <h2 className="text-lg font-semibold">Aloqa ma'lumotlari</h2>
 
             {/* Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">To'liq ism</Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="name"
                   type="text"
-                  placeholder="Enter your full name"
+                  placeholder="Ismingizni kiriting"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
                   className={cn(
@@ -165,7 +165,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Telefon raqam</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -188,16 +188,16 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
           {/* Delivery Address */}
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Delivery Address</h2>
+            <h2 className="text-lg font-semibold">Yetkazib berish manzili</h2>
 
             {/* Address */}
             <div className="space-y-2">
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address">Manzil</Label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
                 <Textarea
                   id="address"
-                  placeholder="City, street, house number, apartment"
+                  placeholder="Shahar, ko'cha, uy raqami, xonadon"
                   value={formData.address}
                   onChange={(e) => handleInputChange("address", e.target.value)}
                   className={cn(
@@ -213,10 +213,10 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
             {/* Notes */}
             <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes (Optional)</Label>
+              <Label htmlFor="notes">Qo'shimcha izohlar (ixtiyoriy)</Label>
               <Textarea
                 id="notes"
-                placeholder="Any special instructions for delivery"
+                placeholder="Yetkazib berish bo'yicha maxsus ko'rsatmalar"
                 value={formData.notes}
                 onChange={(e) => handleInputChange("notes", e.target.value)}
                 className="min-h-[80px] rounded-xl bg-muted border-0 resize-none"
@@ -226,7 +226,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
           {/* Order Summary */}
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold">Order Summary</h2>
+            <h2 className="text-lg font-semibold">Buyurtma xulosasi</h2>
             <div className="rounded-2xl bg-muted p-4 space-y-3">
               {items.map((item) => (
                 <div key={item.product.id} className="flex justify-between text-sm">
@@ -237,7 +237,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                 </div>
               ))}
               <div className="border-t border-border pt-3 flex justify-between font-semibold">
-                <span>Total</span>
+                <span>Jami</span>
                 <span>{formatPrice(getTotal())} UZS</span>
               </div>
             </div>
@@ -252,7 +252,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
             {isLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
-              `Place Order — ${formatPrice(getTotal())} UZS`
+              `Buyurtma berish — ${formatPrice(getTotal())} UZS`
             )}
           </Button>
         </form>

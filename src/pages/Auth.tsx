@@ -163,7 +163,7 @@ export default function Auth() {
             className="flex items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-5 w-5" />
-            <span className="text-sm">Back</span>
+            <span className="text-sm">Orqaga</span>
           </Link>
         </div>
       </header>
@@ -195,7 +195,7 @@ export default function Auth() {
                   : "text-muted-foreground"
               )}
             >
-              Login
+              Kirish
             </button>
             <button
               type="button"
@@ -207,7 +207,7 @@ export default function Auth() {
                   : "text-muted-foreground"
               )}
             >
-              Register
+              Ro'yxatdan o'tish
             </button>
           </div>
 
@@ -363,7 +363,7 @@ export default function Auth() {
                   type="button"
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Forgot password?
+                  Parolni unutdingizmi?
                 </button>
               </div>
             )}

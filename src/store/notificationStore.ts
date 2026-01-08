@@ -37,6 +37,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                     // Filter by target
                     const filtered = notifications.filter(n => {
+                        if (n.user_id === user?.id) return true; // Targeted to specific user
                         if (n.target === 'all') return true;
                         if (n.target === 'admin' && userRole === 'super_admin') return true;
                         if (n.target === 'seller' && userRole === 'seller') return true;
@@ -93,6 +94,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                             const userRole = profile?.role;
                             const shouldShow =
+                                notification.user_id === user?.id ||
                                 notification.target === 'all' ||
                                 (notification.target === 'admin' && userRole === 'super_admin') ||
                                 (notification.target === 'seller' && userRole === 'seller');

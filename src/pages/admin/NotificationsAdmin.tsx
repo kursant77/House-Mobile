@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, Filter, Send, Trash2, Mail, Info, AlertTriangle, CheckCircle, MoreHorizontal, User, Smartphone, Globe, Loader2 } from "lucide-react";
+import { Bell, Search, Filter, Send as SendIcon, Trash2, Mail, Info, AlertTriangle, CheckCircle, MoreHorizontal, User, Smartphone, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -77,7 +77,7 @@ export default function NotificationsAdmin() {
                 <div className="xl:col-span-1 space-y-6">
                     <div className="bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                         <h4 className="text-sm font-black text-zinc-800 dark:text-white mb-6 uppercase tracking-widest flex items-center gap-2">
-                            <Send className="h-4 w-4 text-[#3C50E0]" /> Yangi Xabar Yuborish
+                            <SendIcon className="h-4 w-4 text-[#3C50E0]" /> Yangi Xabar Yuborish
                         </h4>
 
                         <div className="space-y-4 font-medium">
@@ -134,7 +134,7 @@ export default function NotificationsAdmin() {
                                 disabled={sendMutation.isPending}
                                 className="w-full bg-[#3C50E0] hover:bg-[#2b3cb5] text-white font-black uppercase tracking-widest text-[10px] h-12 rounded-xl shadow-lg shadow-[#3C50E0]/20 mt-4 transition-all"
                             >
-                                {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                                {sendMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SendIcon className="h-4 w-4 mr-2" />}
                                 Xabarni yuborish
                             </Button>
                         </div>

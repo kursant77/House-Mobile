@@ -6,7 +6,7 @@ export const socialService = {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, full_name, avatar_url')
+                .select('id, full_name, avatar_url, bio, address, telegram, instagram, facebook')
                 .eq('id', userId)
                 .single();
 
@@ -19,6 +19,11 @@ export const socialService = {
                 id: data.id,
                 fullName: data.full_name,
                 avatarUrl: data.avatar_url,
+                bio: data.bio,
+                address: data.address,
+                telegram: data.telegram,
+                instagram: data.instagram,
+                facebook: data.facebook,
             };
         } catch (e) {
             console.error("getProfile unexpected error:", e);

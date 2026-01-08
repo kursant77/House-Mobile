@@ -116,19 +116,19 @@ export function CommentsList({
     };
 
     return (
-        <div className={cn("flex flex-col h-full bg-zinc-950 text-white", className)}>
+        <div className={cn("flex flex-col h-full bg-background text-foreground transition-colors duration-300", className)}>
             {header}
 
             {/* Scrollable List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                 {isLoading ? (
-                    <div className="h-full flex flex-col items-center justify-center gap-2 text-zinc-500">
+                    <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-6 w-6 animate-spin" />
                         <p className="text-xs">Yuklanmoqda...</p>
                     </div>
                 ) : comments.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-zinc-500 p-8 text-center bg-zinc-950">
-                        <p className="text-sm font-medium">Hali izohlar yo'q</p>
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+                        <p className="text-sm font-medium text-foreground">Hali izohlar yo'q</p>
                         <p className="text-xs mt-1">Birinchi bo'lib izoh qoldiring!</p>
                     </div>
                 ) : (
@@ -155,9 +155,9 @@ export function CommentsList({
             </div>
 
             {/* Input Area */}
-            <div className="p-3 border-t border-white/10 bg-zinc-950 pb-safe md:pb-3 shrink-0">
-                <div className="flex items-center gap-2 bg-zinc-900 rounded-full px-4 py-2 border border-zinc-800 focus-within:border-zinc-700">
-                    <div className="h-6 w-6 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] overflow-hidden">
+            <div className="p-3 border-t border-border bg-background pb-safe md:pb-3 shrink-0">
+                <div className="flex items-center gap-2 bg-muted/50 rounded-full px-4 py-2 border border-border focus-within:border-primary/20">
+                    <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] overflow-hidden">
                         {currentUser?.avatarUrl ? (
                             <img src={currentUser.avatarUrl} alt="" className="h-full w-full object-cover" />
                         ) : (
@@ -170,7 +170,7 @@ export function CommentsList({
                         onChange={(e) => setCommentText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                         placeholder="Add a comment..."
-                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-600"
+                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 text-foreground"
                     />
                     <button
                         onClick={handleSend}
@@ -184,9 +184,9 @@ export function CommentsList({
     );
 }
 
-function CommentItem({ 
-    comment, 
-    currentUser, 
+function CommentItem({
+    comment,
+    currentUser,
     productId,
     onReply,
     isReplying,
@@ -196,8 +196,8 @@ function CommentItem({
     onCancelReply,
     showReplies,
     onToggleReplies
-}: { 
-    comment: any; 
+}: {
+    comment: any;
     currentUser: any;
     productId: string;
     onReply: () => void;
@@ -259,7 +259,7 @@ function CommentItem({
             }
         };
         fetchLikeStatus();
-        
+
         // Real-time updates
         const interval = setInterval(fetchLikeStatus, 3000);
         return () => clearInterval(interval);
@@ -287,7 +287,7 @@ function CommentItem({
     return (
         <div className="space-y-3">
             <div className="flex gap-3 group">
-                <div className="h-8 w-8 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
+                <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
                     {comment.user?.avatarUrl ? (
                         <img src={comment.user.avatarUrl} alt="" className="h-full w-full object-cover" />
                     ) : (
@@ -296,34 +296,34 @@ function CommentItem({
                 </div>
                 <div className="flex-1 space-y-1">
                     <div className="flex items-baseline gap-2">
-                        <span className="text-[11px] font-black text-zinc-200 uppercase tracking-tighter">
+                        <span className="text-[11px] font-black text-foreground uppercase tracking-tighter">
                             {comment.user?.username || comment.user?.fullName || "User"}
                         </span>
-                        <span className="text-[9px] font-bold text-zinc-600 uppercase">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">
                             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: uz }).replace('avval', '')}
                         </span>
                     </div>
-                    <p className="text-[13px] text-zinc-300 leading-snug font-medium">{comment.text}</p>
+                    <p className="text-[13px] text-foreground/90 leading-snug font-medium">{comment.text}</p>
                     <div className="flex items-center gap-4 mt-1">
-                        <button 
+                        <button
                             onClick={handleLike}
                             className="flex items-center gap-1.5"
                         >
-                            <Heart className={cn("h-3.5 w-3.5 transition-colors", isLiked ? "text-red-500 fill-red-500" : "text-zinc-600")} />
+                            <Heart className={cn("h-3.5 w-3.5 transition-colors", isLiked ? "text-red-500 fill-red-500" : "text-muted-foreground")} />
                             {likesCount > 0 && (
-                                <span className="text-[10px] font-black text-zinc-500">{likesCount}</span>
+                                <span className="text-[10px] font-black text-muted-foreground">{likesCount}</span>
                             )}
                         </button>
-                        <button 
+                        <button
                             onClick={onReply}
-                            className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-zinc-300"
+                            className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-foreground"
                         >
                             Reply
                         </button>
                         {comment.repliesCount > 0 && (
                             <button
                                 onClick={onToggleReplies}
-                                className="text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-zinc-300 flex items-center gap-1"
+                                className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-foreground flex items-center gap-1"
                             >
                                 {showReplies ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                                 {comment.repliesCount} {comment.repliesCount === 1 ? 'reply' : 'replies'}
@@ -336,8 +336,8 @@ function CommentItem({
             {/* Reply Input */}
             {isReplying && (
                 <div className="ml-11 space-y-2">
-                    <div className="flex items-center gap-2 bg-zinc-900 rounded-lg px-3 py-2 border border-zinc-800">
-                        <div className="h-6 w-6 rounded-full bg-zinc-700 flex items-center justify-center text-[10px] overflow-hidden shrink-0">
+                    <div className="flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2 border border-border">
+                        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] overflow-hidden shrink-0">
                             {currentUser?.avatarUrl ? (
                                 <img src={currentUser.avatarUrl} alt="" className="h-full w-full object-cover" />
                             ) : (
@@ -350,7 +350,7 @@ function CommentItem({
                             onChange={(e) => onReplyTextChange(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && onReplySubmit()}
                             placeholder="Javob yozing..."
-                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-600 text-white"
+                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 text-foreground"
                             autoFocus
                         />
                         <button
@@ -362,7 +362,7 @@ function CommentItem({
                         </button>
                         <button
                             onClick={onCancelReply}
-                            className="text-zinc-500 text-xs px-2"
+                            className="text-muted-foreground text-xs px-2"
                         >
                             Cancel
                         </button>
@@ -372,10 +372,10 @@ function CommentItem({
 
             {/* Replies List */}
             {showReplies && replies.length > 0 && (
-                <div className="ml-11 space-y-3 pt-2 border-l-2 border-zinc-800 pl-4">
+                <div className="ml-11 space-y-3 pt-2 border-l-2 border-border pl-4">
                     {replies.map((reply: any) => (
                         <div key={reply.id} className="flex gap-2">
-                            <div className="h-6 w-6 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
+                            <div className="h-6 w-6 rounded-full bg-muted border border-border flex items-center justify-center text-[10px] font-bold shrink-0 overflow-hidden">
                                 {reply.user?.avatarUrl ? (
                                     <img src={reply.user.avatarUrl} alt="" className="h-full w-full object-cover" />
                                 ) : (
@@ -384,14 +384,14 @@ function CommentItem({
                             </div>
                             <div className="flex-1 space-y-0.5">
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-[10px] font-black text-zinc-300 uppercase tracking-tighter">
+                                    <span className="text-[10px] font-black text-foreground/80 uppercase tracking-tighter">
                                         {reply.user?.username || reply.user?.fullName || "User"}
                                     </span>
-                                    <span className="text-[8px] font-bold text-zinc-600 uppercase">
+                                    <span className="text-[8px] font-bold text-muted-foreground uppercase">
                                         {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true, locale: uz }).replace('avval', '')}
                                     </span>
                                 </div>
-                                <p className="text-[12px] text-zinc-400 leading-snug">{reply.text}</p>
+                                <p className="text-[12px] text-muted-foreground/90 leading-snug">{reply.text}</p>
                             </div>
                         </div>
                     ))}

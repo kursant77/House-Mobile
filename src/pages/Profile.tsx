@@ -18,8 +18,13 @@ import {
   Eye,
   MoreVertical,
   Plus,
+  MapPin,
+  Instagram,
+  Facebook,
+  Send as SendIcon,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
+import { Menu } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -84,10 +89,11 @@ export default function Profile() {
   // Check if profile is complete
   const isProfileComplete = useMemo(() => {
     if (!user) return false;
-    const hasFullName = user.name && user.name.split(' ').length >= 2;
-    const hasBio = user.bio && user.bio.trim().length >= 10;
+    const hasFullName = user.name && user.name.trim().length >= 2;
+    const hasBio = user.bio && user.bio.trim().length >= 5;
+    const hasAddress = user.address && user.address.trim().length >= 3;
     const onboardingComplete = localStorage.getItem("onboarding_complete") === "true";
-    return hasFullName && hasBio && onboardingComplete;
+    return hasFullName && hasBio && hasAddress && onboardingComplete;
   }, [user]);
 
   if (!user) return null;
@@ -97,21 +103,124 @@ export default function Profile() {
       <BottomNav />
 
       {/* Header for Mobile */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border flex items-center justify-between px-4 h-14 md:hidden">
-        <h1 className="font-bold text-lg">{user.name || "Profil"}</h1>
-        <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/upload")}>
-            <Plus className="h-5 w-5" />
+      {/* Header for Mobile */}
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background flex items-center justify-between px-4 h-11 md:hidden border-b border-none">
+        <div className="flex items-center gap-2">
+          <h1 className="font-bold text-xl tracking-tight">{user.username || user.name}</h1>
+          <div className="bg-red-500 rounded-full w-2 h-2" />
+        </div>
+        <div className="flex gap-6">
+          <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-transparent" onClick={() => navigate("/upload")}>
+            <Plus className="h-7 w-7 text-foreground" strokeWidth={2.5} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={handleLogout}>
-            <LogOut className="h-5 w-5 text-destructive" />
+          <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-transparent" onClick={() => navigate("/settings")}>
+            <Menu className="h-7 w-7 text-foreground" strokeWidth={2.5} />
           </Button>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto pt-14 md:pt-8 px-4">
-        {/* Profile Info Section (Instagram Style) */}
-        <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8 mb-6 md:mb-10">
+        <div className="md:hidden">
+          <div className="flex items-center px-4 mb-3">
+            <div className="relative mr-8">
+              <Avatar className="h-20 w-20 border border-border/50 ring-2 ring-background">
+                <AvatarImage src={user.avatarUrl} alt={user.name} />
+                <AvatarFallback className="text-2xl bg-zinc-100 dark:bg-zinc-800">
+                  {user.name?.charAt(0)?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <Button
+                size="icon"
+                className="absolute bottom-0 right-0 h-6 w-6 rounded-full border-2 border-background bg-blue-500 hover:bg-blue-600 text-white shadow-none"
+                onClick={() => navigate("/upload")}
+              >
+                <Plus className="h-3 w-3" strokeWidth={3} />
+              </Button>
+            </div>
+
+            <div className="flex flex-1 justify-between pr-4">
+              <div className="flex flex-col items-center cursor-pointer">
+                <span className="font-bold text-[17px] leading-tight">{userProducts.length}</span>
+                <span className="text-[13px] text-foreground/90 font-normal">Postlar</span>
+              </div>
+              <div className="flex flex-col items-center cursor-pointer">
+                <span className="font-bold text-[17px] leading-tight">{userStats?.followers || 0}</span>
+                <span className="text-[13px] text-foreground/90 font-normal">Obunachilar</span>
+              </div>
+              <div className="flex flex-col items-center cursor-pointer">
+                <span className="font-bold text-[17px] leading-tight">{userStats?.following || 0}</span>
+                <span className="text-[13px] text-foreground/90 font-normal">Obunalar</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="px-4 mb-4 space-y-0.5">
+            <p className="font-semibold text-sm">{user.name}</p>
+            <div className="text-sm/snug whitespace-pre-wrap break-words">{user.bio}</div>
+            {user.address && (
+              <p className="text-sm text-blue-900 dark:text-blue-100/90 font-medium flex items-center gap-0.5 mt-1">
+                {user.address}
+              </p>
+            )}
+            <div className="flex gap-4 mt-2">
+              {user.telegram && (
+                <a href={`https://t.me/${user.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-foreground hover:opacity-70 transition-opacity">
+                  <SendIcon className="h-5 w-5" strokeWidth={1.5} />
+                </a>
+              )}
+              {user.instagram && (
+                <a href={`https://instagram.com/${user.instagram}`} target="_blank" rel="noopener noreferrer" className="text-foreground hover:opacity-70 transition-opacity">
+                  <Instagram className="h-5 w-5" strokeWidth={1.5} />
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-1.5 mb-2 px-4">
+            <Button
+              variant="secondary"
+              className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
+              onClick={() => navigate("/profile/edit")}
+            >
+              Profilni tahrirlash
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Profil havolasi nusxalandi");
+              }}
+            >
+              Profilni ulashish
+            </Button>
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg shrink-0"
+              onClick={() => navigate("/onboarding")}
+            >
+              <div className="scale-x-[-1]">
+                <Plus className="h-4 w-4" />
+              </div>
+            </Button>
+          </div>
+
+          {/* Highlights Placeholder */}
+          <div className="flex gap-4 px-4 overflow-x-auto pb-4 scrollbar-hide">
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <div className="w-16 h-16 rounded-full border border-border/50 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-1">
+                <div className="w-full h-full rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                  <Plus className="h-5 w-5 text-foreground/50" />
+                </div>
+              </div>
+              <span className="text-xs">Yangi</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Desktop Profile Info Section (Kept as is) */}
+        <div className="hidden md:flex flex-col md:flex-row items-start gap-4 md:gap-8 mb-6 md:mb-10">
           {/* Avatar */}
           <div className="relative mx-auto md:mx-0">
             <Avatar className="h-24 w-24 md:h-32 md:w-32 lg:h-40 lg:w-40 border border-border">
@@ -140,16 +249,16 @@ export default function Profile() {
                 </h1>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1 sm:flex-none h-9 font-medium px-4" 
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 sm:flex-none h-9 font-medium px-4"
                   onClick={() => navigate("/profile/edit")}
                 >
                   Profilni tahrirlash
                 </Button>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="h-9 w-9 md:hidden"
                   onClick={() => navigate("/profile/edit")}
@@ -208,6 +317,28 @@ export default function Profile() {
                   📱 {user.phone}
                 </p>
               )}
+              {user.address && (
+                <p className="text-sm text-muted-foreground">
+                  📍 {user.address}
+                </p>
+              )}
+              <div className="flex gap-3 mt-2">
+                {user.telegram && (
+                  <a href={`https://t.me/${user.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                    <SendIcon className="h-4 w-4" />
+                  </a>
+                )}
+                {user.instagram && (
+                  <a href={`https://instagram.com/${user.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                    <Instagram className="h-4 w-4" />
+                  </a>
+                )}
+                {user.facebook && (
+                  <a href={user.facebook.startsWith('http') ? user.facebook : `https://facebook.com/${user.facebook}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:scale-110 transition-transform">
+                    <Facebook className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
             </div>
 
             {/* Complete Profile Button */}
@@ -219,23 +350,24 @@ export default function Profile() {
                 Profilni to'liq tugallang
               </Button>
             )}
+
           </div>
         </div>
 
         {/* Action Tabs */}
-        <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="w-full flex justify-center bg-transparent border-t border-border rounded-none h-12 gap-8 md:gap-14">
+        <Tabs defaultValue="posts" className="w-full mt-2">
+          <TabsList className="w-full flex h-12 bg-transparent border-t border-border/50 p-0 rounded-none">
             <TabsTrigger
               value="posts"
-              className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent h-full px-4 gap-2 text-xs font-bold uppercase tracking-widest"
+              className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground/50 transition-none"
             >
-              <Grid className="h-4 w-4" /> POSTLAR
+              <Grid className="h-6 w-6" strokeWidth={2} />
             </TabsTrigger>
             <TabsTrigger
               value="reels"
-              className="data-[state=active]:border-t-2 data-[state=active]:border-foreground rounded-none bg-transparent h-full px-4 gap-2 text-xs font-bold uppercase tracking-widest"
+              className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground/50 transition-none"
             >
-              <Play className="h-4 w-4" /> REELS
+              <Play className="h-7 w-7" strokeWidth={2} />
             </TabsTrigger>
           </TabsList>
 
@@ -255,12 +387,12 @@ export default function Profile() {
                 <Button onClick={() => navigate("/upload")}>Birinchi mahsulotni yuklang</Button>
               </div>
             ) : (
-              <div className="grid grid-cols-3 gap-0.5 md:gap-4">
+              <div className="grid grid-cols-3 gap-0.5 pb-20">
                 {userProducts.map((product) => (
                   <div key={product.id} className="relative aspect-square group bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
                     <img
                       src={product.images[0]}
-                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                      className="h-full w-full object-cover"
                       alt={product.title}
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

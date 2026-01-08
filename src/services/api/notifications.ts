@@ -6,8 +6,9 @@ export interface Notification {
     title: string;
     message: string;
     type: 'info' | 'success' | 'warning' | 'error';
-    target: 'all' | 'admin' | 'seller';
+    target: 'all' | 'admin' | 'seller' | 'user';
     read_by: string[];
+    user_id?: string;
     sender_id?: string;
 }
 
@@ -28,7 +29,11 @@ export const notificationService = {
         const { data, error } = await supabase
             .from('notifications')
             .insert([{
-                ...notification,
+                title: notification.title,
+                message: notification.message,
+                type: notification.type,
+                target: notification.target,
+                user_id: notification.user_id,
                 sender_id: user?.id,
                 read_by: []
             }])

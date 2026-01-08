@@ -9,8 +9,8 @@ import { Loader2, Clapperboard } from "lucide-react";
 
 export default function Reels() {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [searchParams] = useSearchParams();
-  const reelId = searchParams.get("id");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const reelId = searchParams.get("id") || searchParams.get("productId");
   const containerRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
 
@@ -65,11 +65,11 @@ export default function Reels() {
   if (isLoading) {
     return (
       <div className={cn(
-        "bg-black flex flex-col items-center justify-center gap-4",
+        "bg-reels flex flex-col items-center justify-center gap-4 transition-colors duration-300",
         isMobile ? "fixed inset-0 z-50" : "relative h-[calc(100vh-64px)] w-full"
       )}>
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-zinc-500 font-medium animate-pulse">Reels yuklanmoqda...</p>
+        <p className="text-reels-foreground/60 font-medium animate-pulse">Reels yuklanmoqda...</p>
       </div>
     );
   }
@@ -77,21 +77,100 @@ export default function Reels() {
   if (reels.length === 0) {
     return (
       <div className={cn(
-        "bg-black flex flex-col items-center justify-center text-center px-6",
+        "bg-reels flex flex-col items-center justify-center text-center px-6 transition-colors duration-300",
         isMobile ? "fixed inset-0 z-50" : "relative h-[calc(100vh-64px)] w-full"
       )}>
-        <div className="bg-zinc-900/50 p-8 rounded-full mb-6">
-          <Clapperboard className="h-16 w-16 text-zinc-700" />
+        <div className="bg-reels-foreground/5 p-8 rounded-full mb-6">
+          <Clapperboard className="h-16 w-16 text-reels-foreground/20" />
         </div>
-        <h3 className="text-2xl font-bold text-white mb-2">Hali videolar yo'q</h3>
-        <p className="text-zinc-500 max-w-xs mb-8">Ma'lumotlar topilmadi. Birinchilardan bo'lib video yuklang!</p>
+        <h3 className="text-2xl font-bold text-reels-foreground mb-2">Hali videolar yo'q</h3>
+        <p className="text-reels-foreground/50 max-w-xs mb-8">Ma'lumotlar topilmadi. Birinchilardan bo'lib video yuklang!</p>
+      </div>
+    );
+  }
+
+  const searchQuery = searchParams.get("search") || "";
+
+  const filteredReels = reels.filter(reel =>
+    !searchQuery || reel.product.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (searchQuery) {
+    return (
+      <div className={cn(
+        "bg-background min-h-screen p-4 pb-20 md:pb-4 transition-colors duration-300",
+        isMobile ? "z-[60]" : "w-full"
+      )}>
+        <h2 className="text-xl font-bold mb-4">Qidiruv natijalari: "{searchQuery}"</h2>
+        {filteredReels.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <Clapperboard className="h-12 w-12 mb-4 opacity-50" />
+            <p>Videolar topilmadi</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 max-w-5xl mx-auto">
+            {filteredReels.map((reel) => (
+              <div
+                key={reel.id}
+                onClick={() => {
+                  const newParams = new URLSearchParams();
+                  newParams.set('productId', reel.product.id);
+                  setSearchParams(newParams);
+                }}
+                className="group flex flex-col md:flex-row gap-4 cursor-pointer hover:bg-muted/50 p-2 rounded-xl transition-colors"
+              >
+                {/* Thumbnail */}
+                <div className="relative aspect-video md:w-[360px] shrink-0 rounded-xl overflow-hidden bg-muted">
+                  <img
+                    src={reel.thumbnailUrl}
+                    alt={reel.product.title}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded textxs text-white font-medium">
+                    Reels
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col py-1 gap-1 flex-1 min-w-0">
+                  <h3 className="text-base md:text-lg font-semibold line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                    {reel.product.title}
+                  </h3>
+
+                  <div className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground">
+                    <span>{reel.product.views || 0} views</span>
+                    <span>•</span>
+                    <span>{reel.likes} likes</span>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-2">
+                    {reel.product.author?.avatarUrl ? (
+                      <img src={reel.product.author.avatarUrl} className="h-6 w-6 rounded-full" />
+                    ) : (
+                      <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px]">
+                        {reel.product.author?.fullName?.charAt(0)}
+                      </div>
+                    )}
+                    <span className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors">
+                      {reel.product.author?.fullName || "House Mobile"}
+                    </span>
+                  </div>
+
+                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 mt-2 hidden md:block">
+                    {reel.product.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className={cn(
-      "bg-black overflow-hidden select-none relative",
+      "bg-reels overflow-hidden select-none relative transition-colors duration-300",
       isMobile ? "h-[calc(100vh-64px)] z-[60]" : "h-[calc(100vh-64px)] w-full"
     )}>
       {/* Immersive Scroll Container */}
@@ -107,7 +186,7 @@ export default function Reels() {
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-white/5 md:border-none"
+            className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-reels-foreground/5 md:border-none"
             style={{
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always'

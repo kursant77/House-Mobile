@@ -26,5 +26,12 @@ export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
         return <Navigate to="/" replace />;
     }
 
+    // Check for mandatory fields (Name, Username, Phone)
+    const isProfileComplete = user?.name && user?.username && user?.phone;
+
+    if (!isProfileComplete && location.pathname !== '/onboarding') {
+        return <Navigate to="/onboarding" replace />;
+    }
+
     return <>{children}</>;
 };

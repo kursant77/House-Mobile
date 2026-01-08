@@ -19,7 +19,7 @@ export default function Home() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: productService.getProducts,
+    queryFn: productService.getAdminProducts,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
   });
 
@@ -43,14 +43,14 @@ export default function Home() {
 
   const stories = useMemo(() => {
     if (!isAuthenticated || followingIds.length === 0) return [];
-    
+
     const followedAuthors = Array.from(new Set(products
       .filter(p => p.author?.id && followingIds.includes(p.author.id))
       .map(p => p.author?.id)))
       .map(id => products.find(p => p.author?.id === id)?.author)
       .filter(Boolean)
       .slice(0, 10);
-    
+
     return followedAuthors;
   }, [products, followingIds, isAuthenticated]);
 
@@ -62,8 +62,8 @@ export default function Home() {
         <div className="flex overflow-x-auto gap-3 px-4 pb-2 no-scrollbar">
           {stories.length > 0 ? (
             stories.map((author: any) => (
-              <div 
-                key={author.id} 
+              <div
+                key={author.id}
                 className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
                 onClick={() => navigate(`/profile/${author.id}`)}
               >
@@ -97,8 +97,8 @@ export default function Home() {
         <div className="px-4">
           <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 h-40 flex items-center px-6 relative overflow-hidden">
             <div className="relative z-10 text-white">
-              <h2 className="text-xl font-bold mb-1">Super Sale</h2>
-              <p className="text-sm opacity-90 mb-3">Up to 50% off on Smartphones</p>
+              <h2 className="text-xl font-bold mb-1">Texno Obzorlar</h2>
+              <p className="text-sm opacity-90 mb-3">Eng so'nggi gadjetlar va qurilmalar</p>
               <Button size="sm" variant="secondary" className="h-8 text-xs">Buy Now</Button>
             </div>
             <div className="absolute right-[-20px] bottom-[-20px] h-32 w-32 bg-white/20 rounded-full blur-2xl" />
@@ -134,8 +134,8 @@ export default function Home() {
 
       {/* Desktop Title (YouTube Style) */}
       <div className="hidden md:flex items-center justify-between px-8 mb-6 mx-auto max-w-[2000px]">
-        <h2 className="text-3xl font-bold">Recommended for You</h2>
-        <Button variant="ghost" className="gap-2">View all <ChevronRight className="h-4 w-4" /></Button>
+        <h2 className="text-3xl font-bold">So'nggi Maqolalar</h2>
+        <Button variant="ghost" className="gap-2">Barchasini ko'rish <ChevronRight className="h-4 w-4" /></Button>
       </div>
 
       {/* Main Grid */}
@@ -143,12 +143,12 @@ export default function Home() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground animate-pulse">Loading products...</p>
+            <p className="text-muted-foreground animate-pulse">Yuklanmoqda...</p>
           </div>
         ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
             {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} variant="wide" />
+              <ProductCard key={product.id} product={product} variant="review" />
             ))}
           </div>
         ) : (
@@ -156,9 +156,9 @@ export default function Home() {
             <div className="bg-muted p-6 rounded-full mb-4">
               <PackageSearch className="h-12 w-12 text-muted-foreground" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">No products found</h3>
+            <h3 className="text-xl font-semibold mb-2">Hozircha maqolalar yo'q</h3>
             <p className="text-muted-foreground max-w-sm">
-              Be the first one to post a product in this category!
+              Tez orada yangi obzorlar qo'shiladi!
             </p>
           </div>
         )}

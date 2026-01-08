@@ -33,6 +33,46 @@ export const productService = {
                 id: p.profiles.id,
                 fullName: p.profiles.full_name,
                 avatarUrl: p.profiles.avatar_url,
+                role: p.profiles.role // Ensure role is available
+            } : undefined,
+            images: p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
+            videoUrl: p.product_media.find((m: any) => m.type === 'video')?.url,
+        }));
+    },
+
+    /**
+     * Fetch products posted by admins (for Home page reviews)
+     */
+    getAdminProducts: async (): Promise<Product[]> => {
+        const { data, error } = await supabase
+            .from('products')
+            .select(`
+                *,
+                product_media(*),
+                profiles!inner(id, full_name, avatar_url, role)
+            `)
+            .in('profiles.role', ['admin', 'super_admin'])
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        return data.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            price: p.price,
+            currency: p.currency,
+            category: p.category,
+            inStock: p.in_stock,
+            rating: p.rating,
+            reviewCount: p.review_count,
+            sellerId: p.seller_id,
+            views: p.views || 0,
+            author: p.profiles ? {
+                id: p.profiles.id,
+                fullName: p.profiles.full_name,
+                avatarUrl: p.profiles.avatar_url,
+                role: p.profiles.role
             } : undefined,
             images: p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
             videoUrl: p.product_media.find((m: any) => m.type === 'video')?.url,

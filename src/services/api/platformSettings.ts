@@ -88,7 +88,7 @@ export const platformSettingsApi = {
 
         const newEnabled = !current.is_enabled;
 
-        return this.updateSetting(settingKey, newEnabled);
+        return platformSettingsApi.updateSetting(settingKey, newEnabled);
     },
 
     // Create new setting

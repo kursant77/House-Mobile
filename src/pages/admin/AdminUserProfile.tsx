@@ -1,16 +1,23 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { User, Mail, Calendar, MapPin, ShoppingBag, Eye, Heart, MessageSquare, Ban, CheckCircle, Shield, ArrowLeft, Loader2, Package, Film, Star } from "lucide-react";
+import { User, Mail, Calendar, MapPin, ShoppingBag, Eye, Heart, MessageSquare, Ban, CheckCircle, Shield, ArrowLeft, Loader2, Package, Film, Star, Send as SendIcon, Phone, Instagram, Facebook, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { authApi } from "@/services/api/auth";
+import { notificationService } from "@/services/api/notifications";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminUserProfile() {
     const { id } = useParams();
     const [profile, setProfile] = useState<any>(null);
     const [products, setProducts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState("");
+    const [isSending, setIsSending] = useState(false);
+    const [dialogOpen, setDialogOpen] = useState(false);
 
     useEffect(() => {
         fetchUserData();
@@ -37,16 +44,36 @@ export default function AdminUserProfile() {
     const toggleBlock = async () => {
         if (!profile) return;
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ is_blocked: !profile.is_blocked })
-                .eq('id', profile.id);
-
-            if (error) throw error;
+            await authApi.toggleBlock(profile.id, !profile.is_blocked);
             toast.success(profile.is_blocked ? "Foydalanuvchi blokdan chiqarildi" : "Foydalanuvchi bloklandi");
             fetchUserData();
         } catch (error: any) {
             toast.error("Xatolik: " + error.message);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!message.trim()) {
+            toast.error("Xabar matnini kiriting");
+            return;
+        }
+
+        setIsSending(true);
+        try {
+            await notificationService.sendNotification({
+                title: "Admin xabari",
+                message: message.trim(),
+                type: 'info',
+                target: 'all',
+                user_id: id,
+            });
+            toast.success("Xabar yuborildi");
+            setMessage("");
+            setDialogOpen(false);
+        } catch (error: any) {
+            toast.error("Xatolik: " + error.message);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -107,19 +134,67 @@ export default function AdminUserProfile() {
                                 </div>
                             </div>
 
-                            <div className="pt-6 space-y-4 text-left">
+                            <div className="pt-6 space-y-4 text-left border-t border-zinc-100 dark:border-zinc-800">
+                                {profile.username && (
+                                    <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+                                        <User className="h-4 w-4" />
+                                        <span className="text-sm font-bold">@{profile.username}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
                                     <Mail className="h-4 w-4" />
-                                    <span className="text-sm font-bold">{profile.email}</span>
+                                    <span className="text-sm font-bold">{profile.email || "Email kiritilmagan"}</span>
                                 </div>
+                                {profile.phone && (
+                                    <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+                                        <Phone className="h-4 w-4" />
+                                        <span className="text-sm font-bold">{profile.phone}</span>
+                                    </div>
+                                )}
                                 <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
                                     <Calendar className="h-4 w-4" />
-                                    <span className="text-sm font-bold">Qo'shilgan: {new Date(profile.created_at).toLocaleDateString()}</span>
+                                    <span className="text-sm font-bold">
+                                        Qo'shilgan: {(() => {
+                                            if (!profile.created_at) return "Noma'lum";
+                                            const date = new Date(profile.created_at);
+                                            return isNaN(date.getTime()) ? "Noma'lum" : date.toLocaleDateString();
+                                        })()}
+                                    </span>
                                 </div>
-                                <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
-                                    <MapPin className="h-4 w-4" />
-                                    <span className="text-sm font-bold">O'zbekiston, Toshkent</span>
+                                {profile.address && (
+                                    <div className="flex items-center gap-3 text-zinc-600 dark:text-zinc-400">
+                                        <MapPin className="h-4 w-4" />
+                                        <span className="text-sm font-bold">{profile.address}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {profile.bio && (
+                                <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl text-left">
+                                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">BIO</p>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-medium">
+                                        {profile.bio}
+                                    </p>
                                 </div>
+                            )}
+
+                            {/* Social Links */}
+                            <div className="mt-6 flex justify-center gap-4">
+                                {profile.telegram && (
+                                    <a href={`https://t.me/${profile.telegram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors">
+                                        <SendIcon className="h-5 w-5" />
+                                    </a>
+                                )}
+                                {profile.instagram && (
+                                    <a href={`https://instagram.com/${profile.instagram}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors">
+                                        <Instagram className="h-5 w-5" />
+                                    </a>
+                                )}
+                                {profile.facebook && (
+                                    <a href={profile.facebook.startsWith('http') ? profile.facebook : `https://facebook.com/${profile.facebook}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-primary transition-colors">
+                                        <Facebook className="h-5 w-5" />
+                                    </a>
+                                )}
                             </div>
 
                             <div className="mt-8 flex gap-3">
@@ -129,9 +204,34 @@ export default function AdminUserProfile() {
                                 )}>
                                     {profile.is_blocked ? "Blokdan yechish" : "Bloklash"}
                                 </Button>
-                                <a href={`mailto:${profile.email}`} className="flex-1">
-                                    <Button variant="outline" className="w-full font-black uppercase tracking-widest text-[10px] h-12 rounded-xl">Xabar yozish</Button>
-                                </a>
+                                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="outline" className="flex-1 font-black uppercase tracking-widest text-[10px] h-12 rounded-xl">
+                                            <MessageSquare className="h-4 w-4 mr-2" />
+                                            Xabar yozish
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Foydalanuvchiga xabar yuborish</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="py-4">
+                                            <Textarea
+                                                placeholder="Xabar matnini kiriting..."
+                                                value={message}
+                                                onChange={(e) => setMessage(e.target.value)}
+                                                className="min-h-[120px]"
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button variant="outline" onClick={() => setDialogOpen(false)}>Bekor qilish</Button>
+                                            <Button onClick={handleSendMessage} disabled={isSending} className="bg-[#3C50E0] hover:bg-[#3C50E0]/90">
+                                                {isSending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <SendIcon className="h-4 w-4 mr-2" />}
+                                                Yuborish
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </div>
                     </div>
@@ -152,21 +252,31 @@ export default function AdminUserProfile() {
                                 </div>
                             ) : (
                                 products.map(p => (
-                                    <div key={p.id} className="p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md transition-shadow group">
-                                        <div className="h-16 w-16 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700">
-                                            <ShoppingBag className="h-8 w-8 text-zinc-200" />
+                                    <Link key={p.id} to={`/product/${p.id}`} className="p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md hover:border-primary/20 transition-all group bg-white dark:bg-zinc-900">
+                                        <div className="h-16 w-16 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 overflow-hidden">
+                                            {p.images && p.images[0] ? (
+                                                <img src={p.images[0]} className="h-full w-full object-cover" alt="" />
+                                            ) : (
+                                                <ShoppingBag className="h-8 w-8 text-zinc-200" />
+                                            )}
                                         </div>
-                                        <div className="flex-1 min-w-0">
+                                        <div className="flex-1 min-w-0 text-left">
                                             <h5 className="font-black text-zinc-800 dark:text-white truncate text-sm">{p.title}</h5>
                                             <p className="text-xs font-bold text-[#3C50E0]">{p.price?.toLocaleString()} {p.currency}</p>
                                         </div>
                                         <div className="flex flex-col items-end gap-1">
-                                            <span className="text-[10px] text-zinc-400 font-bold">{new Date(p.created_at || Date.now()).toLocaleDateString()}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 group-hover:text-[#3C50E0]">
+                                            <span className="text-[10px] text-zinc-400 font-bold">
+                                                {(() => {
+                                                    if (!p.created_at) return "";
+                                                    const date = new Date(p.created_at);
+                                                    return isNaN(date.getTime()) ? "" : date.toLocaleDateString();
+                                                })()}
+                                            </span>
+                                            <div className="h-8 w-8 rounded-full flex items-center justify-center text-zinc-400 group-hover:text-[#3C50E0] group-hover:bg-[#3C50E0]/10 transition-colors">
                                                 <ArrowLeft className="h-4 w-4 rotate-180" />
-                                            </Button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </Link>
                                 ))
                             )}
                         </div>

@@ -25,10 +25,10 @@ export function ShareDrawer({ isOpen, onOpenChange, productTitle = "Amazing Prod
     if (isMobile) {
         return (
             <Drawer open={isOpen} onOpenChange={onOpenChange}>
-                <DrawerContent className="bg-zinc-950 border-white/10 text-white focus:outline-none focus-visible:outline-none">
+                <DrawerContent className="bg-background border-border text-foreground focus:outline-none focus-visible:outline-none">
                     <div className="mx-auto w-full max-w-sm">
-                        <DrawerHeader className="border-b border-white/10 mb-4">
-                            <DrawerTitle className="text-center font-bold text-lg">Share to</DrawerTitle>
+                        <DrawerHeader className="border-b border-border mb-4">
+                            <DrawerTitle className="text-center font-bold text-lg text-foreground">Share to</DrawerTitle>
                         </DrawerHeader>
                         <ShareList onClose={() => onOpenChange(false)} onShare={() => onOpenChange(false)} className="bg-transparent p-0" />
                     </div>
@@ -40,9 +40,9 @@ export function ShareDrawer({ isOpen, onOpenChange, productTitle = "Amazing Prod
     // Desktop: Right Side Sheet
     return (
         <Sheet open={isOpen} onOpenChange={onOpenChange}>
-            <SheetContent side="right" className="bg-zinc-950 border-l border-white/10 text-white w-[400px] p-0 gap-0 focus:outline-none">
-                <SheetHeader className="p-4 border-b border-white/10 text-left">
-                    <SheetTitle className="font-bold text-lg text-white">Share to</SheetTitle>
+            <SheetContent side="right" className="bg-background border-l border-border text-foreground w-[400px] p-0 gap-0 focus:outline-none">
+                <SheetHeader className="p-4 border-b border-border text-left">
+                    <SheetTitle className="font-bold text-lg text-foreground">Share to</SheetTitle>
                 </SheetHeader>
                 <ShareList onShare={() => onOpenChange(false)} className="bg-transparent" />
             </SheetContent>
