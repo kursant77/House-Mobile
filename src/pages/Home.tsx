@@ -8,16 +8,26 @@ import { useAuthStore } from "@/store/authStore";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
+import { socialService } from "@/services/api/social";
 import { Loader2, PackageSearch } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
   const { user, isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: productService.getProducts,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+
+  const { data: followingIds = [] } = useQuery({
+    queryKey: ["following"],
+    queryFn: socialService.getFollowing,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 5,
   });
 
   const dynamicCategories = useMemo(() => categories.map(cat => ({
@@ -31,10 +41,18 @@ export default function Home() {
     ? products
     : products.filter(p => p.category === activeCategory), [products, activeCategory]);
 
-  const stories = useMemo(() => Array.from(new Set(products.map(p => p.author?.id)))
-    .map(id => products.find(p => p.author?.id === id)?.author)
-    .filter(Boolean)
-    .slice(0, 10), [products]);
+  const stories = useMemo(() => {
+    if (!isAuthenticated || followingIds.length === 0) return [];
+    
+    const followedAuthors = Array.from(new Set(products
+      .filter(p => p.author?.id && followingIds.includes(p.author.id))
+      .map(p => p.author?.id)))
+      .map(id => products.find(p => p.author?.id === id)?.author)
+      .filter(Boolean)
+      .slice(0, 10);
+    
+    return followedAuthors;
+  }, [products, followingIds, isAuthenticated]);
 
   return (
     <>
@@ -44,7 +62,11 @@ export default function Home() {
         <div className="flex overflow-x-auto gap-3 px-4 pb-2 no-scrollbar">
           {stories.length > 0 ? (
             stories.map((author: any) => (
-              <div key={author.id} className="flex flex-col items-center gap-1 shrink-0">
+              <div 
+                key={author.id} 
+                className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
+                onClick={() => navigate(`/profile/${author.id}`)}
+              >
                 <div className="h-16 w-16 rounded-full bg-gradient-to-tr from-yellow-400 to-red-500 p-[2px]">
                   <div className="h-full w-full rounded-full bg-background border-2 border-background overflow-hidden relative">
                     <img
@@ -64,7 +86,9 @@ export default function Home() {
                 <div key={i} className="h-16 w-16 rounded-full bg-muted animate-pulse shrink-0" />
               ))
             ) : (
-              <div className="px-4 py-2 text-xs text-muted-foreground italic">No stories available</div>
+              <div className="px-4 py-2 text-xs text-muted-foreground italic">
+                {isAuthenticated ? "Hozircha obuna bo'lgan akkauntlar yo'q" : "Obuna bo'ling"}
+              </div>
             )
           )}
         </div>

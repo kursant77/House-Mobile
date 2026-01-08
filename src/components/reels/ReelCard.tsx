@@ -11,7 +11,9 @@ import {
   MessageCircle,
   MoreVertical,
   Music2,
-  Bookmark
+  Bookmark,
+  Play,
+  Pause
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,62 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { socialService } from "@/services/api/social";
 import { CommentsDrawer } from "./CommentsDrawer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
+
+// Real-time comment count component
+function CommentCount({ productId }: { productId: string }) {
+  const queryClient = useQueryClient();
+  
+  const { data: count = 0 } = useQuery({
+    queryKey: ["comment-count", productId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('product_comments')
+        .select('*', { count: 'exact', head: true })
+        .eq('product_id', productId)
+        .is('parent_comment_id', null);
+      if (error) return 0;
+      return count || 0;
+    },
+    refetchInterval: 2000, // Har 2 soniyada yangilash
+    enabled: !!productId,
+  });
+
+  // Real-time subscription
+  useEffect(() => {
+    if (!productId) return;
+
+    const channel = supabase
+      .channel(`comment-count:${productId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'product_comments',
+          filter: `product_id=eq.${productId}`
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["comment-count", productId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [productId, queryClient]);
+
+  const formatCount = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return count.toString();
+  };
+
+  return <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(count)}</span>;
+}
 
 interface ReelCardProps {
   reel: ReelItem;
@@ -41,8 +99,9 @@ export function ReelCard({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
+  const { isMobile } = useIsMobile();
 
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); // Default ovozli
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likesCount, setLikesCount] = useState(reel.likes);
   const [showHeart, setShowHeart] = useState(false);
@@ -50,6 +109,7 @@ export function ReelCard({
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const isProductFavorite = isFavorite(reel.product.id);
   const isProductInCart = isInCart(reel.product.id);
@@ -70,14 +130,26 @@ export function ReelCard({
 
   useEffect(() => {
     if (videoRef.current) {
-      if (isActive) {
+      if (isActive && !isPaused) {
         videoRef.current.play().catch(() => { });
       } else {
         videoRef.current.pause();
-        videoRef.current.currentTime = 0;
+        if (!isActive) {
+          videoRef.current.currentTime = 0;
+        }
       }
     }
-  }, [isActive]);
+  }, [isActive, isPaused]);
+
+  // Reels bo'limiga o'tganda ovozni yoqish
+  useEffect(() => {
+    if (isActive && videoRef.current) {
+      videoRef.current.muted = isMuted;
+      if (!isPaused) {
+        videoRef.current.play().catch(() => { });
+      }
+    }
+  }, [isActive, isMuted]);
 
   const onTimeUpdate = () => {
     if (videoRef.current) {
@@ -109,6 +181,11 @@ export function ReelCard({
   };
 
   const handleDoubleTap = (e: React.MouseEvent | React.TouchEvent) => {
+    // Mobile versiyada touch event bo'lsa, pauza/play boshqaruvini qo'shish
+    if (isMobile && e.type === 'touchstart') {
+      return; // Touch eventni handleVideoTouch ga qoldirish
+    }
+
     const now = Date.now();
     const DOUBLE_PRESS_DELAY = 300;
     if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
@@ -119,6 +196,26 @@ export function ReelCard({
       setTimeout(() => setShowHeart(false), 1000);
     }
     lastTapRef.current = now;
+  };
+
+  // Mobile versiyada videoni boshqarish
+  const handleVideoTouch = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    if (isMobile && videoRef.current) {
+      if (isPaused) {
+        setIsPaused(false);
+        videoRef.current.play().catch(() => { });
+      } else {
+        setIsPaused(true);
+        videoRef.current.pause();
+      }
+    }
+  };
+
+  const handleVideoTouchStart = (e: React.TouchEvent) => {
+    if (isMobile) {
+      handleVideoTouch(e);
+    }
   };
 
   const handleFollow = async (e: React.MouseEvent) => {
@@ -195,6 +292,7 @@ export function ReelCard({
     <div
       className="relative h-full w-full bg-black flex items-center justify-center overflow-hidden"
       onClick={handleDoubleTap}
+      onTouchStart={handleVideoTouchStart}
     >
       <video
         ref={videoRef}
@@ -206,6 +304,15 @@ export function ReelCard({
         onTimeUpdate={onTimeUpdate}
         className="h-full w-full object-cover md:max-w-[450px] md:rounded-lg"
       />
+
+      {/* Mobile Pause/Play Overlay */}
+      {isMobile && isPaused && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/40">
+          <div className="h-20 w-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border-4 border-white/20">
+            <Play className="h-10 w-10 text-white fill-white" />
+          </div>
+        </div>
+      )}
 
       {/* --- OVERLAYS --- */}
 
@@ -244,7 +351,7 @@ export function ReelCard({
           >
             <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
           </button>
-          <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(reel.commentCount)}</span>
+          <CommentCount productId={reel.product.id} />
         </div>
 
         {/* Save/Favorite */}

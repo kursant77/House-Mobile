@@ -10,6 +10,8 @@ interface User {
   role: 'user' | 'super_admin';
   avatarUrl?: string;
   bio?: string;
+  username?: string;
+  phone?: string;
   isProfessional: boolean;
   isBlocked: boolean;
 }
@@ -22,7 +24,7 @@ interface AuthState {
   // Actions
   setUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (name: string, username: string, phone: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => void;
   upgradeToProfessional: () => Promise<void>;
@@ -43,8 +45,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     useFavoritesStore.getState().fetchFavorites();
   },
 
-  register: async (name, email, password) => {
-    const response = await authApi.register({ name, email, password });
+  register: async (name, username, phone, email, password) => {
+    const response = await authApi.register({ name, username, phone, email, password });
     authApi.saveAuth(response);
     set({ user: response.user, isAuthenticated: true });
     useCartStore.getState().fetchCart();

@@ -123,15 +123,72 @@ export const socialService = {
     },
 
     // --- Comments ---
-    getComments: async (productId: string) => {
+    getComments: async (productId: string, parentId?: string | null) => {
+        let query = supabase
+            .from('product_comments')
+            .select(`
+                *,
+                profiles(id, full_name, avatar_url, username)
+            `)
+            .eq('product_id', productId);
+
+        // Agar parentId bo'lsa, faqat replies, aks holda parent comments
+        if (parentId !== undefined) {
+            if (parentId === null) {
+                query = query.is('parent_comment_id', null);
+            } else {
+                query = query.eq('parent_comment_id', parentId);
+            }
+        } else {
+            query = query.is('parent_comment_id', null);
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Har bir comment uchun replies sonini olish (bitta query bilan)
+        const commentIds = data.map((c: any) => c.id);
+        let repliesCounts: Record<string, number> = {};
+
+        if (commentIds.length > 0) {
+            const { data: repliesData } = await supabase
+                .from('product_comments')
+                .select('parent_comment_id')
+                .in('parent_comment_id', commentIds);
+
+            if (repliesData) {
+                repliesData.forEach((r: any) => {
+                    repliesCounts[r.parent_comment_id] = (repliesCounts[r.parent_comment_id] || 0) + 1;
+                });
+            }
+        }
+
+        return data.map((c: any) => ({
+            id: c.id,
+            userId: c.user_id,
+            text: c.text,
+            createdAt: c.created_at,
+            repliesCount: repliesCounts[c.id] || 0,
+            user: {
+                id: c.profiles.id,
+                fullName: c.profiles.full_name,
+                username: c.profiles.username,
+                avatarUrl: c.profiles.avatar_url,
+            }
+        }));
+    },
+
+    // Get comment replies
+    getCommentReplies: async (commentId: string) => {
         const { data, error } = await supabase
             .from('product_comments')
             .select(`
                 *,
-                profiles(id, full_name, avatar_url)
+                profiles(id, full_name, avatar_url, username)
             `)
-            .eq('product_id', productId)
-            .order('created_at', { ascending: false });
+            .eq('parent_comment_id', commentId)
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
 
@@ -143,25 +200,38 @@ export const socialService = {
             user: {
                 id: c.profiles.id,
                 fullName: c.profiles.full_name,
+                username: c.profiles.username,
                 avatarUrl: c.profiles.avatar_url,
             }
         }));
     },
 
-    addComment: async (productId: string, text: string) => {
+    // Add reply to comment
+    addCommentReply: async (commentId: string, text: string) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Auth required");
 
+        // Parent comment ma'lumotlarini olish
+        const { data: parentComment, error: parentError } = await supabase
+            .from('product_comments')
+            .select('product_id, parent_comment_id')
+            .eq('id', commentId)
+            .single();
+
+        if (parentError) throw parentError;
+
+        // Reply yaratish - parent_comment_id sifatida commentId ni qo'shish
         const { data, error } = await supabase
             .from('product_comments')
             .insert([{
                 user_id: user.id,
-                product_id: productId,
+                product_id: parentComment.product_id,
+                parent_comment_id: parentComment.parent_comment_id || commentId,
                 text
             }])
             .select(`
                 *,
-                profiles(id, full_name, avatar_url)
+                profiles(id, full_name, avatar_url, username)
             `)
             .single();
 
@@ -175,9 +245,63 @@ export const socialService = {
             user: {
                 id: data.profiles.id,
                 fullName: data.profiles.full_name,
+                username: data.profiles.username,
                 avatarUrl: data.profiles.avatar_url,
             }
         };
+    },
+
+    addComment: async (productId: string, text: string, parentCommentId?: string) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Auth required");
+
+        const { data, error } = await supabase
+            .from('product_comments')
+            .insert([{
+                user_id: user.id,
+                product_id: productId,
+                parent_comment_id: parentCommentId || null,
+                text
+            }])
+            .select(`
+                *,
+                profiles(id, full_name, avatar_url, username)
+            `)
+            .single();
+
+        if (error) throw error;
+
+        // Replies count
+        const { count } = await supabase
+            .from('product_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('parent_comment_id', data.id);
+
+        return {
+            id: data.id,
+            userId: data.user_id,
+            text: data.text,
+            createdAt: data.created_at,
+            repliesCount: count || 0,
+            user: {
+                id: data.profiles.id,
+                fullName: data.profiles.full_name,
+                username: data.profiles.username,
+                avatarUrl: data.profiles.avatar_url,
+            }
+        };
+    },
+
+    // Get comment count for product
+    getCommentCount: async (productId: string): Promise<number> => {
+        const { count, error } = await supabase
+            .from('product_comments')
+            .select('*', { count: 'exact', head: true })
+            .eq('product_id', productId)
+            .is('parent_comment_id', null);
+
+        if (error) return 0;
+        return count || 0;
     },
 
     // --- Comment Likes ---
@@ -222,5 +346,39 @@ export const socialService = {
 
         if (error) return 0;
         return count || 0;
+    },
+
+    // --- User Search ---
+    searchUsers: async (query: string) => {
+        if (!query.trim()) return [];
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, username, avatar_url')
+            .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+            .limit(20);
+
+        if (error) throw error;
+
+        return data.map((p: any) => ({
+            id: p.id,
+            fullName: p.full_name,
+            username: p.username,
+            avatarUrl: p.avatar_url,
+        }));
+    },
+
+    // Get followed users for current user
+    getFollowing: async (): Promise<string[]> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('follows')
+            .select('following_id')
+            .eq('follower_id', user.id);
+
+        if (error) return [];
+        return data.map((f: any) => f.following_id);
     }
 };

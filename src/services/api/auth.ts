@@ -7,6 +7,8 @@ export interface LoginRequest {
 
 export interface RegisterRequest {
   name: string;
+  username: string;
+  phone: string;
   email: string;
   password: string;
 }
@@ -19,6 +21,8 @@ export interface AuthResponse {
     role: 'user' | 'super_admin';
     avatarUrl?: string;
     bio?: string;
+    username?: string;
+    phone?: string;
     isProfessional: boolean;
     isBlocked: boolean;
   };
@@ -76,15 +80,40 @@ export const authApi = {
   },
 
   /**
+   * Check if username is available
+   */
+  checkUsernameAvailability: async (username: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('username', username.toLowerCase())
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(error.message);
+    }
+
+    return !data; // Available if no data found
+  },
+
+  /**
    * Register a new user
    */
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
+    // Check username availability
+    const isUsernameAvailable = await authApi.checkUsernameAvailability(data.username);
+    if (!isUsernameAvailable) {
+      throw new Error("Bu username allaqachon olingan");
+    }
+
     const { data: authData, error } = await supabase.auth.signUp({
       email: data.email,
       password: data.password,
       options: {
         data: {
           name: data.name,
+          username: data.username.toLowerCase(),
+          phone: data.phone,
           is_professional: false,
         },
       },
@@ -93,7 +122,28 @@ export const authApi = {
     if (error) throw new Error(error.message);
 
     const user = authData.user;
-    if (!user) throw new Error("Registration failed");
+    if (!user) throw new Error("Ro'yxatdan o'tishda xatolik");
+
+    // Ensure profile is created with username and phone
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: user.id,
+        full_name: data.name,
+        username: data.username.toLowerCase(),
+        phone: data.phone,
+        avatar_url: null,
+        role: 'user',
+        is_professional: false,
+        is_blocked: false,
+        bio: null,
+      }, {
+        onConflict: 'id'
+      });
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+    }
 
     return {
       user: {
@@ -101,6 +151,8 @@ export const authApi = {
         name: data.name,
         email: user.email || '',
         role: 'user',
+        username: data.username.toLowerCase(),
+        phone: data.phone,
         isProfessional: false,
         isBlocked: false,
       },
@@ -130,7 +182,7 @@ export const authApi = {
     // Fetch profile from public.profiles table
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, role, is_professional, bio, is_blocked')
+      .select('id, full_name, username, phone, avatar_url, role, is_professional, bio, is_blocked')
       .eq('id', user.id)
       .maybeSingle();
 
@@ -161,6 +213,8 @@ export const authApi = {
       bio: profile.bio,
       isProfessional: profile.is_professional,
       isBlocked: profile.is_blocked,
+      username: profile.username,
+      phone: profile.phone,
     };
   },
 

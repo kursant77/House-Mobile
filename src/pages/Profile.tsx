@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,17 @@ export default function Profile() {
   const { user, logout } = useAuthStore();
   const { favorites } = useFavoritesStore();
 
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (user) {
+      const onboardingComplete = localStorage.getItem("onboarding_complete");
+      const needsOnboarding = !onboardingComplete && (!user.bio || !user.name || user.name.split(' ').length < 2);
+      if (needsOnboarding) {
+        navigate("/onboarding");
+      }
+    }
+  }, [user, navigate]);
+
   const { data: userProducts = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["user-products", user?.id],
     queryFn: () => productService.getProductsByUserId(user?.id || ""),
@@ -70,6 +81,15 @@ export default function Profile() {
 
   const reelProducts = useMemo(() => userProducts.filter((p) => p.videoUrl), [userProducts]);
 
+  // Check if profile is complete
+  const isProfileComplete = useMemo(() => {
+    if (!user) return false;
+    const hasFullName = user.name && user.name.split(' ').length >= 2;
+    const hasBio = user.bio && user.bio.trim().length >= 10;
+    const onboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+    return hasFullName && hasBio && onboardingComplete;
+  }, [user]);
+
   if (!user) return null;
 
   return (
@@ -91,57 +111,114 @@ export default function Profile() {
 
       <main className="max-w-4xl mx-auto pt-14 md:pt-8 px-4">
         {/* Profile Info Section (Instagram Style) */}
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-10">
-          <div className="relative">
-            <Avatar className="h-24 w-24 md:h-36 md:w-36 border-2 border-primary/10 p-1">
+        <div className="flex flex-col md:flex-row items-start gap-4 md:gap-8 mb-6 md:mb-10">
+          {/* Avatar */}
+          <div className="relative mx-auto md:mx-0">
+            <Avatar className="h-24 w-24 md:h-32 md:w-32 lg:h-40 lg:w-40 border border-border">
               <AvatarImage src={user.avatarUrl} alt={user.name} />
-              <AvatarFallback className="text-2xl">{user.name?.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-br from-primary/20 to-primary/10">
+                {user.name?.charAt(0)?.toUpperCase() || "U"}
+              </AvatarFallback>
             </Avatar>
             <Button
               size="icon"
               variant="secondary"
-              className="absolute bottom-0 right-0 h-8 w-8 rounded-full border-2 border-background shadow-sm"
+              className="absolute bottom-0 right-0 h-8 w-8 md:h-9 md:w-9 rounded-full border-2 border-background shadow-md hover:scale-110 transition-transform"
+              onClick={() => navigate("/profile/edit")}
             >
               <Camera className="h-4 w-4" />
             </Button>
           </div>
 
-          <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left space-y-4 w-full">
-            <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-              <h2 className="text-xl md:text-2xl font-light">{user.name}</h2>
-              <div className="flex gap-2">
-                <Button variant="secondary" size="sm" className="h-8 font-semibold px-6" onClick={() => navigate("/profile/edit")}>
+          {/* Profile Info */}
+          <div className="flex-1 w-full md:w-auto space-y-4">
+            {/* Username and Actions */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
+                  {user.username || user.name?.split(' ')[0] || "username"}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1 sm:flex-none h-9 font-medium px-4" 
+                  onClick={() => navigate("/profile/edit")}
+                >
                   Profilni tahrirlash
                 </Button>
-                <Button variant="secondary" size="sm" className="h-8 md:flex hidden" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2 text-destructive" /> Chiqish
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="h-9 w-9 md:hidden"
+                  onClick={() => navigate("/profile/edit")}
+                >
+                  <Settings className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
-            {/* Stats */}
-            <div className="flex justify-center md:justify-start gap-10 w-full border-y md:border-none border-border py-3 md:py-0">
-              <div className="flex flex-col md:flex-row items-center gap-1">
-                <span className="font-bold">{userProducts.length}</span>
-                <span className="text-sm text-muted-foreground md:text-foreground">postlar</span>
+            {/* Stats - Desktop */}
+            <div className="hidden md:flex items-center gap-10">
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-base">{userProducts.length}</span>
+                <span className="text-sm text-foreground">postlar</span>
               </div>
-              <div className="flex flex-col md:flex-row items-center gap-1">
-                <span className="font-bold">{userStats?.followers || 0}</span>
-                <span className="text-sm text-muted-foreground md:text-foreground">obunachilar</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-base">{userStats?.followers || 0}</span>
+                <span className="text-sm text-foreground">obunachilar</span>
               </div>
-              <div className="flex flex-col md:flex-row items-center gap-1">
-                <span className="font-bold">{userStats?.following || 0}</span>
-                <span className="text-sm text-muted-foreground md:text-foreground">obunalar</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-base">{userStats?.following || 0}</span>
+                <span className="text-sm text-foreground">obunalar</span>
               </div>
             </div>
 
-            {/* Bio */}
-            <div className="max-w-sm">
-              <p className="text-sm font-bold">{user.name}</p>
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                {user.bio || "Sizning bio ma'lumotlaringiz bu yerda ko'rinadi."}
-              </p>
+            {/* Stats - Mobile */}
+            <div className="flex md:hidden items-center justify-around border-y border-border py-3">
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="font-semibold text-base">{userProducts.length}</span>
+                <span className="text-xs text-muted-foreground">postlar</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="font-semibold text-base">{userStats?.followers || 0}</span>
+                <span className="text-xs text-muted-foreground">obunachilar</span>
+              </div>
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="font-semibold text-base">{userStats?.following || 0}</span>
+                <span className="text-xs text-muted-foreground">obunalar</span>
+              </div>
             </div>
+
+            {/* Bio and Name */}
+            <div className="space-y-1">
+              <p className="font-semibold text-sm md:text-base">{user.name || "To'liq ism"}</p>
+              {user.bio ? (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                  {user.bio}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Bio ma'lumotlari hozircha kiritilmagan
+                </p>
+              )}
+              {user.phone && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  📱 {user.phone}
+                </p>
+              )}
+            </div>
+
+            {/* Complete Profile Button */}
+            {!isProfileComplete && (
+              <Button
+                onClick={() => navigate("/onboarding")}
+                className="w-full sm:w-auto bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-medium h-9 px-6 shadow-sm"
+              >
+                Profilni to'liq tugallang
+              </Button>
+            )}
           </div>
         </div>
 

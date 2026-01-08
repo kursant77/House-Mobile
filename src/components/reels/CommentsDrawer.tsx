@@ -26,10 +26,10 @@ export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDraw
 
     if (isMobile) {
         return (
-            <Drawer open={isOpen} onOpenChange={onOpenChange}>
-                <DrawerContent className="bg-zinc-950 border-white/10 text-white max-h-[85vh] flex flex-col focus:outline-none">
+            <Drawer open={isOpen} onOpenChange={onOpenChange} modal={true}>
+                <DrawerContent className="bg-zinc-950 border-white/10 text-white max-h-[85vh] flex flex-col focus:outline-none z-[100]">
                     <div className="mx-auto w-full max-w-sm flex-1 flex flex-col h-full">
-                        <DrawerHeader className="border-b border-white/10 relative shrink-0">
+                        <DrawerHeader className="border-b border-white/10 relative shrink-0 px-4 pb-3">
                             <DrawerTitle className="text-center font-bold text-sm">Comments</DrawerTitle>
                             <DrawerClose asChild>
                                 <button className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-zinc-400 hover:text-white">
@@ -37,7 +37,7 @@ export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDraw
                                 </button>
                             </DrawerClose>
                         </DrawerHeader>
-                        <CommentsList className="bg-transparent" productId={productId} />
+                        <CommentsList className="bg-transparent flex-1" productId={productId} />
                     </div>
                 </DrawerContent>
             </Drawer>

@@ -17,6 +17,7 @@ import Profile from "./pages/Profile";
 import StoreProfile from "./pages/StoreProfile";
 import UploadProduct from "./pages/UploadProduct";
 import EditProfile from "./pages/EditProfile";
+import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
@@ -84,6 +85,7 @@ const AppContent = () => {
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
           <Route path="/profile/:id" element={<StoreProfile />} />
+          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
         </Route>
 

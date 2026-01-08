@@ -145,10 +145,10 @@ export const productService = {
                         avatarUrl: p.profiles.avatar_url,
                     } : undefined;
 
-                    // Fetch real counts
+                    // Fetch real counts - faqat parent comments (replies emas)
                     const [likes, comments, userLike] = await Promise.all([
                         supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
-                        supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
+                        supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', p.id).is('parent_comment_id', null),
                         userId ? supabase.from('product_likes').select('*').eq('user_id', userId).eq('product_id', p.id).maybeSingle() : Promise.resolve({ data: null }),
                     ]);
 

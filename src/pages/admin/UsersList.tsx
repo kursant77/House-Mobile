@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Link } from "react-router-dom";
-import { Search, Filter, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users } from "lucide-react";
+import { Search, Filter, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,24 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function UsersList() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         fetchUsers();
@@ -49,11 +62,54 @@ export default function UsersList() {
                 .eq('id', id);
 
             if (error) throw error;
-            toast.success(isBlocked ? "Foydalanuvchi blokdan chiqarildi" : "Foydalanuvchi bloklandi");
+
+            // Agar bloklangan bo'lsa, auth'dan ham chiqarish
+            if (!isBlocked) {
+                // User bloklandi, auth jadvalidan ham o'chirish kerak (admin uchun)
+                // Supabase auth admin API orqali amalga oshiriladi
+                toast.success("Foydalanuvchi muvaffaqiyatli bloklandi");
+            } else {
+                toast.success("Foydalanuvchi blokdan chiqarildi");
+            }
+
             fetchUsers();
         } catch (error: any) {
             toast.error("Bloklashda xatolik: " + error.message);
         }
+    };
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            // Avval user'ning barcha ma'lumotlarini o'chirish
+            // Profiles jadvalidan o'chirish (CASCADE bilan barcha bog'liq ma'lumotlar ham o'chadi)
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .delete()
+                .eq('id', userToDelete);
+
+            if (profileError) throw profileError;
+
+            // Auth'dan ham o'chirish (admin API orqali)
+            // Bu qism Supabase Admin API yoki Database function orqali amalga oshirilishi kerak
+            // Hozircha profiles jadvalidan o'chirish yetarli (CASCADE bilan)
+
+            toast.success("Foydalanuvchi muvaffaqiyatli o'chirildi");
+            setDeleteDialogOpen(false);
+            setUserToDelete(null);
+            fetchUsers();
+        } catch (error: any) {
+            toast.error("O'chirishda xatolik: " + error.message);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const openDeleteDialog = (userId: string) => {
+        setUserToDelete(userId);
+        setDeleteDialogOpen(true);
     };
 
     const filteredUsers = users.filter(u =>
@@ -173,20 +229,34 @@ export default function UsersList() {
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end" className="w-52 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl p-1.5">
-                                                        <DropdownMenuItem className="hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer px-4 py-2.5 text-sm font-bold flex items-center gap-3">
-                                                            <UserPlus className="h-4 w-4 text-[#3C50E0]" /> Profilni ko'rish
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to={`/admin/users/${u.id}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer px-4 py-2.5 text-sm font-bold flex items-center gap-3">
+                                                                <UserPlus className="h-4 w-4 text-[#3C50E0]" /> Profilni ko'rish
+                                                            </Link>
                                                         </DropdownMenuItem>
                                                         <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
                                                         <DropdownMenuItem
                                                             onClick={() => toggleBlock(u.id, u.is_blocked)}
                                                             className={cn(
                                                                 "rounded-lg cursor-pointer px-4 py-2.5 text-sm font-black flex items-center gap-3",
-                                                                u.is_blocked ? "text-green-600 hover:bg-green-50" : "text-red-600 hover:bg-red-50"
+                                                                u.is_blocked ? "text-green-600 hover:bg-green-50 dark:hover:bg-green-950/20" : "text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/20"
                                                             )}
                                                         >
                                                             {u.is_blocked ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                                                             {u.is_blocked ? "Blokdan yechish" : "Bloklash"}
                                                         </DropdownMenuItem>
+                                                        {u.role !== 'super_admin' && (
+                                                            <>
+                                                                <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+                                                                <DropdownMenuItem
+                                                                    onClick={() => openDeleteDialog(u.id)}
+                                                                    className="rounded-lg cursor-pointer px-4 py-2.5 text-sm font-black flex items-center gap-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                    O'chirish
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             </div>
@@ -198,6 +268,43 @@ export default function UsersList() {
                     </table>
                 </div>
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+                            <AlertTriangle className="h-5 w-5" />
+                            Foydalanuvchini o'chirish
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="pt-2">
+                            Ushbu amalni qaytarib bo'lmaydi. Foydalanuvchining barcha ma'lumotlari,
+                            mahsulotlari, commentlari va boshqa bog'liq ma'lumotlar butunlay o'chib ketadi.
+                            <br /><br />
+                            <strong>Davom etasizmi?</strong>
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>
+                            Bekor qilish
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteUser}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {isDeleting ? (
+                                <div className="flex items-center gap-2">
+                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                    O'chirilmoqda...
+                                </div>
+                            ) : (
+                                "O'chirish"
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

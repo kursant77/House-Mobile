@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,33 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useCartStore } from "@/store/cartStore";
+import { socialService } from "@/services/api/social";
+import { useQuery } from "@tanstack/react-query";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
     const { notifications, unreadCount, fetchNotifications, markAsRead, subscribe } = useNotificationStore();
+    const { getItemCount } = useCartStore();
+    const cartCount = getItemCount();
+    const isMobile = useIsMobile();
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchOpen, setSearchOpen] = useState(false);
     const navigate = useNavigate();
+
+    const { data: searchResults = [], isLoading: isSearching } = useQuery({
+        queryKey: ["user-search", searchQuery],
+        queryFn: () => socialService.searchUsers(searchQuery),
+        enabled: searchQuery.trim().length > 0 && searchOpen,
+        staleTime: 1000 * 30,
+    });
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -37,6 +58,12 @@ export const Header = () => {
         if (searchQuery.trim()) {
             navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
         }
+    };
+
+    const handleUserClick = (userId: string) => {
+        setSearchOpen(false);
+        setSearchQuery("");
+        navigate(`/profile/${userId}`);
     };
 
     return (
@@ -61,28 +88,90 @@ export const Header = () => {
 
                 {/* Center Section: Search (Hidden on small mobile, visible on desktop) */}
                 <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8">
-                    <form onSubmit={handleSearch} className="flex w-full items-center">
-                        <div className="relative w-full">
-                            <Input
-                                type="search"
-                                placeholder="Search"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
-                            />
-                        </div>
-                        <Button
-                            type="submit"
-                            className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
-                        >
-                            <Search className="h-5 w-5" />
-                        </Button>
-                    </form>
+                    <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+                        <PopoverTrigger asChild>
+                            <div className="flex w-full items-center">
+                                <div className="relative w-full">
+                                    <Input
+                                        type="search"
+                                        placeholder="Username bo'yicha qidirish..."
+                                        value={searchQuery}
+                                        onChange={(e) => {
+                                            setSearchQuery(e.target.value);
+                                            setSearchOpen(true);
+                                        }}
+                                        onFocus={() => setSearchOpen(true)}
+                                        className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={handleSearch}
+                                    className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
+                                >
+                                    <Search className="h-5 w-5" />
+                                </Button>
+                            </div>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                            <div className="max-h-[400px] overflow-y-auto">
+                                {isSearching ? (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
+                                        <p className="text-sm">Qidirilmoqda...</p>
+                                    </div>
+                                ) : searchResults.length > 0 ? (
+                                    <div className="p-2">
+                                        {searchResults.map((userResult) => (
+                                            <button
+                                                key={userResult.id}
+                                                onClick={() => handleUserClick(userResult.id)}
+                                                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                                            >
+                                                <Avatar className="h-10 w-10">
+                                                    <AvatarImage src={userResult.avatarUrl} />
+                                                    <AvatarFallback>
+                                                        {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 text-left">
+                                                    <p className="font-semibold text-sm">{userResult.username}</p>
+                                                    <p className="text-xs text-muted-foreground">{userResult.fullName}</p>
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : searchQuery.trim() ? (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <p className="text-sm">Hech narsa topilmadi</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <p className="text-sm">Username yoki ism bo'yicha qidiring</p>
+                                    </div>
+                                )}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
 
                 {/* Right Section: Actions */}
                 <div className="flex items-center gap-1 md:gap-2">
                     <ThemeToggle />
+
+                    {/* Mobile Cart Icon */}
+                    {isMobile && isAuthenticated && (
+                        <Link to="/cart">
+                            <Button variant="ghost" size="icon" className="relative">
+                                <ShoppingCart className="h-5 w-5" />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                                        {cartCount > 9 ? "9+" : cartCount}
+                                    </span>
+                                )}
+                            </Button>
+                        </Link>
+                    )}
 
                     {isAuthenticated && (
                         <DropdownMenu>
