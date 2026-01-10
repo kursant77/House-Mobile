@@ -18,7 +18,7 @@ export interface AuthResponse {
     id: string;
     name: string;
     email: string;
-    role: 'user' | 'super_admin';
+    role: 'user' | 'blogger' | 'super_admin';
     avatarUrl?: string;
     bio?: string;
     username?: string;
@@ -365,6 +365,18 @@ export const authApi = {
       target_user_id: userId,
       block_status: isBlocked
     });
+    if (error) throw error;
+  },
+
+  /**
+   * Admin: Update user role
+   */
+  updateUserRole: async (userId: string, role: string): Promise<void> => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ role })
+      .eq('id', userId);
+
     if (error) throw error;
   },
 };

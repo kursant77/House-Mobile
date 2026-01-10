@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Product } from "@/types/product";
 import { Heart, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { VerifiedBadge } from "../ui/VerifiedBadge";
 import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
@@ -94,9 +95,14 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
               className="w-6 h-6 rounded-full border border-white/10"
               alt="author"
             />
-            <span className="text-xs font-medium text-white/90">
-              {product.author?.fullName || "Admin"}
-            </span>
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-medium text-white/90">
+                {product.author?.fullName || "Admin"}
+              </span>
+              {(product.author?.role === 'super_admin' || product.author?.role === 'blogger') && (
+                <VerifiedBadge size={12} />
+              )}
+            </div>
           </div>
         </div>
       </Link>

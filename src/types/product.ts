@@ -7,6 +7,8 @@ export interface Profile {
   telegram?: string;
   instagram?: string;
   facebook?: string;
+  role?: 'user' | 'blogger' | 'super_admin';
+  username?: string;
   sellerRating?: number;
 }
 

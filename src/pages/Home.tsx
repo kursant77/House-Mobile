@@ -9,8 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
-import { Loader2, PackageSearch } from "lucide-react";
+import { Loader2, PackageSearch, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import CreateHomePost from "@/components/admin/CreateHomePost";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { postService, PublicPost } from "@/services/api/posts";
+import { PostCard } from "@/components/social/PostCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("all");
@@ -28,6 +33,12 @@ export default function Home() {
     queryFn: socialService.getFollowing,
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5,
+  });
+
+  const { data: publicPosts = [], isLoading: postsLoading } = useQuery({
+    queryKey: ["public-posts"],
+    queryFn: postService.getPosts,
+    staleTime: 1000 * 60 * 2, // 2 minutes cache
   });
 
   const dynamicCategories = useMemo(() => categories.map(cat => ({
@@ -93,8 +104,14 @@ export default function Home() {
           )}
         </div>
 
-        {/* Hero Banner */}
-        <div className="px-4">
+        {/* Hero Banner / Create Post for Bloggers */}
+        <div className="px-4 space-y-4">
+          {(user?.role === 'super_admin' || user?.role === 'blogger') && (
+            <div className="mb-2">
+              <CreateHomePost />
+            </div>
+          )}
+
           <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 h-40 flex items-center px-6 relative overflow-hidden">
             <div className="relative z-10 text-white">
               <h2 className="text-xl font-bold mb-1">Texno Obzorlar</h2>
@@ -138,30 +155,84 @@ export default function Home() {
         <Button variant="ghost" className="gap-2">Barchasini ko'rish <ChevronRight className="h-4 w-4" /></Button>
       </div>
 
-      {/* Main Grid */}
-      <div className="px-3 md:px-8 pb-20 max-w-[2000px] mx-auto">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground animate-pulse">Yuklanmoqda...</p>
-          </div>
-        ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} variant="review" />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="bg-muted p-6 rounded-full mb-4">
-              <PackageSearch className="h-12 w-12 text-muted-foreground" />
+      {/* Main Content Area with Tabs */}
+      <div className="px-3 md:px-8 pb-20 max-w-[2000px] mx-auto mt-4">
+        <Tabs defaultValue="products" className="w-full">
+          <div className="flex items-center justify-between mb-6">
+            <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1 h-11 rounded-full w-full max-w-[400px]">
+              <TabsTrigger
+                value="products"
+                className="rounded-full px-8 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm font-black text-xs uppercase tracking-widest"
+              >
+                Mahsulotlar
+              </TabsTrigger>
+              <TabsTrigger
+                value="posts"
+                className="rounded-full px-8 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm font-black text-xs uppercase tracking-widest flex items-center gap-2"
+              >
+                Yangiliklar <span className="h-2 w-2 rounded-full bg-primary" />
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="hidden md:block">
+              {activeCategory !== "all" && (
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+                  {categories.find(c => c.id === activeCategory)?.name} — {filteredProducts.length} ta
+                </p>
+              )}
             </div>
-            <h3 className="text-xl font-semibold mb-2">Hozircha maqolalar yo'q</h3>
-            <p className="text-muted-foreground max-w-sm">
-              Tez orada yangi obzorlar qo'shiladi!
-            </p>
           </div>
-        )}
+
+          <TabsContent value="products" className="mt-0 outline-none">
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse font-medium">Mahsulotlar yuklanmoqda...</p>
+              </div>
+            ) : filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} variant="review" />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                <div className="bg-muted p-6 rounded-full mb-4">
+                  <PackageSearch className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-xl font-black mb-2 uppercase tracking-tighter">Hozircha mahsulotlar yo'q</h3>
+                <p className="text-muted-foreground max-w-sm">
+                  Tez orada yangi obzorlar qo'shiladi!
+                </p>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="posts" className="mt-0 outline-none">
+            {postsLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse font-medium">Yangiliklar yuklanmoqda...</p>
+              </div>
+            ) : publicPosts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {publicPosts.map((post: PublicPost) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+                <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
+                  <Send className="h-10 w-10 text-primary rotate-12" />
+                </div>
+                <h2 className="text-2xl font-black mb-3 uppercase tracking-tighter">Hozircha yangiliklar yo'q</h2>
+                <p className="text-muted-foreground max-w-md mx-auto px-6">
+                  Bloggerlarimiz va adminlarimiz tomonidan tez orada qiziqarli yangiliklar joylanadi.
+                </p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );

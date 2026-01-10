@@ -13,6 +13,7 @@ import { ProductCard } from "@/components/products/ProductCard";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 
 export default function StoreProfile() {
     const { id } = useParams<{ id: string }>();
@@ -121,17 +122,6 @@ export default function StoreProfile() {
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-16 uppercase-none">
-            {/* Header */}
-            <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-4 h-14 md:hidden">
-                <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-                    <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <h1 className="font-bold text-sm truncate">{profile.fullName || "User"}</h1>
-                <Button variant="ghost" size="icon">
-                    <Share2 className="h-5 w-5" />
-                </Button>
-            </header>
-
             <main className="max-w-4xl mx-auto pt-14 md:pt-8 px-4">
                 {/* Profile Info Section */}
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-10">
@@ -142,7 +132,12 @@ export default function StoreProfile() {
 
                     <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left space-y-4 w-full">
                         <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
-                            <h2 className="text-2xl font-bold">{profile.fullName}</h2>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-2xl font-bold">{profile.fullName}</h2>
+                                {(profile.role === 'super_admin' || profile.role === 'blogger') && (
+                                    <VerifiedBadge size={20} />
+                                )}
+                            </div>
                             <div className="flex gap-2">
                                 {isOwnProfile ? (
                                     <Button variant="secondary" size="sm" onClick={() => navigate("/profile/edit")}>

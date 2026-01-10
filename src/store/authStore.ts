@@ -7,7 +7,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'super_admin';
+  role: 'user' | 'blogger' | 'super_admin';
   avatarUrl?: string;
   bio?: string;
   username?: string;
@@ -43,6 +43,13 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email, password) => {
     const response = await authApi.login({ email, password });
+
+    // Check if user is blocked
+    if (response.user.isBlocked) {
+      // Don't save auth, show error
+      throw new Error("Sizning akkauntingiz adminlar tomonidan bloklangan. Yordam uchun support@housemobile.uz ga murojaat qiling.");
+    }
+
     authApi.saveAuth(response);
     set({ user: response.user, isAuthenticated: true });
     useCartStore.getState().fetchCart();
@@ -75,6 +82,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       try {
         const freshUser = await authApi.getProfile();
+
+        // Check if user is blocked
+        if (freshUser.isBlocked) {
+          // Logout blocked user
+          authApi.logout();
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          useCartStore.getState().resetCart();
+          useFavoritesStore.getState().clearFavorites();
+          return;
+        }
+
         set({ user: freshUser as User, isAuthenticated: true, isLoading: false });
         localStorage.setItem("user", JSON.stringify(freshUser));
 

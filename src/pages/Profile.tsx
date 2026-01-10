@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import {
   Settings,
   Grid,
@@ -102,23 +103,6 @@ export default function Profile() {
     <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-16 uppercase-none">
       <BottomNav />
 
-      {/* Header for Mobile */}
-      {/* Header for Mobile */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background flex items-center justify-between px-4 h-11 md:hidden border-b border-none">
-        <div className="flex items-center gap-2">
-          <h1 className="font-bold text-xl tracking-tight">{user.username || user.name}</h1>
-          <div className="bg-red-500 rounded-full w-2 h-2" />
-        </div>
-        <div className="flex gap-6">
-          <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-transparent" onClick={() => navigate("/upload")}>
-            <Plus className="h-7 w-7 text-foreground" strokeWidth={2.5} />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6 p-0 hover:bg-transparent" onClick={() => navigate("/settings")}>
-            <Menu className="h-7 w-7 text-foreground" strokeWidth={2.5} />
-          </Button>
-        </div>
-      </header>
-
       <main className="max-w-4xl mx-auto pt-14 md:pt-8 px-4">
         <div className="md:hidden">
           <div className="flex items-center px-4 mb-3">
@@ -154,8 +138,20 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="px-4 mb-4 space-y-0.5">
-            <p className="font-semibold text-sm">{user.name}</p>
+          <div className="px-4 mb-4 space-y-1">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="font-bold text-base">{user.username || user.name?.split(' ')[0]}</p>
+              {(user.role === 'super_admin' || user.role === 'blogger') && (
+                <VerifiedBadge size={16} />
+              )}
+              {user.role === 'super_admin' && (
+                <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Admin</span>
+              )}
+              {user.role === 'blogger' && (
+                <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-golden">Blogger</span>
+              )}
+            </div>
+            <p className="font-semibold text-sm text-muted-foreground">{user.name}</p>
             <div className="text-sm/snug whitespace-pre-wrap break-words">{user.bio}</div>
             {user.address && (
               <p className="text-sm text-blue-900 dark:text-blue-100/90 font-medium flex items-center gap-0.5 mt-1">
@@ -206,8 +202,8 @@ export default function Profile() {
             </Button>
           </div>
 
-          {/* Highlights Placeholder */}
-          <div className="flex gap-4 px-4 overflow-x-auto pb-4 scrollbar-hide">
+          {/* Highlights Placeholder - Removed for cleaner UI */}
+          {/* <div className="flex gap-4 px-4 overflow-x-auto pb-4 scrollbar-hide">
             <div className="flex flex-col items-center gap-1 shrink-0">
               <div className="w-16 h-16 rounded-full border border-border/50 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-1">
                 <div className="w-full h-full rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
@@ -216,7 +212,7 @@ export default function Profile() {
               </div>
               <span className="text-xs">Yangi</span>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Desktop Profile Info Section (Kept as is) */}

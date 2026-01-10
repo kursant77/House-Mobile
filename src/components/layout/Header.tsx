@@ -27,6 +27,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { VerifiedBadge } from "../ui/VerifiedBadge";
 
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
@@ -302,7 +303,17 @@ export const Header = () => {
                                             <User className="h-5 w-5 text-primary" />
                                         )}
                                     </div>
-                                    <span className="hidden md:inline">{user?.name}</span>
+                                    <div className="flex flex-col items-start">
+                                        <div className="flex items-center gap-1">
+                                            <span className="hidden md:inline">{user?.name}</span>
+                                            {(user?.role === 'super_admin' || user?.role === 'blogger') && (
+                                                <VerifiedBadge size={14} />
+                                            )}
+                                        </div>
+                                        {user?.role === 'blogger' && (
+                                            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest hidden md:block">Blogger</span>
+                                        )}
+                                    </div>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">

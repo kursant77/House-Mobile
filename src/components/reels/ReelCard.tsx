@@ -99,6 +99,8 @@ export function ReelCard({
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const touchStartTime = useRef<number>(0);
   const isMobile = useIsMobile();
 
   const [isMuted, setIsMuted] = useState(false); // Default ovozli
@@ -110,6 +112,7 @@ export function ReelCard({
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isLongPressing, setIsLongPressing] = useState(false);
 
   const isProductFavorite = isFavorite(reel.product.id);
   const isProductInCart = isInCart(reel.product.id);
@@ -198,25 +201,65 @@ export function ReelCard({
     lastTapRef.current = now;
   };
 
-  // Mobile versiyada videoni boshqarish
-  const handleVideoTouch = (e: React.TouchEvent) => {
+  // Long-press pause detection
+  const handleVideoTouchStart = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+
     e.stopPropagation();
-    if (isMobile && videoRef.current) {
-      if (isPaused) {
-        setIsPaused(false);
-        videoRef.current.play().catch(() => { });
-      } else {
+    touchStartTime.current = Date.now();
+
+    // Clear any existing timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+
+    // Start long-press timer (0,5 second)
+    longPressTimer.current = setTimeout(() => {
+      if (videoRef.current && !isPaused) {
         setIsPaused(true);
+        setIsLongPressing(true);
         videoRef.current.pause();
       }
+    }, 500);
+  };
+
+  const handleVideoTouchEnd = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+
+    e.stopPropagation();
+
+    // Clear the timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+
+    // Resume video if it was paused by long-press
+    if (isLongPressing && isPaused && videoRef.current) {
+      setIsPaused(false);
+      setIsLongPressing(false);
+      videoRef.current.play().catch(() => { });
     }
   };
 
-  const handleVideoTouchStart = (e: React.TouchEvent) => {
-    if (isMobile) {
-      handleVideoTouch(e);
+  const handleVideoTouchMove = (e: React.TouchEvent) => {
+    if (!isMobile) return;
+
+    // Cancel long-press if user moves their finger (scrolling)
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
     }
   };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+      }
+    };
+  }, []);
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -292,7 +335,6 @@ export function ReelCard({
     <div
       className="relative h-full w-full bg-reels flex items-center justify-center overflow-hidden transition-colors duration-300"
       onClick={handleDoubleTap}
-      onTouchStart={handleVideoTouchStart}
     >
       <video
         ref={videoRef}
@@ -302,6 +344,9 @@ export function ReelCard({
         muted={isMuted}
         playsInline
         onTimeUpdate={onTimeUpdate}
+        onTouchStart={handleVideoTouchStart}
+        onTouchEnd={handleVideoTouchEnd}
+        onTouchMove={handleVideoTouchMove}
         className="h-full w-full object-cover md:max-w-[450px] md:rounded-lg"
       />
 

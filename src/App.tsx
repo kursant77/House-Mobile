@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
+import Blocked from "./pages/Blocked";
 import Dashboard from "./pages/admin/Dashboard";
 import UsersList from "./pages/admin/UsersList";
 import ProductsList from "./pages/admin/ProductsList";
@@ -51,6 +52,13 @@ const AppContent = () => {
         if (user) {
           // Use authApi to get full profile (syncs with profiles table)
           authApi.getProfile().then(userData => {
+            // Check if user is blocked
+            if (userData.isBlocked) {
+              // Logout immediately
+              supabase.auth.signOut();
+              return;
+            }
+
             if (session.access_token) {
               localStorage.setItem("auth_token", session.access_token);
               localStorage.setItem("user", JSON.stringify(userData));
@@ -110,6 +118,7 @@ const AppContent = () => {
         </Route>
 
         <Route path="/auth" element={<Auth />} />
+        <Route path="/blocked" element={<Blocked />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

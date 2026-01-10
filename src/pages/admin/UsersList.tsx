@@ -71,6 +71,16 @@ export default function UsersList() {
         }
     };
 
+    const handleUpdateRole = async (userId: string, newRole: string) => {
+        try {
+            await authApi.updateUserRole(userId, newRole);
+            toast.success("Foydalanuvchi roli muvaffaqiyatli yangilandi");
+            fetchUsers();
+        } catch (error: any) {
+            toast.error("Rolni yangilashda xatolik: " + error.message);
+        }
+    };
+
     const handleDeleteUser = async () => {
         if (!userToDelete) return;
 
@@ -175,9 +185,11 @@ export default function UsersList() {
                                                         "text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border",
                                                         u.role === 'super_admin'
                                                             ? "bg-[#3C50E0]/10 text-[#3C50E0] border-[#3C50E0]/20"
-                                                            : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
+                                                            : u.role === 'blogger'
+                                                                ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                                                : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
                                                     )}>
-                                                        {u.role}
+                                                        {u.role === 'blogger' ? 'Blogger 🌟' : u.role}
                                                     </span>
                                                 </div>
                                                 <span className={cn(
@@ -227,6 +239,21 @@ export default function UsersList() {
                                                             {u.is_blocked ? <CheckCircle className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                                                             {u.is_blocked ? "Blokdan yechish" : "Bloklash"}
                                                         </DropdownMenuItem>
+                                                        {u.role !== 'super_admin' && (
+                                                            <>
+                                                                <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleUpdateRole(u.id, u.role === 'blogger' ? 'user' : 'blogger')}
+                                                                    className={cn(
+                                                                        "rounded-lg cursor-pointer px-4 py-2.5 text-sm font-black flex items-center gap-3",
+                                                                        u.role === 'blogger' ? "text-zinc-600" : "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                                                    )}
+                                                                >
+                                                                    <Shield className="h-4 w-4" />
+                                                                    {u.role === 'blogger' ? "Bloggerlikdan olish" : "Blogger qilish"}
+                                                                </DropdownMenuItem>
+                                                            </>
+                                                        )}
                                                         {u.role !== 'super_admin' && (
                                                             <>
                                                                 <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
