@@ -23,7 +23,7 @@ export const postService = {
             .from('public_posts')
             .select(`
         *,
-        profiles(id, full_name, avatar_url, role)
+        profiles!author_id(id, full_name, avatar_url, role)
       `)
             .order('created_at', { ascending: false });
 

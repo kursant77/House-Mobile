@@ -135,7 +135,7 @@ export const socialService = {
             .from('product_comments')
             .select(`
                 *,
-                profiles(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username)
             `)
             .eq('product_id', productId);
 
@@ -192,7 +192,7 @@ export const socialService = {
             .from('product_comments')
             .select(`
                 *,
-                profiles(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username)
             `)
             .eq('parent_comment_id', commentId)
             .order('created_at', { ascending: true });

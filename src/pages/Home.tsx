@@ -35,11 +35,15 @@ export default function Home() {
     staleTime: 1000 * 60 * 5,
   });
 
-  const { data: publicPosts = [], isLoading: postsLoading } = useQuery({
+  const { data: publicPosts = [], isLoading: postsLoading, error: postsError } = useQuery({
     queryKey: ["public-posts"],
     queryFn: postService.getPosts,
     staleTime: 1000 * 60 * 2, // 2 minutes cache
   });
+
+  if (postsError) {
+    console.error("Posts fetch error:", postsError);
+  }
 
   const dynamicCategories = useMemo(() => categories.map(cat => ({
     ...cat,
@@ -223,11 +227,13 @@ export default function Home() {
             ) : (
               <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
                 <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
-                  <Send className="h-10 w-10 text-primary rotate-12" />
+                  {postsError ? <PackageSearch className="h-10 w-10 text-red-500" /> : <Send className="h-10 w-10 text-primary rotate-12" />}
                 </div>
-                <h2 className="text-2xl font-black mb-3 uppercase tracking-tighter">Hozircha yangiliklar yo'q</h2>
+                <h2 className="text-2xl font-black mb-3 uppercase tracking-tighter">
+                  {postsError ? "Xatolik yuz berdi" : "Hozircha yangiliklar yo'q"}
+                </h2>
                 <p className="text-muted-foreground max-w-md mx-auto px-6">
-                  Bloggerlarimiz va adminlarimiz tomonidan tez orada qiziqarli yangiliklar joylanadi.
+                  {postsError ? (postsError as any).message : "Bloggerlarimiz va adminlarimiz tomonidan tez orada qiziqarli yangiliklar joylanadi."}
                 </p>
               </div>
             )}

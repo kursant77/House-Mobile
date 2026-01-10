@@ -11,7 +11,7 @@ export const productService = {
             .select(`
                 *,
                 product_media(*),
-                profiles(id, full_name, avatar_url)
+                profiles!seller_id(id, full_name, avatar_url, role)
             `)
             .order('created_at', { ascending: false });
 
@@ -49,7 +49,7 @@ export const productService = {
             .select(`
                 *,
                 product_media(*),
-                profiles!inner(id, full_name, avatar_url, role)
+                profiles!seller_id(id, full_name, avatar_url, role)
             `)
             .in('profiles.role', ['admin', 'super_admin'])
             .order('created_at', { ascending: false });
@@ -88,7 +88,7 @@ export const productService = {
             .select(`
                 *,
                 product_media(*),
-                profiles(id, full_name, avatar_url)
+                profiles!seller_id(id, full_name, avatar_url, role)
             `)
             .eq('seller_id', userId)
             .order('created_at', { ascending: false });
@@ -167,7 +167,7 @@ export const productService = {
             .select(`
                 *,
                 product_media!inner(*),
-                profiles(id, full_name, avatar_url)
+                profiles!seller_id(id, full_name, avatar_url)
             `)
             .eq('product_media.type', 'video');
 
