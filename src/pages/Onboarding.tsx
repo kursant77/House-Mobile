@@ -113,7 +113,7 @@ export default function Onboarding() {
       localStorage.setItem("onboarding_complete", "true");
 
       toast.success("Profil muvaffaqiyatli yangilandi!");
-      navigate("/profile");
+      navigate("/");
     } catch (error: any) {
       toast.error("Xatolik yuz berdi: " + error.message);
     } finally {

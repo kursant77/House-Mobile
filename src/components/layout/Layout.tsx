@@ -6,27 +6,48 @@ import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+import { useSidebarStore } from "@/store/sidebarStore";
+import { useEffect } from "react";
+
 export const Layout = () => {
     const location = useLocation();
     const isMobile = useIsMobile();
     const isReelsPage = location.pathname === "/reels";
+    const { isCollapsed, setOpen } = useSidebarStore();
+
+    // YouTube-style Adaptive Sidebar
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+            const sidebarStore = useSidebarStore.getState();
+
+            if (width < 1312) {
+                if (!sidebarStore.isCollapsed) sidebarStore.toggleCollapsed();
+            } else {
+                if (sidebarStore.isCollapsed) sidebarStore.toggleCollapsed();
+            }
+
+            // Always close overlay on resize to desktop
+            if (width >= 768) {
+                sidebarStore.setOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial call
+
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     return (
         <div className="min-h-screen bg-background text-foreground">
-            {/* Fixed Header: Show on all pages except mobile reels */}
             {(!isReelsPage || !isMobile) && <Header />}
 
-            {/* Fixed Sidebar (Desktop) */}
             <Sidebar />
 
-            {/* Main Content Area 
-                pt-16: Compensate for Header height
-                md:pl-64: Compensate for Sidebar width on Desktop
-                pb-20: Compensate for BottomNav on Mobile
-                md:pb-8: Standard bottom padding on Desktop
-            */}
             <main className={cn(
-                "md:pl-64 min-h-[calc(100vh-64px)]",
+                "min-h-[calc(100vh-64px)] transition-all duration-300 ease-in-out",
+                !isMobile && (isCollapsed ? "pl-[72px]" : "pl-64"),
                 !isReelsPage ? "pt-16 pb-20 md:pb-8" : "h-screen pb-16 md:pb-0 pt-0"
             )}>
                 <Outlet />

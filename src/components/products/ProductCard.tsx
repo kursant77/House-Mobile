@@ -9,6 +9,7 @@ import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProductCardProps {
   product: Product;
@@ -56,63 +57,83 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
 
   if (variant === "review") {
     return (
-      <Link to={`/product/${product.id}`} className="group relative w-full rounded-2xl overflow-hidden bg-black isolate aspect-video block">
-        {/* Background Image/Video */}
-        <img
-          src={product.images[0]}
-          alt={product.title}
-          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-60"
-        />
+      <div
+        onClick={() => navigate(`/product/${product.id}`)}
+        className="group flex flex-col gap-3 cursor-pointer"
+      >
+        {/* Media Thumbnail Container */}
+        <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 border border-border/50">
+          <img
+            src={product.images[0]}
+            alt={product.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
 
-        {/* Play Button Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center z-10 transition-transform duration-300 group-hover:scale-110">
-          <div className="h-14 w-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 group-hover:bg-white/30">
-            <div className="h-10 w-10 rounded-full bg-white flex items-center justify-center shadow-lg">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-black ml-0.5"><path d="M8 5v14l11-7z" /></svg>
+          {/* Play Icon Overlay */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
+            <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
+              <div className="h-8 w-8 rounded-full bg-white flex items-center justify-center shadow-lg">
+                <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-black ml-0.5"><path d="M8 5v14l11-7z" /></svg>
+              </div>
             </div>
+          </div>
+
+          {/* Time / Category Badge */}
+          <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded bg-black/80 text-[10px] font-bold text-white uppercase tracking-wider">
+            {product.category || "Review"}
           </div>
         </div>
 
-        {/* Content Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-20 flex flex-col justify-end p-5">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="px-2 py-0.5 rounded-full bg-red-600 text-[10px] font-bold text-white uppercase tracking-wider">
-              {product.category || "Review"}
-            </span>
-            <div className="flex items-center gap-1 text-white/70 text-xs">
-              <span className="w-1 h-1 rounded-full bg-white/70" />
-              <span>{product.views} views</span>
-            </div>
-          </div>
+        {/* Content Section Below */}
+        <div className="flex gap-3 px-1">
+          {/* Author Avatar */}
+          <Link
+            to={`/profile/${product.author?.id}`}
+            onClick={(e) => e.stopPropagation()}
+            className="z-10"
+          >
+            <Avatar className="h-9 w-9 border border-border/50">
+              <AvatarImage src={product.author?.avatarUrl} />
+              <AvatarFallback className="bg-muted text-[10px] font-bold">
+                {product.author?.fullName?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+          </Link>
 
-          <h3 className="text-lg md:text-xl font-bold text-white leading-tight line-clamp-2 mb-2 group-hover:text-primary transition-colors">
-            {product.title}
-          </h3>
+          {/* Metadata */}
+          <div className="flex flex-col flex-1 min-w-0">
+            <h3 className="text-sm md:text-base font-bold text-foreground leading-tight line-clamp-2 mb-1 group-hover:text-primary transition-colors">
+              {product.title}
+            </h3>
 
-          <div className="flex items-center gap-2">
-            <img
-              src={product.author?.avatarUrl || "https://github.com/shadcn.png"}
-              className="w-6 h-6 rounded-full border border-white/10"
-              alt="author"
-            />
-            <div className="flex items-center gap-1">
-              <span className="text-xs font-medium text-white/90">
-                {product.author?.fullName || "Admin"}
-              </span>
-              {(product.author?.role === 'super_admin' || product.author?.role === 'blogger') && (
-                <VerifiedBadge size={12} />
-              )}
+            <div className="flex flex-col">
+              <Link
+                to={`/profile/${product.author?.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors z-10 w-fit"
+              >
+                <span>{product.author?.fullName || "House Mobile"}</span>
+                {(product.author?.role === 'super_admin' || product.author?.role === 'blogger') && (
+                  <VerifiedBadge size={10} />
+                )}
+              </Link>
+
+              <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                <span>{product.views || 0} views</span>
+                <span className="w-0.5 h-0.5 rounded-full bg-muted-foreground/50" />
+                <span>Active</span>
+              </div>
             </div>
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 
   return (
-    <Link
-      to={`/product/${product.id}`}
-      className="group flex flex-col gap-3"
+    <div
+      onClick={() => navigate(`/product/${product.id}`)}
+      className="group flex flex-col gap-3 cursor-pointer"
     >
       {/* Image Container */}
       <div className={cn("relative w-full rounded-2xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden isolate", aspectClass)}>
@@ -175,6 +196,6 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
           )}
         </div>
       </div>
-    </Link>
+    </div>
   );
 });

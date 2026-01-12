@@ -28,11 +28,13 @@ ALTER TABLE public_posts ENABLE ROW LEVEL SECURITY;
 
 -- 4. RLS Policies
 -- Anyone can see public posts
+DROP POLICY IF EXISTS "Public posts are viewable by everyone" ON public_posts;
 CREATE POLICY "Public posts are viewable by everyone" 
 ON public_posts FOR SELECT 
 USING (true);
 
 -- Admins and Bloggers can create/update/delete posts
+DROP POLICY IF EXISTS "Admins and Bloggers can manage posts" ON public_posts;
 CREATE POLICY "Admins and Bloggers can manage posts" 
 ON public_posts FOR ALL 
 USING (

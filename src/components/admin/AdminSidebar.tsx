@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, ChevronLeft, ChevronRight, BarChart3, Bell, ShieldCheck, PieChart, Table, Box, Mail, MessageSquare, HelpCircle, X, Menu } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, ChevronLeft, ChevronRight, BarChart3, Bell, ShieldCheck, PieChart, Table, Box, Mail, MessageSquare, HelpCircle, X, Menu, Newspaper } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ const menuGroups = [
         items: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
             { icon: Users, label: "Foydalanuvchilar", path: "/admin/users" },
+            { icon: Newspaper, label: "Yangiliklar", path: "/admin/news" },
             { icon: ShoppingBag, label: "Mahsulotlar", path: "/admin/products" },
             { icon: Clapperboard, label: "Reels", path: "/admin/reels" },
             { icon: BarChart3, label: "Analitika", path: "/admin/analytics" },
@@ -60,7 +61,7 @@ export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 )}
             >
                 {/* Sidebar Header */}
-                <div className="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5 border-b border-zinc-200 dark:border-[#2e3a47]">
+                <div className="flex items-center justify-between gap-2 px-6 py-8 lg:py-10 border-b border-zinc-200 dark:border-[#2e3a47]">
                     <Link to="/admin" className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-[#3C50E0] flex items-center justify-center shrink-0 shadow-lg shadow-[#3C50E0]/20">
                             <ShieldCheck className="text-white h-6 w-6" />

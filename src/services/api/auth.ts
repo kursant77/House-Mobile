@@ -29,6 +29,7 @@ export interface AuthResponse {
     telegram?: string;
     instagram?: string;
     facebook?: string;
+    youtube?: string;
   };
   token: string;
 }
@@ -190,7 +191,7 @@ export const authApi = {
       .select(`
         id, full_name, username, phone, avatar_url, role, 
         is_professional, bio, is_blocked, address, 
-        telegram, instagram, facebook
+        telegram, instagram, facebook, youtube
       `)
       .eq('id', user.id)
       .maybeSingle();
@@ -228,6 +229,7 @@ export const authApi = {
       telegram: profile.telegram,
       instagram: profile.instagram,
       facebook: profile.facebook,
+      youtube: profile.youtube
     };
   },
 
@@ -290,6 +292,7 @@ export const authApi = {
     telegram?: string;
     instagram?: string;
     facebook?: string;
+    youtube?: string;
     phone?: string;
     username?: string;
   }): Promise<void> => {
@@ -307,6 +310,7 @@ export const authApi = {
         telegram: updates.telegram,
         instagram: updates.instagram,
         facebook: updates.facebook,
+        youtube: updates.youtube,
         phone: updates.phone,
         username: updates.username,
         updated_at: new Date().toISOString(),

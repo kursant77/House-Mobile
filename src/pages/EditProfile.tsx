@@ -18,6 +18,10 @@ export default function EditProfile() {
     const [name, setName] = useState(user?.name || "");
     const [bio, setBio] = useState(user?.bio || "");
     const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
+    const [telegram, setTelegram] = useState(user?.telegram || "");
+    const [instagram, setInstagram] = useState(user?.instagram || "");
+    const [facebook, setFacebook] = useState(user?.facebook || "");
+    const [youtube, setYoutube] = useState(user?.youtube || "");
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -61,9 +65,13 @@ export default function EditProfile() {
                 name,
                 bio,
                 avatarUrl,
+                telegram,
+                instagram,
+                facebook,
+                youtube,
             });
 
-            const updatedUser = { ...user, name, bio, avatarUrl };
+            const updatedUser = { ...user, name, bio, avatarUrl, telegram, instagram, facebook, youtube };
             setUser(updatedUser);
             localStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -137,6 +145,48 @@ export default function EditProfile() {
                             value={bio}
                             onChange={(e) => setBio(e.target.value)}
                         />
+                    </div>
+
+                    <div className="pt-4 space-y-4">
+                        <h3 className="font-bold text-sm text-muted-foreground uppercase tracking-wider">Ijtimoiy tarmoqlar</h3>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="telegram">Telegram username (masalan: @username)</Label>
+                                <Input
+                                    id="telegram"
+                                    placeholder="@username"
+                                    value={telegram}
+                                    onChange={(e) => setTelegram(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="instagram">Instagram username</Label>
+                                <Input
+                                    id="instagram"
+                                    placeholder="username"
+                                    value={instagram}
+                                    onChange={(e) => setInstagram(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="youtube">YouTube kanal linki</Label>
+                                <Input
+                                    id="youtube"
+                                    placeholder="https://youtube.com/@channel"
+                                    value={youtube}
+                                    onChange={(e) => setYoutube(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="facebook">Facebook profil linki</Label>
+                                <Input
+                                    id="facebook"
+                                    placeholder="facebook.com/username"
+                                    value={facebook}
+                                    onChange={(e) => setFacebook(e.target.value)}
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="hidden md:flex justify-end gap-4 pt-4">

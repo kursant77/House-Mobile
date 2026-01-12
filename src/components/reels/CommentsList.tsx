@@ -8,6 +8,7 @@ import { formatDistanceToNow } from "date-fns";
 import { uz } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
@@ -299,6 +300,9 @@ function CommentItem({
                         <span className="text-[11px] font-black text-foreground uppercase tracking-tighter">
                             {comment.user?.username || comment.user?.fullName || "User"}
                         </span>
+                        {(comment.user?.role === 'super_admin' || comment.user?.role === 'blogger') && (
+                            <VerifiedBadge size={10} />
+                        )}
                         <span className="text-[9px] font-bold text-muted-foreground uppercase">
                             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: uz }).replace('avval', '')}
                         </span>
@@ -387,6 +391,9 @@ function CommentItem({
                                     <span className="text-[10px] font-black text-foreground/80 uppercase tracking-tighter">
                                         {reply.user?.username || reply.user?.fullName || "User"}
                                     </span>
+                                    {(reply.user?.role === 'super_admin' || reply.user?.role === 'blogger') && (
+                                        <VerifiedBadge size={8} />
+                                    )}
                                     <span className="text-[8px] font-bold text-muted-foreground uppercase">
                                         {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true, locale: uz }).replace('avval', '')}
                                     </span>

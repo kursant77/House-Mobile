@@ -7,6 +7,7 @@ export interface Profile {
   telegram?: string;
   instagram?: string;
   facebook?: string;
+  youtube?: string;
   role?: 'user' | 'blogger' | 'super_admin';
   username?: string;
   sellerRating?: number;
@@ -28,6 +29,7 @@ export interface Product {
   sellerId: string;
   views?: number;
   author?: Profile;
+  createdAt?: string;
 }
 
 export interface ReelItem {

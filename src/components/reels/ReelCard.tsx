@@ -13,20 +13,34 @@ import {
   Music2,
   Bookmark,
   Play,
-  Pause
+  Pause,
+  Clock,
+  Download,
+  Flag,
+  UserX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { socialService } from "@/services/api/social";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { CommentsDrawer } from "./CommentsDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { historyService } from "@/services/api/history";
+import { useWatchLaterStore } from "@/store/watchLaterStore";
 
 // Real-time comment count component
 function CommentCount({ productId }: { productId: string }) {
@@ -95,7 +109,8 @@ export function ReelCard({
   const navigate = useNavigate();
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const { addToCart, isInCart } = useCartStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const { addItem: addToWatchLater } = useWatchLaterStore();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
@@ -130,6 +145,18 @@ export function ReelCard({
     };
     checkFollow();
   }, [reel.author?.id, isAuthenticated]);
+
+  // Track view history when reel becomes active
+  useEffect(() => {
+    if (isActive && isAuthenticated) {
+      // Add to view history after 2 seconds of viewing
+      const timer = setTimeout(() => {
+        historyService.addToHistory('reel', reel.product.id);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, isAuthenticated, reel.product.id]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -331,6 +358,39 @@ export function ReelCard({
     }
   };
 
+  const handleWatchLater = async () => {
+    if (!isAuthenticated) {
+      toast.error("Iltimos, avval tizimga kiring");
+      navigate("/auth");
+      return;
+    }
+    await addToWatchLater(reel.product);
+    toast.success("Keyinroq ko'rish ro'yxatiga qo'shildi");
+  };
+
+  const handleDownload = async () => {
+    try {
+      // Add to watch later first
+      await addToWatchLater(reel.product);
+
+      // Then download the video
+      const link = document.createElement('a');
+      link.href = reel.videoUrl;
+      link.download = `${reel.product.title}.mp4`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Video yuklanmoqda...");
+    } catch (err) {
+      toast.error("Yuklab olishda xatolik");
+      console.error("Download error:", err);
+    }
+  };
+
+  const handleReport = () => {
+    toast.info("Shikoyat yuborish tizimi tez orada ishga tushadi");
+  };
+
   return (
     <div
       className="relative h-full w-full bg-reels flex items-center justify-center overflow-hidden transition-colors duration-300"
@@ -425,10 +485,39 @@ export function ReelCard({
           <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
         </button>
 
-        {/* More */}
-        <button className="transition-transform active:scale-125">
-          <MoreVertical className="h-6 w-6 text-white drop-shadow-lg" />
-        </button>
+        {/* More - Dropdown Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="transition-transform active:scale-125"
+            >
+              <MoreVertical className="h-6 w-6 text-white drop-shadow-lg" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }}>
+              <Clock className="h-4 w-4 mr-2" />
+              Keyinroq ko'rish
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
+              <Download className="h-4 w-4 mr-2" />
+              Yuklab olish
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }}>
+              <Flag className="h-4 w-4 mr-2" />
+              Shikoyat qilish
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+              className="text-destructive focus:text-destructive"
+            >
+              <UserX className="h-4 w-4 mr-2" />
+              Foydalanuvchini bloklash
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Product Thumbnail (Buy Now shortcut) */}
         <button
@@ -451,23 +540,30 @@ export function ReelCard({
               <AvatarImage src={reel.author?.avatarUrl} />
               <AvatarFallback className="text-[10px]">{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
             </Avatar>
-            <span className="text-white font-bold text-sm drop-shadow-md">
-              {reel.author?.fullName || "House Mobile"}
-            </span>
-            <Button
-              size="sm"
-              variant={isFollowing ? "secondary" : "outline"}
-              disabled={isFollowLoading}
-              onClick={handleFollow}
-              className={cn(
-                "h-7 px-3 text-[10px] font-black uppercase tracking-widest backdrop-blur-md rounded-md transition-all active:scale-95",
-                isFollowing
-                  ? "bg-white/10 text-white border-white/20"
-                  : "bg-primary text-primary-foreground border-transparent border-primary/40"
+            <div className="flex items-center gap-1 drop-shadow-md">
+              <span className="text-white font-bold text-sm">
+                {reel.author?.fullName || "House Mobile"}
+              </span>
+              {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
+                <VerifiedBadge size={14} />
               )}
-            >
-              {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Obuna bo'lish"}
-            </Button>
+            </div>
+            {user?.id !== (reel.author?.id || reel.product.sellerId) && (
+              <Button
+                size="sm"
+                variant={isFollowing ? "secondary" : "outline"}
+                disabled={isFollowLoading}
+                onClick={handleFollow}
+                className={cn(
+                  "h-7 px-3 text-[10px] font-black uppercase tracking-widest backdrop-blur-md rounded-md transition-all active:scale-95",
+                  isFollowing
+                    ? "bg-white/10 text-white border-white/20"
+                    : "bg-primary text-primary-foreground border-transparent border-primary/40"
+                )}
+              >
+                {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Obuna bo'lish"}
+              </Button>
+            )}
           </div>
 
           {/* Title & Description */}

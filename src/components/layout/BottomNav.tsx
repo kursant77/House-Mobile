@@ -1,4 +1,4 @@
-import { Home, Search, Heart, ShoppingBag, Film, User, PlusSquare } from "lucide-react";
+import { Home, Search, Heart, ShoppingBag, Film, User, PlusSquare, Repeat } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
@@ -12,9 +12,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: Home, label: "Bosh sahifa", path: "/" },
-  { icon: Search, label: "Katalog", path: "/products" },
-  { icon: PlusSquare, label: "Yuklash", path: "/upload" },
+  { icon: Home, label: "Asosiy", path: "/" },
+  { icon: ShoppingBag, label: "Mahsulotlar", path: "/products" },
+  { icon: PlusSquare, label: "E'lon", path: "/upload" },
   { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profil", path: "/profile" },
 ];

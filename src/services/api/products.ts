@@ -126,7 +126,7 @@ export const productService = {
             .select(`
                 *,
                 product_media(*),
-                profiles(id, full_name, avatar_url)
+                profiles!seller_id(id, full_name, avatar_url, role)
             `)
             .eq('id', id)
             .single();

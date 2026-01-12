@@ -28,10 +28,6 @@ export const AdminLayout = () => {
                     <Outlet />
                 </main>
 
-                {/* Footer */}
-                <footer className="mt-auto py-6 px-4 md:px-10 text-center text-zinc-500 dark:text-zinc-600 text-xs border-t border-zinc-200 dark:border-zinc-900 bg-white dark:bg-zinc-950/50">
-                    <p>© 2024 House Mobile Admin. Crafted with precision.</p>
-                </footer>
             </div>
         </div>
     );

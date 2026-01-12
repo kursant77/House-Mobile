@@ -11,6 +11,7 @@ import { BottomNav } from "@/components/layout/BottomNav";
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { useAuthStore } from "@/store/authStore";
+import { historyService } from "@/services/api/history";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,8 +27,16 @@ export default function ProductDetail() {
   useEffect(() => {
     if (product?.id) {
       productService.incrementViews(product.id).catch(console.error);
+
+      // Track view history after 3 seconds of viewing
+      if (isAuthenticated) {
+        const timer = setTimeout(() => {
+          historyService.addToHistory('product', product.id);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [product?.id]);
+  }, [product?.id, isAuthenticated]);
 
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const { addToCart, isInCart } = useCartStore();

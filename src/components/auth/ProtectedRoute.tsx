@@ -26,8 +26,10 @@ export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
         return <Navigate to="/" replace />;
     }
 
-    // Check for mandatory fields (Name, Username, Phone)
-    const isProfileComplete = user?.name && user?.username && user?.phone;
+    // Check for mandatory fields (Name, Bio, Address)
+    // We check localStorage flag too to allow bypass if they just completed it
+    const onboardingComplete = localStorage.getItem("onboarding_complete") === "true";
+    const isProfileComplete = (user?.name && user?.bio && user?.address) || onboardingComplete;
 
     if (!isProfileComplete && location.pathname !== '/onboarding') {
         return <Navigate to="/onboarding" replace />;

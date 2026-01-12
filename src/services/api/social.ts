@@ -6,7 +6,7 @@ export const socialService = {
         try {
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, full_name, avatar_url, bio, address, telegram, instagram, facebook, role, username')
+                .select('id, full_name, avatar_url, bio, address, telegram, instagram, facebook, youtube, role, username')
                 .eq('id', userId)
                 .single();
 
@@ -24,6 +24,7 @@ export const socialService = {
                 telegram: data.telegram,
                 instagram: data.instagram,
                 facebook: data.facebook,
+                youtube: data.youtube,
                 role: data.role,
                 username: data.username,
             };
@@ -135,7 +136,7 @@ export const socialService = {
             .from('product_comments')
             .select(`
                 *,
-                profiles!user_id(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username, role)
             `)
             .eq('product_id', productId);
 
@@ -182,6 +183,7 @@ export const socialService = {
                 fullName: c.profiles.full_name,
                 username: c.profiles.username,
                 avatarUrl: c.profiles.avatar_url,
+                role: c.profiles.role,
             }
         }));
     },
@@ -192,7 +194,7 @@ export const socialService = {
             .from('product_comments')
             .select(`
                 *,
-                profiles!user_id(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username, role)
             `)
             .eq('parent_comment_id', commentId)
             .order('created_at', { ascending: true });
@@ -209,6 +211,7 @@ export const socialService = {
                 fullName: c.profiles.full_name,
                 username: c.profiles.username,
                 avatarUrl: c.profiles.avatar_url,
+                role: c.profiles.role,
             }
         }));
     },
@@ -238,7 +241,7 @@ export const socialService = {
             }])
             .select(`
                 *,
-                profiles(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username, role)
             `)
             .single();
 
@@ -254,6 +257,7 @@ export const socialService = {
                 fullName: data.profiles.full_name,
                 username: data.profiles.username,
                 avatarUrl: data.profiles.avatar_url,
+                role: data.profiles.role,
             }
         };
     },
@@ -272,7 +276,7 @@ export const socialService = {
             }])
             .select(`
                 *,
-                profiles(id, full_name, avatar_url, username)
+                profiles!user_id(id, full_name, avatar_url, username, role)
             `)
             .single();
 
@@ -295,6 +299,7 @@ export const socialService = {
                 fullName: data.profiles.full_name,
                 username: data.profiles.username,
                 avatarUrl: data.profiles.avatar_url,
+                role: data.profiles.role,
             }
         };
     },
@@ -361,7 +366,7 @@ export const socialService = {
 
         const { data, error } = await supabase
             .from('profiles')
-            .select('id, full_name, username, avatar_url')
+            .select('id, full_name, username, avatar_url, role')
             .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
             .limit(20);
 
@@ -372,6 +377,7 @@ export const socialService = {
             fullName: p.full_name,
             username: p.username,
             avatarUrl: p.avatar_url,
+            role: p.role,
         }));
     },
 
@@ -387,5 +393,40 @@ export const socialService = {
 
         if (error) return [];
         return data.map((f: any) => f.following_id);
+    },
+
+    // Get followed profiles with full data
+    getFollowedProfiles: async (): Promise<Profile[]> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return [];
+
+        const { data, error } = await supabase
+            .from('follows')
+            .select(`
+                following_id,
+                profiles!following_id (
+                    id,
+                    full_name,
+                    username,
+                    avatar_url,
+                    role
+                )
+            `)
+            .eq('follower_id', user.id);
+
+        if (error) {
+            console.error("Error fetching followed profiles:", error);
+            return [];
+        }
+
+        return data
+            .map((f: any) => ({
+                id: f.profiles.id,
+                fullName: f.profiles.full_name,
+                username: f.profiles.username,
+                avatarUrl: f.profiles.avatar_url,
+                role: f.profiles.role,
+            }))
+            .filter((p: Profile) => p.id !== null);
     }
 };

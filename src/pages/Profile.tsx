@@ -23,7 +23,10 @@ import {
   Instagram,
   Facebook,
   Send as SendIcon,
+  Newspaper,
+  Film,
 } from "lucide-react";
+import { postService } from "@/services/api/posts";
 import { useNavigate, Link } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -46,16 +49,6 @@ export default function Profile() {
   const { user, logout } = useAuthStore();
   const { favorites } = useFavoritesStore();
 
-  // Check if user needs onboarding
-  useEffect(() => {
-    if (user) {
-      const onboardingComplete = localStorage.getItem("onboarding_complete");
-      const needsOnboarding = !onboardingComplete && (!user.bio || !user.name || user.name.split(' ').length < 2);
-      if (needsOnboarding) {
-        navigate("/onboarding");
-      }
-    }
-  }, [user, navigate]);
 
   const { data: userProducts = [], isLoading: isLoadingProducts } = useQuery({
     queryKey: ["user-products", user?.id],
@@ -69,6 +62,12 @@ export default function Profile() {
     queryFn: () => socialService.getStats(user?.id || ""),
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
+
+  const { data: userNewsPosts = [] } = useQuery({
+    queryKey: ["user-news-posts", user?.id],
+    queryFn: () => postService.getPostsByUserId(user?.id || ""),
+    enabled: !!user?.id && (user.role === 'super_admin' || user.role === 'blogger'),
   });
 
   const deleteMutation = useMutation({
@@ -243,6 +242,9 @@ export default function Profile() {
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
+                {(user.role === 'super_admin' || user.role === 'blogger') && (
+                  <VerifiedBadge size={20} className="mt-1" />
+                )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Button
@@ -359,6 +361,14 @@ export default function Profile() {
             >
               <Grid className="h-6 w-6" strokeWidth={2} />
             </TabsTrigger>
+            {(user.role === 'super_admin' || user.role === 'blogger') && (
+              <TabsTrigger
+                value="news"
+                className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground/50 transition-none"
+              >
+                <Newspaper className="h-6 w-6" strokeWidth={2} />
+              </TabsTrigger>
+            )}
             <TabsTrigger
               value="reels"
               className="flex-1 h-full rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:text-foreground text-muted-foreground/50 transition-none"
@@ -427,6 +437,62 @@ export default function Profile() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="news" className="mt-1">
+            {userNewsPosts.length === 0 ? (
+              <div className="py-20 text-center text-muted-foreground flex flex-col items-center gap-4">
+                <Newspaper className="h-12 w-12 opacity-20" />
+                <p>Hozircha yangiliklar yo'q</p>
+                {user.role === 'super_admin' && (
+                  <Button onClick={() => navigate("/admin/news")} variant="outline" size="sm">
+                    Yangilik qo'shish
+                  </Button>
+                )}
+                {user.role === 'blogger' && (
+                  <Button onClick={() => navigate("/upload")} variant="outline" size="sm">
+                    Yangilik qo'shish
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-0.5 pb-20">
+                {userNewsPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="relative aspect-square group bg-zinc-100 dark:bg-zinc-900 overflow-hidden cursor-pointer"
+                    onClick={() => navigate(`/post/${post.id}`)}
+                  >
+                    {post.mediaUrl ? (
+                      post.mediaType === 'video' ? (
+                        <video src={post.mediaUrl} className="h-full w-full object-cover" />
+                      ) : (
+                        <img
+                          src={post.mediaUrl}
+                          className="h-full w-full object-cover group-hover:scale-105 transition-transform"
+                          alt="news content"
+                        />
+                      )
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-muted p-2 text-xs text-center">
+                        {post.content.slice(0, 50)}...
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="flex gap-4 text-white font-bold text-xs">
+                        <div className="flex items-center gap-1"><Eye className="h-4 w-4 fill-white" /> {post.views}</div>
+                      </div>
+                    </div>
+                    {post.mediaType === 'video' && (
+                      <div className="absolute top-1 right-1 bg-black/60 rounded-full p-1">
+                        <Film className="h-3 w-3 text-white" />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

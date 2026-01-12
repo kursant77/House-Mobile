@@ -29,9 +29,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
 
+import { useSidebarStore } from "@/store/sidebarStore";
+
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
     const { notifications, unreadCount, fetchNotifications, markAsRead, subscribe } = useNotificationStore();
+    const { toggleOpen, toggleCollapsed } = useSidebarStore();
     const { getItemCount } = useCartStore();
     const cartCount = getItemCount();
     const isMobile = useIsMobile();
@@ -107,7 +110,18 @@ export const Header = () => {
 
                 {/* Left Section: Menu & Logo */}
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" className="hidden md:flex">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hidden md:flex rounded-full hover:bg-muted"
+                        onClick={() => {
+                            if (window.innerWidth >= 1312) {
+                                toggleCollapsed();
+                            } else {
+                                toggleOpen();
+                            }
+                        }}
+                    >
                         <Menu className="h-6 w-6" />
                     </Button>
                     <Link to="/" className="flex items-center gap-1">
@@ -167,7 +181,12 @@ export const Header = () => {
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="flex-1 text-left">
-                                                <p className="font-semibold text-sm">{userResult.username}</p>
+                                                <div className="flex items-center gap-1">
+                                                    <p className="font-semibold text-sm">{userResult.username}</p>
+                                                    {(userResult.role === 'super_admin' || userResult.role === 'blogger') && (
+                                                        <VerifiedBadge size={12} />
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-muted-foreground">{userResult.fullName}</p>
                                             </div>
                                         </button>

@@ -1,5 +1,3 @@
-import { ProductCard } from "@/components/products/ProductCard";
-import { categories } from "@/data/mockProducts";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -11,33 +9,27 @@ import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
 import { Loader2, PackageSearch, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import CreateHomePost from "@/components/admin/CreateHomePost";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { postService, PublicPost } from "@/services/api/posts";
 import { PostCard } from "@/components/social/PostCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState("all");
   const { user, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: productService.getAdminProducts,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
-  });
 
-  const { data: followingIds = [] } = useQuery({
-    queryKey: ["following"],
-    queryFn: socialService.getFollowing,
+
+  const { data: followingProfiles = [], isLoading: followingLoading } = useQuery({
+    queryKey: ["following-profiles"],
+    queryFn: socialService.getFollowedProfiles,
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5,
   });
 
   const { data: publicPosts = [], isLoading: postsLoading, error: postsError } = useQuery({
     queryKey: ["public-posts"],
-    queryFn: postService.getPosts,
+    queryFn: () => postService.getPosts(1, 40),
     staleTime: 1000 * 60 * 2, // 2 minutes cache
   });
 
@@ -45,29 +37,24 @@ export default function Home() {
     console.error("Posts fetch error:", postsError);
   }
 
-  const dynamicCategories = useMemo(() => categories.map(cat => ({
-    ...cat,
-    count: cat.id === "all"
-      ? products.length
-      : products.filter(p => p.category === cat.id).length
-  })), [products]);
+  const unifiedFeed = useMemo(() => {
+    // Only include posts (news/videos) as per user request
+    const combined = [
+      ...publicPosts.map(post => ({ ...post, type: 'post' as const })),
+    ];
 
-  const filteredProducts = useMemo(() => activeCategory === "all"
-    ? products
-    : products.filter(p => p.category === activeCategory), [products, activeCategory]);
+    // Sort by created_at descending
+    return combined.sort((a, b) => {
+      const timeA = new Date((a as any).created_at || (a as any).createdAt || 0).getTime();
+      const timeB = new Date((b as any).created_at || (b as any).createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [publicPosts]);
 
   const stories = useMemo(() => {
-    if (!isAuthenticated || followingIds.length === 0) return [];
-
-    const followedAuthors = Array.from(new Set(products
-      .filter(p => p.author?.id && followingIds.includes(p.author.id))
-      .map(p => p.author?.id)))
-      .map(id => products.find(p => p.author?.id === id)?.author)
-      .filter(Boolean)
-      .slice(0, 10);
-
-    return followedAuthors;
-  }, [products, followingIds, isAuthenticated]);
+    if (!isAuthenticated || followingProfiles.length === 0) return [];
+    return followingProfiles;
+  }, [followingProfiles, isAuthenticated]);
 
   return (
     <>
@@ -96,7 +83,7 @@ export default function Home() {
               </div>
             ))
           ) : (
-            isLoading ? (
+            postsLoading || followingLoading ? (
               [1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="h-16 w-16 rounded-full bg-muted animate-pulse shrink-0" />
               ))
@@ -107,138 +94,43 @@ export default function Home() {
             )
           )}
         </div>
-
-        {/* Hero Banner / Create Post for Bloggers */}
-        <div className="px-4 space-y-4">
-          {(user?.role === 'super_admin' || user?.role === 'blogger') && (
-            <div className="mb-2">
-              <CreateHomePost />
-            </div>
-          )}
-
-          <div className="rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 h-40 flex items-center px-6 relative overflow-hidden">
-            <div className="relative z-10 text-white">
-              <h2 className="text-xl font-bold mb-1">Texno Obzorlar</h2>
-              <p className="text-sm opacity-90 mb-3">Eng so'nggi gadjetlar va qurilmalar</p>
-              <Button size="sm" variant="secondary" className="h-8 text-xs">Buy Now</Button>
-            </div>
-            <div className="absolute right-[-20px] bottom-[-20px] h-32 w-32 bg-white/20 rounded-full blur-2xl" />
-          </div>
-        </div>
       </div>
 
       {/* Categories / Chips (Both Desktop & Mobile) */}
-      <div className="sticky top-14 z-30 bg-background/95 backdrop-blur-xl border-b border-white/5 py-3 px-4 md:px-8 mb-4 overflow-x-auto no-scrollbar -mx-4 md:mx-0">
-        <div className="flex items-center gap-2 md:gap-3 min-w-max px-1">
-          {dynamicCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "px-4 py-2 rounded-full text-xs font-medium transition-all whitespace-nowrap active:scale-95 flex items-center gap-1.5",
-                activeCategory === cat.id
-                  ? "bg-white text-black shadow-sm"
-                  : "bg-zinc-100 dark:bg-white/10 text-muted-foreground hover:bg-zinc-200 dark:hover:bg-white/20"
-              )}
-            >
-              {cat.name}
-              <span className={cn(
-                "text-[10px] opacity-60",
-                activeCategory === cat.id ? "text-black" : "text-muted-foreground"
-              )}>
-                ({cat.count})
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Desktop Title (YouTube Style) */}
-      <div className="hidden md:flex items-center justify-between px-8 mb-6 mx-auto max-w-[2000px]">
-        <h2 className="text-3xl font-bold">So'nggi Maqolalar</h2>
-        <Button variant="ghost" className="gap-2">Barchasini ko'rish <ChevronRight className="h-4 w-4" /></Button>
-      </div>
-
-      {/* Main Content Area with Tabs */}
-      <div className="px-3 md:px-8 pb-20 max-w-[2000px] mx-auto mt-4">
-        <Tabs defaultValue="products" className="w-full">
-          <div className="flex items-center justify-between mb-6">
-            <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-1 h-11 rounded-full w-full max-w-[400px]">
-              <TabsTrigger
-                value="products"
-                className="rounded-full px-8 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm font-black text-xs uppercase tracking-widest"
-              >
-                Mahsulotlar
-              </TabsTrigger>
-              <TabsTrigger
-                value="posts"
-                className="rounded-full px-8 data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:shadow-sm font-black text-xs uppercase tracking-widest flex items-center gap-2"
-              >
-                Yangiliklar <span className="h-2 w-2 rounded-full bg-primary" />
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="hidden md:block">
-              {activeCategory !== "all" && (
-                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
-                  {categories.find(c => c.id === activeCategory)?.name} — {filteredProducts.length} ta
-                </p>
-              )}
-            </div>
+      {/* Feed Area */}
+      <div className="px-4 md:px-6 lg:px-10 pb-20 w-full text-foreground">
+        {postsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-y-8 gap-x-4 md:gap-x-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="flex flex-col gap-3">
+                <div className="aspect-video w-full rounded-xl bg-muted animate-pulse" />
+                <div className="flex gap-3 px-1">
+                  <div className="h-9 w-9 rounded-full bg-muted animate-pulse" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-
-          <TabsContent value="products" className="mt-0 outline-none">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground animate-pulse font-medium">Mahsulotlar yuklanmoqda...</p>
-              </div>
-            ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 md:gap-8 mx-auto">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} variant="review" />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-20 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-                <div className="bg-muted p-6 rounded-full mb-4">
-                  <PackageSearch className="h-12 w-12 text-muted-foreground" />
-                </div>
-                <h3 className="text-xl font-black mb-2 uppercase tracking-tighter">Hozircha mahsulotlar yo'q</h3>
-                <p className="text-muted-foreground max-w-sm">
-                  Tez orada yangi obzorlar qo'shiladi!
-                </p>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="posts" className="mt-0 outline-none">
-            {postsLoading ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground animate-pulse font-medium">Yangiliklar yuklanmoqda...</p>
-              </div>
-            ) : publicPosts.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {publicPosts.map((post: PublicPost) => (
-                  <PostCard key={post.id} post={post} />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
-                <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
-                  {postsError ? <PackageSearch className="h-10 w-10 text-red-500" /> : <Send className="h-10 w-10 text-primary rotate-12" />}
-                </div>
-                <h2 className="text-2xl font-black mb-3 uppercase tracking-tighter">
-                  {postsError ? "Xatolik yuz berdi" : "Hozircha yangiliklar yo'q"}
-                </h2>
-                <p className="text-muted-foreground max-w-md mx-auto px-6">
-                  {postsError ? (postsError as any).message : "Bloggerlarimiz va adminlarimiz tomonidan tez orada qiziqarli yangiliklar joylanadi."}
-                </p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        ) : unifiedFeed.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-y-10 gap-x-4 md:gap-x-6">
+            {unifiedFeed.map((item: any) => (
+              <PostCard key={item.id} post={item} />
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 text-center bg-zinc-50 dark:bg-zinc-900/40 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800">
+            <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">
+              <PackageSearch className="h-10 w-10 text-primary" />
+            </div>
+            <h2 className="text-2xl font-black mb-3 uppercase tracking-tighter">Hozircha kontent yo'q</h2>
+            <p className="text-muted-foreground max-w-md mx-auto px-6">
+              Tez orada yangi obzorlar va yangiliklar joylanadi.
+            </p>
+          </div>
+        )}
       </div>
     </>
   );

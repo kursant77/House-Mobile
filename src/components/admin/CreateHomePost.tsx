@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ImageIcon, Film, X, Loader2, Send } from "lucide-react";
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function CreateHomePost() {
     const navigate = useNavigate();
+    const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [media, setMedia] = useState<{ file: File; preview: string; type: 'image' | 'video' } | null>(null);
@@ -29,8 +31,8 @@ export default function CreateHomePost() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!content.trim() && !media) {
-            toast.error("Iltimos, kontent yoki fayl kiriting");
+        if (!title.trim() || !content.trim() || !media || media.type !== 'video') {
+            toast.error("Iltimos, sarlavha, tavsif va video yuklang (Video majburiy)");
             return;
         }
 
@@ -42,6 +44,7 @@ export default function CreateHomePost() {
             }
 
             await postService.createPost({
+                title,
                 content,
                 mediaUrl,
                 mediaType: media?.type,
@@ -61,23 +64,53 @@ export default function CreateHomePost() {
             <CardHeader>
                 <CardTitle className="text-xl font-black flex items-center gap-2">
                     <Send className="h-5 w-5 text-primary" />
-                    Asosiy sahifaga post joylash
+                    Yangilik yaratish
                 </CardTitle>
                 <CardDescription>
-                    Obunachilaringiz uchun yangilik yoki qiziqarli ma'lumot ulashing
+                    Obunachilaringiz uchun sarlavha, tavsif va media (video/rasm) ulashing
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <Textarea
-                        placeholder="Nima yangiliklar?"
-                        className="min-h-[120px] resize-none border-none bg-zinc-50 dark:bg-zinc-900/50 focus-visible:ring-0 text-lg"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                    />
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold opacity-70">Sarlavha</label>
+                        <Input
+                            placeholder="Post sarlavhasini kiriting..."
+                            className="bg-zinc-50 dark:bg-zinc-900/50 border-none focus-visible:ring-1 focus-visible:ring-primary h-12 text-lg font-bold"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                        />
+                    </div>
 
-                    {media && (
-                        <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 aspect-video">
+                    <div className="space-y-2">
+                        <label className="text-sm font-bold opacity-70">Tavsif (Description)</label>
+                        <Textarea
+                            placeholder="Batafsil ma'lumot qoldiring..."
+                            className="min-h-[150px] resize-none border-none bg-zinc-50 dark:bg-zinc-900/50 focus-visible:ring-0 text-base"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                        />
+                    </div>
+
+                    {!media ? (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                if (fileInputRef.current) {
+                                    fileInputRef.current.accept = "video/*";
+                                    fileInputRef.current.click();
+                                }
+                            }}
+                            className="w-full h-40 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                        >
+                            <Film className="h-10 w-10" />
+                            <div className="text-center">
+                                <p className="text-sm font-bold">Video yuklash <span className="text-destructive">*</span></p>
+                                <p className="text-xs opacity-60">MP4 formatda, max 100MB</p>
+                            </div>
+                        </button>
+                    ) : (
+                        <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 aspect-video group">
                             {media.type === 'image' ? (
                                 <img src={media.preview} className="w-full h-full object-cover" alt="preview" />
                             ) : (
@@ -86,62 +119,34 @@ export default function CreateHomePost() {
                             <button
                                 type="button"
                                 onClick={() => setMedia(null)}
-                                className="absolute top-3 right-3 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors"
+                                className="absolute top-3 right-3 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors opacity-0 group-hover:opacity-100"
                             >
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                        <div className="flex items-center gap-2">
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-10 px-4 rounded-full gap-2 text-zinc-600 dark:text-zinc-400"
-                                onClick={() => {
-                                    if (fileInputRef.current) {
-                                        fileInputRef.current.accept = "image/*";
-                                        fileInputRef.current.click();
-                                    }
-                                }}
-                            >
-                                <ImageIcon className="h-5 w-5 text-blue-500" />
-                                <span className="hidden sm:inline">Rasm</span>
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="h-10 px-4 rounded-full gap-2 text-zinc-600 dark:text-zinc-400"
-                                onClick={() => {
-                                    if (fileInputRef.current) {
-                                        fileInputRef.current.accept = "video/*";
-                                        fileInputRef.current.click();
-                                    }
-                                }}
-                            >
-                                <Film className="h-5 w-5 text-purple-500" />
-                                <span className="hidden sm:inline">Video</span>
-                            </Button>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                onChange={handleFileSelect}
-                            />
-                        </div>
+                    <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            onChange={handleFileSelect}
+                            accept="video/*"
+                        />
 
                         <Button
                             type="submit"
-                            disabled={isSubmitting || (!content.trim() && !media)}
-                            className="h-10 px-8 rounded-full font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                            disabled={isSubmitting || !title.trim() || !content.trim() || !media || media.type !== 'video'}
+                            className="w-full h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                         >
                             {isSubmitting ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                "Ulashish"
+                                <>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Yangilikni ulashish
+                                </>
                             )}
                         </Button>
                     </div>

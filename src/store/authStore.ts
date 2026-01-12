@@ -18,6 +18,7 @@ interface User {
   telegram?: string;
   instagram?: string;
   facebook?: string;
+  youtube?: string;
 }
 
 interface AuthState {

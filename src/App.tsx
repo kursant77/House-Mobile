@@ -11,6 +11,7 @@ import Reels from "./pages/Reels";
 import Products from "./pages/Products";
 import SearchIconPage from "./pages/Search";
 import ProductDetail from "./pages/ProductDetail";
+import PostDetail from "./pages/PostDetail";
 import Favorites from "./pages/Favorites";
 import Cart from "./pages/Cart";
 import Auth from "./pages/Auth";
@@ -20,6 +21,9 @@ import UploadProduct from "./pages/UploadProduct";
 import EditProfile from "./pages/EditProfile";
 import Onboarding from "./pages/Onboarding";
 import NotFound from "./pages/NotFound";
+import History from "./pages/History";
+import MyVideos from "./pages/MyVideos";
+import WatchLater from "./pages/WatchLater";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -32,6 +36,7 @@ import Analytics from "./pages/admin/Analytics";
 import NotificationsAdmin from "./pages/admin/NotificationsAdmin";
 import AdminUserProfile from "./pages/admin/AdminUserProfile";
 import SupportAdmin from "./pages/admin/SupportAdmin";
+import AdminNews from "./pages/admin/AdminNews";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api/auth";
 import { useCartStore } from "@/store/cartStore";
@@ -47,7 +52,7 @@ const AppContent = () => {
 
     // Listen to Supabase auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+      if (event === 'SIGNED_IN') {
         const user = session?.user;
         if (user) {
           // Use authApi to get full profile (syncs with profiles table)
@@ -88,6 +93,7 @@ const AppContent = () => {
           <Route path="/reels" element={<Reels />} />
           <Route path="/products" element={<Products />} />
           <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
           <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           <Route path="/search" element={<SearchIconPage />} />
@@ -96,6 +102,9 @@ const AppContent = () => {
           <Route path="/profile/:id" element={<StoreProfile />} />
           <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
           <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+          <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
+          <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
         </Route>
 
         {/* Admin Routes */}
@@ -107,6 +116,7 @@ const AppContent = () => {
           <Route index element={<Dashboard />} />
           <Route path="users" element={<UsersList />} />
           <Route path="users/:id" element={<AdminUserProfile />} />
+          <Route path="news" element={<AdminNews />} />
           <Route path="products" element={<ProductsList />} />
           <Route path="reels" element={<ReelsList />} />
           <Route path="analytics" element={<Analytics />} />
