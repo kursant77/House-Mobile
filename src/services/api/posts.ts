@@ -273,34 +273,34 @@ export const postService = {
 
     toggleCommentLike: async (commentId: string) => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Auth required");
+        if (!user) throw new Error("Avtorizatsiya zarur");
 
         // Check if already liked
-        const { data: existingLike } = await supabase
+        const { data: existingLike, error: fetchError } = await supabase
             .from('public_post_comment_likes')
             .select('id')
             .eq('user_id', user.id)
             .eq('comment_id', commentId)
-            .single();
+            .maybeSingle();
+
+        if (fetchError) throw fetchError;
 
         if (existingLike) {
-            // Unlike
-            const { error } = await supabase
+            const { error: deleteError } = await supabase
                 .from('public_post_comment_likes')
                 .delete()
                 .eq('id', existingLike.id);
-            if (error) throw error;
-            return false; // Liked status: false
+            if (deleteError) throw deleteError;
+            return false;
         } else {
-            // Like
-            const { error } = await supabase
+            const { error: insertError } = await supabase
                 .from('public_post_comment_likes')
                 .insert([{
                     user_id: user.id,
                     comment_id: commentId
                 }]);
-            if (error) throw error;
-            return true; // Liked status: true
+            if (insertError) throw insertError;
+            return true;
         }
     },
 

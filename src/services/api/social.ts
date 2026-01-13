@@ -318,35 +318,52 @@ export const socialService = {
 
     // --- Comment Likes ---
     isCommentLiked: async (commentId: string): Promise<boolean> => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return false;
 
-        const { data } = await supabase
-            .from('comment_likes')
-            .select('*')
-            .eq('user_id', user.id)
-            .eq('comment_id', commentId)
-            .maybeSingle();
+            const { data, error } = await supabase
+                .from('comment_likes')
+                .select('id')
+                .eq('user_id', user.id)
+                .eq('comment_id', commentId)
+                .maybeSingle();
 
-        return !!data;
+            if (error) {
+                console.error("isCommentLiked error:", error);
+                return false;
+            }
+            return !!data;
+        } catch (e) {
+            return false;
+        }
     },
 
     toggleCommentLike: async (commentId: string) => {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error("Auth required");
+        if (!user) throw new Error("Avtorizatsiya zarur");
 
-        const isLiked = await socialService.isCommentLiked(commentId);
+        // First check if already liked
+        const { data: existingLike, error: fetchError } = await supabase
+            .from('comment_likes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('comment_id', commentId)
+            .maybeSingle();
 
-        if (isLiked) {
-            await supabase
+        if (fetchError) throw fetchError;
+
+        if (existingLike) {
+            const { error: deleteError } = await supabase
                 .from('comment_likes')
                 .delete()
-                .eq('user_id', user.id)
-                .eq('comment_id', commentId);
+                .eq('id', existingLike.id);
+            if (deleteError) throw deleteError;
         } else {
-            await supabase
+            const { error: insertError } = await supabase
                 .from('comment_likes')
                 .insert([{ user_id: user.id, comment_id: commentId }]);
+            if (insertError) throw insertError;
         }
     },
 

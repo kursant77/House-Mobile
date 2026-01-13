@@ -41,22 +41,38 @@ export default function Reels() {
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
       const itemHeight = container.clientHeight;
+      const scrollHeight = container.scrollHeight;
+
+      // Calculate active index with threshold
       const newIndex = Math.round(scrollTop / itemHeight);
-      if (newIndex !== activeIndex) {
+
+      // Infinite Loop Logic: If at the bottom, wrap to top
+      if (scrollTop + itemHeight >= scrollHeight - 5) {
+        container.scrollTo({ top: 1, behavior: 'instant' });
+        setActiveIndex(0);
+        return;
+      }
+
+      // If at the very top (and trying to scroll up), wrap to bottom
+      if (scrollTop <= 0 && activeIndex === 0) {
+        // Optional: you could wrap to the bottom if desired
+      }
+
+      if (newIndex !== activeIndex && newIndex >= 0 && newIndex < reels.length) {
         setActiveIndex(newIndex);
       }
     };
 
     container.addEventListener("scroll", handleScroll, { passive: true });
     return () => container.removeEventListener("scroll", handleScroll);
-  }, [activeIndex]);
+  }, [activeIndex, reels.length]);
 
   // Increment views for the active reel
   useEffect(() => {
     if (reels[activeIndex]?.id) {
       productService.incrementViews(reels[activeIndex].id).catch(console.error);
     }
-  }, [activeIndex, reels.length]);
+  }, [activeIndex, reels]);
 
   const handleLike = (id: string) => {
     console.log("Liked:", id);
@@ -90,7 +106,6 @@ export default function Reels() {
   }
 
   const searchQuery = searchParams.get("search") || "";
-
   const filteredReels = reels.filter(reel =>
     !searchQuery || reel.product.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -119,30 +134,21 @@ export default function Reels() {
                 }}
                 className="group flex flex-col md:flex-row gap-4 cursor-pointer hover:bg-muted/50 p-2 rounded-xl transition-colors"
               >
-                {/* Thumbnail */}
                 <div className="relative aspect-video md:w-[360px] shrink-0 rounded-xl overflow-hidden bg-muted">
                   <img
                     src={reel.thumbnailUrl}
                     alt={reel.product.title}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded textxs text-white font-medium">
-                    Reels
-                  </div>
+                  <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded textxs text-white font-medium">Reels</div>
                 </div>
-
-                {/* Content */}
                 <div className="flex flex-col py-1 gap-1 flex-1 min-w-0">
-                  <h3 className="text-base md:text-lg font-semibold line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-                    {reel.product.title}
-                  </h3>
-
+                  <h3 className="text-base md:text-lg font-semibold line-clamp-2 leading-tight group-hover:text-primary transition-colors">{reel.product.title}</h3>
                   <div className="flex items-center gap-1 text-xs md:text-sm text-muted-foreground">
                     <span>{reel.product.views || 0} views</span>
                     <span>•</span>
                     <span>{reel.likes} likes</span>
                   </div>
-
                   <div className="flex items-center gap-2 mt-2">
                     {reel.product.author?.avatarUrl ? (
                       <img src={reel.product.author.avatarUrl} className="h-6 w-6 rounded-full" />
@@ -155,10 +161,7 @@ export default function Reels() {
                       {reel.product.author?.fullName || "House Mobile"}
                     </span>
                   </div>
-
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 mt-2 hidden md:block">
-                    {reel.product.description}
-                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 mt-2 hidden md:block">{reel.product.description}</p>
                 </div>
               </div>
             ))}
@@ -168,12 +171,15 @@ export default function Reels() {
     );
   }
 
+  const containerHeight = '100%';
+
   return (
     <div className={cn(
       "bg-reels overflow-hidden select-none relative transition-colors duration-300",
-      isMobile ? "h-[calc(100vh-64px)] z-[60]" : "h-[calc(100vh-64px)] w-full"
-    )}>
-      {/* Immersive Scroll Container */}
+      isMobile ? "z-[60]" : "w-full"
+    )}
+      style={{ height: containerHeight }}
+    >
       <div
         ref={containerRef}
         className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none flex flex-col items-center"
@@ -186,8 +192,9 @@ export default function Reels() {
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="h-screen w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-reels-foreground/5 md:border-none"
+            className="w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-reels-foreground/5 md:border-none"
             style={{
+              height: containerHeight,
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always'
             }}

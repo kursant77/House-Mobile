@@ -40,15 +40,15 @@ export const Layout = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-background text-foreground">
+        <div className="min-h-[100dvh] bg-background text-foreground">
             {(!isReelsPage || !isMobile) && <Header />}
 
             <Sidebar />
 
             <main className={cn(
-                "min-h-[calc(100vh-64px)] transition-all duration-300 ease-in-out",
-                !isMobile && (isCollapsed ? "pl-[72px]" : "pl-64"),
-                !isReelsPage ? "pt-16 pb-20 md:pb-8" : "h-screen pb-16 md:pb-0 pt-0"
+                "transition-all duration-300 ease-in-out",
+                !isReelsPage ? "min-h-[calc(100dvh-64px)] pt-16 pb-16 md:pb-8" : "h-[100dvh] pb-16 md:pb-0 pt-0",
+                !isMobile && (isCollapsed ? "pl-[72px]" : "pl-64")
             )}>
                 <Outlet />
             </main>

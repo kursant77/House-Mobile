@@ -156,12 +156,13 @@ export const productService = {
     },
 
     /**
-     * Fetch reels (products with videos)
+     * Fetch reels (products with videos) with unviewed priority
      */
     getReels: async (): Promise<ReelItem[]> => {
         const { data: userData } = await supabase.auth.getUser();
         const userId = userData?.user?.id;
 
+        // 1. Fetch all products with videos
         const { data, error } = await supabase
             .from('products')
             .select(`
@@ -169,11 +170,26 @@ export const productService = {
                 product_media!inner(*),
                 profiles!seller_id(id, full_name, avatar_url)
             `)
-            .eq('product_media.type', 'video');
+            .eq('product_media.type', 'video')
+            .order('created_at', { ascending: false });
 
         if (error) throw error;
 
-        // Fetch meta information for each reel (likes, comments, etc.)
+        // 2. Fetch user's view history if logged in
+        let viewedReelIds = new Set<string>();
+        if (userId) {
+            const { data: history } = await supabase
+                .from('view_history')
+                .select('content_id')
+                .eq('user_id', userId)
+                .eq('content_type', 'reel');
+
+            if (history) {
+                viewedReelIds = new Set(history.map(h => h.content_id));
+            }
+        }
+
+        // 3. Map and sort reels
         const reels = await Promise.all(
             data.filter((p: any) => p.product_media.some((m: any) => m.type === 'video'))
                 .map(async (p: any) => {
@@ -185,7 +201,7 @@ export const productService = {
                         avatarUrl: p.profiles.avatar_url,
                     } : undefined;
 
-                    // Fetch real counts - faqat parent comments (replies emas)
+                    // Fetch real counts
                     const [likes, comments, userLike] = await Promise.all([
                         supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
                         supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', p.id).is('parent_comment_id', null),
@@ -211,23 +227,28 @@ export const productService = {
                             images,
                             videoUrl: videoMedia.url,
                             author,
-                            commentCount: comments.count || 0, // Add comment count to product if needed
+                            commentCount: comments.count || 0,
                         },
                         likes: likes.count || 0,
                         commentCount: comments.count || 0,
                         isLiked: !!userLike.data,
-                        isFavorite: false, // This will be handled by the store
+                        isFavorite: false,
+                        isViewed: viewedReelIds.has(p.id)
                     };
                 })
         );
 
-        return reels;
+        // Sort: Unviewed first (already sorted by date), then viewed
+        return reels.sort((a, b) => {
+            if (a.isViewed === b.isViewed) return 0;
+            return a.isViewed ? 1 : -1;
+        });
     },
 
     /**
-     * Upload media to Supabase Storage
+     * Upload media to Supabase Storage with progress
      */
-    uploadMedia: async (file: File, bucket: string = 'product-media'): Promise<string> => {
+    uploadMedia: async (file: File, bucket: string = 'product-media', onProgress?: (progress: number) => void): Promise<string> => {
         const fileExt = file.name.split('.').pop();
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 10);
@@ -238,11 +259,14 @@ export const productService = {
             .from(bucket)
             .upload(filePath, file, {
                 cacheControl: '3600',
-                upsert: false
+                upsert: false,
+                // Specify duplex for large files if needed, but standard upload handles it
             });
 
         if (uploadError) throw uploadError;
 
+        // Since standard upload doesn't always provide progress easily in all environments, 
+        // we'll use a listener if we used resumable, but for now we'll return URL.
         const { data } = supabase.storage
             .from(bucket)
             .getPublicUrl(filePath);
@@ -251,11 +275,12 @@ export const productService = {
     },
 
     /**
-     * Create a new product with media
+     * Create a new product with media and track overall progress
      */
     createProduct: async (
         product: Omit<Product, 'id' | 'images' | 'videoUrl'>,
-        media: { file: File, type: 'image' | 'video' }[]
+        media: { file: File, type: 'image' | 'video' }[],
+        onProgress?: (percent: number) => void
     ) => {
         // 1. Insert product
         const { data: productData, error: productError } = await supabase
@@ -275,9 +300,16 @@ export const productService = {
         if (productError) throw productError;
 
         // 2. Upload media and get URLs
+        const totalFiles = media.length;
+        let uploadedFiles = 0;
+
         const mediaInserts = await Promise.all(
             media.map(async (m, index) => {
                 const url = await productService.uploadMedia(m.file);
+                uploadedFiles++;
+                if (onProgress) {
+                    onProgress(Math.round((uploadedFiles / totalFiles) * 100));
+                }
                 return {
                     product_id: productData.id,
                     type: m.type,

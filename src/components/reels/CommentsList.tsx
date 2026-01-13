@@ -9,7 +9,7 @@ import { uz } from "date-fns/locale";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 
 export function CommentsList({
@@ -121,7 +121,7 @@ export function CommentsList({
             {header}
 
             {/* Scrollable List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+            <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-6 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                 {isLoading ? (
                     <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <Loader2 className="h-6 w-6 animate-spin" />
@@ -165,13 +165,22 @@ export function CommentsList({
                             currentUser?.name?.charAt(0) || "U"
                         )}
                     </div>
-                    <input
-                        type="text"
+                    <textarea
                         value={commentText}
-                        onChange={(e) => setCommentText(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        onChange={(e) => {
+                            setCommentText(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSend();
+                            }
+                        }}
                         placeholder="Add a comment..."
-                        className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 text-foreground"
+                        className="flex-1 bg-transparent text-sm shadow-none outline-none placeholder:text-muted-foreground/50 text-foreground resize-none py-1 min-h-[20px] max-h-[150px]"
+                        rows={1}
                     />
                     <button
                         onClick={handleSend}
@@ -246,43 +255,54 @@ function CommentItem({
         };
     }, [comment.id, showReplies, refetchReplies]);
 
+    const queryClient = useQueryClient();
+
+    const { data: likeData, refetch: refetchLikeStatus } = useQuery({
+        queryKey: ["comment-like-status", comment.id],
+        queryFn: async () => {
+            const [liked, count] = await Promise.all([
+                socialService.isCommentLiked(comment.id),
+                socialService.getCommentLikesCount(comment.id)
+            ]);
+            return { liked, count };
+        },
+        enabled: !!comment.id,
+    });
+
     useEffect(() => {
-        const fetchLikeStatus = async () => {
-            try {
-                const [liked, count] = await Promise.all([
-                    socialService.isCommentLiked(comment.id),
-                    socialService.getCommentLikesCount(comment.id)
-                ]);
-                setIsLiked(liked);
-                setLikesCount(count);
-            } catch (error) {
-                console.error("Failed to fetch comment like status:", error);
+        if (likeData) {
+            setIsLiked(likeData.liked);
+            setLikesCount(likeData.count);
+        }
+    }, [likeData]);
+
+    const toggleLikeMutation = useMutation({
+        mutationFn: () => socialService.toggleCommentLike(comment.id),
+        onMutate: async () => {
+            const prevLiked = isLiked;
+            const prevCount = likesCount;
+            setIsLiked(!prevLiked);
+            setLikesCount(prev => !prevLiked ? prev + 1 : Math.max(0, prev - 1));
+            return { prevLiked, prevCount };
+        },
+        onError: (err, variables, context) => {
+            if (context) {
+                setIsLiked(context.prevLiked);
+                setLikesCount(context.prevCount);
             }
-        };
-        fetchLikeStatus();
+            toast.error("Xatolik yuz berdi");
+        },
+        onSuccess: () => {
+            refetchLikeStatus();
+        }
+    });
 
-        // Real-time updates
-        const interval = setInterval(fetchLikeStatus, 3000);
-        return () => clearInterval(interval);
-    }, [comment.id]);
-
-    const handleLike = async () => {
+    const handleLike = () => {
         if (!currentUser) {
             toast.error("Iltimos, avval tizimga kiring");
             return;
         }
-
-        try {
-            const newStatus = !isLiked;
-            setIsLiked(newStatus);
-            setLikesCount(prev => newStatus ? prev + 1 : Math.max(0, prev - 1));
-            await socialService.toggleCommentLike(comment.id);
-        } catch (error) {
-            // Revert
-            setIsLiked(!isLiked);
-            setLikesCount(prev => !isLiked ? prev - 1 : prev + 1);
-            toast.error("Xatolik yuz berdi");
-        }
+        toggleLikeMutation.mutate();
     };
 
     return (
@@ -348,13 +368,22 @@ function CommentItem({
                                 currentUser?.name?.charAt(0) || "U"
                             )}
                         </div>
-                        <input
-                            type="text"
+                        <textarea
                             value={replyText}
-                            onChange={(e) => onReplyTextChange(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && onReplySubmit()}
+                            onChange={(e) => {
+                                onReplyTextChange(e.target.value);
+                                e.target.style.height = 'auto';
+                                e.target.style.height = e.target.scrollHeight + 'px';
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    onReplySubmit();
+                                }
+                            }}
                             placeholder="Javob yozing..."
-                            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50 text-foreground"
+                            className="flex-1 bg-transparent text-sm shadow-none outline-none placeholder:text-muted-foreground/50 text-foreground resize-none py-1 min-h-[20px] max-h-[120px]"
+                            rows={1}
                             autoFocus
                         />
                         <button

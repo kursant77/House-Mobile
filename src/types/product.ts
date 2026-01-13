@@ -42,4 +42,5 @@ export interface ReelItem {
   author?: Profile;
   isLiked: boolean;
   isFavorite: boolean;
+  isViewed?: boolean;
 }

@@ -34,6 +34,7 @@ export default function UploadProduct() {
     const [isLoadingEdit, setIsLoadingEdit] = useState(false);
     const [images, setImages] = useState<MediaFile[]>([]);
     const [video, setVideo] = useState<MediaFile | null>(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const imageInputRef = useRef<HTMLInputElement>(null);
     const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,9 +112,9 @@ export default function UploadProduct() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const MAX_SIZE = 100 * 1024 * 1024; // 100MB for video
+        const MAX_SIZE = 500 * 1024 * 1024; // 500MB for video
         if (file.size > MAX_SIZE) {
-            toast.error("Video hajmi 100MB dan oshmasligi kerak");
+            toast.error("Video hajmi 500MB dan oshmasligi kerak");
             return;
         }
 
@@ -186,6 +187,8 @@ export default function UploadProduct() {
 
         try {
             setIsSubmitting(true);
+            setUploadProgress(0);
+
             const mediaUploads = [
                 ...images.filter(img => img.file).map(img => ({ file: img.file as File, type: 'image' as const })),
                 ...(video.file ? [{ file: video.file, type: 'video' as const }] : [])
@@ -201,7 +204,8 @@ export default function UploadProduct() {
                     inStock: true,
                     sellerId: user.id
                 },
-                mediaUploads
+                mediaUploads,
+                (progress) => setUploadProgress(progress)
             );
 
             toast.success("Mahsulot muvaffaqiyatli yuklandi!");
@@ -234,10 +238,11 @@ export default function UploadProduct() {
         }
 
         setIsNewsSubmitting(true);
+        setUploadProgress(0);
         try {
             let mediaUrl = "";
             if (newsMedia) {
-                mediaUrl = await productService.uploadMedia(newsMedia.file);
+                mediaUrl = await productService.uploadMedia(newsMedia.file, 'product-media', (progress) => setUploadProgress(progress));
             }
 
             await postService.createPost({
@@ -375,7 +380,7 @@ export default function UploadProduct() {
                                                     >
                                                         <Film className="h-8 w-8" />
                                                         <span className="text-sm font-medium">Video Yuklash</span>
-                                                        <span className="text-xs text-muted-foreground">MP4, max 100MB</span>
+                                                        <span className="text-xs text-muted-foreground">MP4, max 500MB</span>
                                                     </button>
                                                 )}
                                                 <input
@@ -467,11 +472,14 @@ export default function UploadProduct() {
                                                 disabled={isSubmitting}
                                             >
                                                 {isSubmitting ? (
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        <span className="text-[10px]">{uploadProgress}%</span>
+                                                    </div>
                                                 ) : (
                                                     editId ? <Save className="h-4 w-4" /> : <Upload className="h-4 w-4" />
                                                 )}
-                                                {editId ? "Saqlash" : "Yuklash"}
+                                                {isSubmitting ? "Yuklanmoqda..." : (editId ? "Saqlash" : "Yuklash")}
                                             </Button>
                                         </div>
                                     </div>
@@ -533,7 +541,7 @@ export default function UploadProduct() {
                                                     <Film className="h-10 w-10" />
                                                     <div className="text-center">
                                                         <p className="text-sm font-bold">Video yuklash <span className="text-destructive">*</span></p>
-                                                        <p className="text-xs opacity-60">MP4 formatda, max 100MB</p>
+                                                        <p className="text-xs opacity-60">MP4 formatda, max 500MB</p>
                                                     </div>
                                                 </button>
                                             ) : (
@@ -570,7 +578,10 @@ export default function UploadProduct() {
                                                     className="w-full h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
                                                 >
                                                     {isNewsSubmitting ? (
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        <div className="flex items-center gap-2">
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            <span>Yuklanmoqda {uploadProgress}%</span>
+                                                        </div>
                                                     ) : (
                                                         <>
                                                             <Send className="h-4 w-4 mr-2" />

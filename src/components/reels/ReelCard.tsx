@@ -41,6 +41,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { historyService } from "@/services/api/history";
 import { useWatchLaterStore } from "@/store/watchLaterStore";
+import { useUiStore } from "@/store/uiStore";
 
 // Real-time comment count component
 function CommentCount({ productId }: { productId: string }) {
@@ -57,11 +58,10 @@ function CommentCount({ productId }: { productId: string }) {
       if (error) return 0;
       return count || 0;
     },
-    refetchInterval: 2000, // Har 2 soniyada yangilash
+    refetchInterval: 2000,
     enabled: !!productId,
   });
 
-  // Real-time subscription
   useEffect(() => {
     if (!productId) return;
 
@@ -111,14 +111,15 @@ export function ReelCard({
   const { addToCart, isInCart } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
   const { addItem: addToWatchLater } = useWatchLaterStore();
+  const { isMuted, toggleMuted } = useUiStore();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastTapRef = useRef<number>(0);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const touchStartTime = useRef<number>(0);
   const isMobile = useIsMobile();
 
-  const [isMuted, setIsMuted] = useState(false); // Default ovozli
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likesCount, setLikesCount] = useState(reel.likes);
   const [showHeart, setShowHeart] = useState(false);
@@ -146,10 +147,8 @@ export function ReelCard({
     checkFollow();
   }, [reel.author?.id, isAuthenticated]);
 
-  // Track view history when reel becomes active
   useEffect(() => {
     if (isActive && isAuthenticated) {
-      // Add to view history after 2 seconds of viewing
       const timer = setTimeout(() => {
         historyService.addToHistory('reel', reel.product.id);
       }, 2000);
@@ -161,6 +160,7 @@ export function ReelCard({
   useEffect(() => {
     if (videoRef.current) {
       if (isActive && !isPaused) {
+        videoRef.current.muted = isMuted;
         videoRef.current.play().catch(() => { });
       } else {
         videoRef.current.pause();
@@ -169,17 +169,7 @@ export function ReelCard({
         }
       }
     }
-  }, [isActive, isPaused]);
-
-  // Reels bo'limiga o'tganda ovozni yoqish
-  useEffect(() => {
-    if (isActive && videoRef.current) {
-      videoRef.current.muted = isMuted;
-      if (!isPaused) {
-        videoRef.current.play().catch(() => { });
-      }
-    }
-  }, [isActive, isMuted]);
+  }, [isActive, isPaused, isMuted]);
 
   const onTimeUpdate = () => {
     if (videoRef.current) {
@@ -201,46 +191,52 @@ export function ReelCard({
       setLikesCount(prev => newLikedState ? prev + 1 : Math.max(0, prev - 1));
 
       await socialService.toggleLike(reel.product.id);
-      onLike(reel.id); // Keep visual feedback for parent if needed
+      onLike(reel.id);
     } catch (error) {
-      // Revert on error
       setIsLiked(!isLiked);
       setLikesCount(prev => !isLiked ? prev - 1 : prev + 1);
       toast.error("Xatolik yuz berdi");
     }
   };
 
-  const handleDoubleTap = (e: React.MouseEvent | React.TouchEvent) => {
-    // Mobile versiyada touch event bo'lsa, pauza/play boshqaruvini qo'shish
+  const handleTap = (e: React.MouseEvent | React.TouchEvent) => {
     if (isMobile && e.type === 'touchstart') {
-      return; // Touch eventni handleVideoTouch ga qoldirish
+      return;
     }
 
     const now = Date.now();
-    const DOUBLE_PRESS_DELAY = 300;
-    if (now - lastTapRef.current < DOUBLE_PRESS_DELAY) {
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+      if (clickTimerRef.current) {
+        clearTimeout(clickTimerRef.current);
+        clickTimerRef.current = null;
+      }
       if (!isLiked) {
         handleLike();
       }
       setShowHeart(true);
       setTimeout(() => setShowHeart(false), 1000);
+      lastTapRef.current = 0;
+    } else {
+      lastTapRef.current = now;
+      clickTimerRef.current = setTimeout(() => {
+        toggleMuted();
+        clickTimerRef.current = null;
+      }, DOUBLE_TAP_DELAY);
     }
-    lastTapRef.current = now;
   };
 
-  // Long-press pause detection
   const handleVideoTouchStart = (e: React.TouchEvent) => {
     if (!isMobile) return;
 
     e.stopPropagation();
     touchStartTime.current = Date.now();
 
-    // Clear any existing timer
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
     }
 
-    // Start long-press timer (0,5 second)
     longPressTimer.current = setTimeout(() => {
       if (videoRef.current && !isPaused) {
         setIsPaused(true);
@@ -255,13 +251,11 @@ export function ReelCard({
 
     e.stopPropagation();
 
-    // Clear the timer
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
 
-    // Resume video if it was paused by long-press
     if (isLongPressing && isPaused && videoRef.current) {
       setIsPaused(false);
       setIsLongPressing(false);
@@ -272,14 +266,12 @@ export function ReelCard({
   const handleVideoTouchMove = (e: React.TouchEvent) => {
     if (!isMobile) return;
 
-    // Cancel long-press if user moves their finger (scrolling)
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
   };
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (longPressTimer.current) {
@@ -370,10 +362,8 @@ export function ReelCard({
 
   const handleDownload = async () => {
     try {
-      // Add to watch later first
       await addToWatchLater(reel.product);
 
-      // Then download the video
       const link = document.createElement('a');
       link.href = reel.videoUrl;
       link.download = `${reel.product.title}.mp4`;
@@ -394,34 +384,30 @@ export function ReelCard({
   return (
     <div
       className="relative h-full w-full bg-reels flex items-center justify-center overflow-hidden transition-colors duration-300"
-      onClick={handleDoubleTap}
     >
       <video
         ref={videoRef}
         src={reel.videoUrl}
         poster={reel.thumbnailUrl}
         loop
-        muted={isMuted}
+        muted={isMuted || !isActive}
         playsInline
         onTimeUpdate={onTimeUpdate}
         onTouchStart={handleVideoTouchStart}
         onTouchEnd={handleVideoTouchEnd}
         onTouchMove={handleVideoTouchMove}
+        onClick={handleTap}
         className="h-full w-full object-cover md:max-w-[450px] md:rounded-lg"
       />
 
-      {/* Mobile Pause/Play Overlay */}
-      {isMobile && isPaused && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/40">
+      {isMobile && isPaused && !isLongPressing && (
+        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/40" onClick={() => setIsPaused(false)}>
           <div className="h-20 w-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border-4 border-white/20">
             <Play className="h-10 w-10 text-white fill-white" />
           </div>
         </div>
       )}
 
-      {/* --- OVERLAYS --- */}
-
-      {/* Double Tap Heart Animation */}
       {showHeart && (
         <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
           <div className="animate-reel-heart">
@@ -430,17 +416,14 @@ export function ReelCard({
         </div>
       )}
 
-      {/* Mute Toggle Overlay */}
       <button
-        onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+        onClick={(e) => { e.stopPropagation(); toggleMuted(); }}
         className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 rounded-full bg-black/20 backdrop-blur-md opacity-0 hover:opacity-100 transition-opacity z-10 focus:opacity-100"
       >
         {isMuted ? <VolumeX className="h-10 w-10 text-white" /> : <Volume2 className="h-10 w-10 text-white" />}
       </button>
 
-      {/* --- RIGHT ACTIONS SIDEBAR --- */}
       <div className="absolute right-2 bottom-20 md:right-4 md:bottom-24 flex flex-col items-center gap-6 z-20">
-        {/* Like */}
         <div className="flex flex-col items-center gap-1.5">
           <button onClick={(e) => { e.stopPropagation(); handleLike(); }} className="transition-transform active:scale-125">
             <Heart className={cn("h-8 w-8 drop-shadow-lg", isLiked ? "text-red-500 fill-red-500" : "text-white fill-none")} />
@@ -448,7 +431,6 @@ export function ReelCard({
           <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(likesCount)}</span>
         </div>
 
-        {/* Comment */}
         <div className="flex flex-col items-center gap-1.5">
           <button
             onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
@@ -459,14 +441,12 @@ export function ReelCard({
           <CommentCount productId={reel.product.id} />
         </div>
 
-        {/* Save/Favorite */}
         <div className="flex flex-col items-center gap-1.5">
           <button onClick={(e) => { e.stopPropagation(); handleFavorite(); }} className="transition-transform active:scale-125">
             <Bookmark className={cn("h-8 w-8 drop-shadow-lg", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} />
           </button>
         </div>
 
-        {/* Add to Cart - Special Instagram Style */}
         <button
           onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
           className={cn(
@@ -477,7 +457,6 @@ export function ReelCard({
           {isProductInCart ? <Check className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
         </button>
 
-        {/* Share */}
         <button
           onClick={(e) => { e.stopPropagation(); handleShare(); }}
           className="transition-transform active:scale-125"
@@ -485,7 +464,6 @@ export function ReelCard({
           <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
         </button>
 
-        {/* More - Dropdown Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -519,7 +497,6 @@ export function ReelCard({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* Product Thumbnail (Buy Now shortcut) */}
         <button
           onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
           className="h-9 w-9 rounded-md border-2 border-white overflow-hidden shadow-xl mt-2 transition-transform hover:scale-110"
@@ -528,10 +505,8 @@ export function ReelCard({
         </button>
       </div>
 
-      {/* --- BOTTOM INFO OVERLAY --- */}
       <div className="absolute bottom-6 left-0 right-0 px-4 pt-10 pb-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10 pointer-events-none">
         <div className="flex flex-col gap-3 pointer-events-auto">
-          {/* Profile Row */}
           <div
             className="flex items-center gap-2 cursor-pointer w-fit"
             onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
@@ -566,7 +541,6 @@ export function ReelCard({
             )}
           </div>
 
-          {/* Title & Description */}
           <div className="space-y-1">
             <h3 className="text-white font-bold text-sm drop-shadow-md">{reel.product.title}</h3>
             <p className="text-white/90 text-xs line-clamp-2 leading-relaxed drop-shadow-sm max-w-[80%]">
@@ -574,12 +548,10 @@ export function ReelCard({
             </p>
           </div>
 
-          {/* Price Tag - Exclusive for House Mobile */}
           <div className="flex items-center gap-1.5 py-1 px-2.5 bg-zinc-900/40 backdrop-blur-md border border-white/10 rounded-full w-fit">
             <span className="text-xs font-black text-primary">{new Intl.NumberFormat("uz-UZ").format(reel.product.price)} UZS</span>
           </div>
 
-          {/* Audio Label (Authentic Instagram Element) */}
           <div className="flex items-center gap-2 overflow-hidden w-[60%]">
             <Music2 className="h-3 w-3 text-white animate-pulse" />
             <div className="text-[10px] text-white font-medium whitespace-nowrap animate-reel-music">

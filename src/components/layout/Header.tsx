@@ -207,20 +207,7 @@ export const Header = () => {
 
                 {/* Right Section: Actions */}
                 <div className="flex items-center gap-1 md:gap-2">
-                    {/* Mobile Search Icon */}
-                    {isMobile && !isProductsPage && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="md:hidden"
-                            onClick={() => {
-                                const type = isReelsPage ? 'reels' : isProductsPage ? 'products' : 'users';
-                                navigate(`/search?type=${type}`);
-                            }}
-                        >
-                            <Search className="h-5 w-5" />
-                        </Button>
-                    )}
+                    {/* Mobile Search Icon - REMOVED AS REQUESTED */}
 
                     <ThemeToggle />
 
@@ -312,62 +299,64 @@ export const Header = () => {
 
 
                     {isAuthenticated ? (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-2 md:px-4 gap-2">
-                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
-                                        {user?.avatarUrl ? (
-                                            <img src={user.avatarUrl} className="h-full w-full object-cover" alt="avatar" />
-                                        ) : (
-                                            <User className="h-5 w-5 text-primary" />
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col items-start">
-                                        <div className="flex items-center gap-1">
-                                            <span className="hidden md:inline">{user?.name}</span>
-                                            {(user?.role === 'super_admin' || user?.role === 'blogger') && (
-                                                <VerifiedBadge size={14} />
+                        <div className="hidden md:block">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-2 md:px-4 gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
+                                            {user?.avatarUrl ? (
+                                                <img src={user.avatarUrl} className="h-full w-full object-cover" alt="avatar" />
+                                            ) : (
+                                                <User className="h-5 w-5 text-primary" />
                                             )}
                                         </div>
-                                        {user?.role === 'blogger' && (
-                                            <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest hidden md:block">Blogger</span>
-                                        )}
-                                    </div>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                                <DropdownMenuLabel className="text-zinc-900 dark:text-white">Profil</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {user?.role === 'super_admin' && (
-                                    <>
-                                        <Link to="/admin">
-                                            <DropdownMenuItem className="cursor-pointer font-bold text-primary">
-                                                <ShieldCheck className="mr-2 h-4 w-4" />
-                                                Admin Panel
-                                            </DropdownMenuItem>
+                                        <div className="flex flex-col items-start">
+                                            <div className="flex items-center gap-1">
+                                                <span className="hidden md:inline">{user?.name}</span>
+                                                {(user?.role === 'super_admin' || user?.role === 'blogger') && (
+                                                    <VerifiedBadge size={14} />
+                                                )}
+                                            </div>
+                                            {user?.role === 'blogger' && (
+                                                <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest hidden md:block">Blogger</span>
+                                            )}
+                                        </div>
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuLabel className="text-zinc-900 dark:text-white">Profil</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {user?.role === 'super_admin' && (
+                                        <>
+                                            <Link to="/admin">
+                                                <DropdownMenuItem className="cursor-pointer font-bold text-primary">
+                                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                                    Admin Panel
+                                                </DropdownMenuItem>
+                                            </Link>
+                                            <DropdownMenuSeparator />
+                                        </>
+                                    )}
+                                    <DropdownMenuItem asChild>
+                                        <Link to="/profile" className="flex items-center">
+                                            <User className="mr-2 h-4 w-4" />
+                                            <span>Profil</span>
                                         </Link>
-                                        <DropdownMenuSeparator />
-                                    </>
-                                )}
-                                <DropdownMenuItem asChild>
-                                    <Link to="/profile" className="flex items-center">
-                                        <User className="mr-2 h-4 w-4" />
-                                        <span>Profil</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                    <Link to="/settings" className="flex items-center">
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        <span>Sozlamalar</span>
-                                    </Link>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
-                                    <LogOut className="mr-2 h-4 w-4" />
-                                    <span>Chiqish</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link to="/settings" className="flex items-center">
+                                            <Settings className="mr-2 h-4 w-4" />
+                                            <span>Sozlamalar</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                                        <LogOut className="mr-2 h-4 w-4" />
+                                        <span>Chiqish</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     ) : (
                         <Link to="/auth">
                             <Button variant="ghost" size="icon" className="rounded-full text-blue-600 font-medium w-auto px-2 md:px-4 gap-2">

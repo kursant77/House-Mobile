@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
-import { Loader2, Trash2, Send, Heart, Reply } from "lucide-react";
+import { Loader2, Trash2, Send, Heart, Reply, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { formatDistanceToNow } from "date-fns";
+import { uz } from "date-fns/locale";
 
 interface PostCommentsProps {
     postId: string;
@@ -23,51 +26,81 @@ interface CommentItemProps {
     replyForm?: React.ReactNode;
 }
 
-const CommentItem = ({ comment, onReply, onLike, onDelete, currentUserId, isReplying, replyForm }: CommentItemProps) => (
-    <div className="flex gap-4 group">
-        <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src={comment.author?.avatar_url || comment.author?.avatarUrl} />
-            <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800 font-bold">
-                {comment.author?.full_name?.charAt(0) || comment.author?.fullName?.charAt(0) || "?"}
-            </AvatarFallback>
-        </Avatar>
-        <div className="flex-1 space-y-1">
-            <div className="flex items-center gap-2">
-                <span className="font-bold text-[13px]">{comment.author?.full_name || comment.author?.fullName}</span>
-                <span className="text-[12px] text-muted-foreground">
-                    {new Date(comment.created_at).toLocaleDateString()}
-                </span>
-            </div>
-            <p className="text-[14px] text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                {comment.content}
-            </p>
-            <div className="flex items-center gap-4 mt-1">
-                <button
-                    onClick={() => onLike(comment.id)}
-                    className={cn(
-                        "flex items-center gap-1.5 text-xs font-medium p-1 rounded-full transition-colors",
-                        comment.has_liked
-                            ? "text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
-                            : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                    )}
-                >
-                    <Heart className={cn("h-4 w-4", comment.has_liked && "fill-current")} />
-                    {comment.likes_count || 0}
-                </button>
-                <button
-                    onClick={() => onReply(comment)}
-                    className="text-xs font-bold hover:bg-zinc-100 dark:hover:bg-zinc-800 px-3 py-1 rounded-full transition-colors"
-                >
-                    Javob berish
-                </button>
+const CommentItem = ({
+    comment,
+    onReply,
+    onLike,
+    onDelete,
+    currentUserId,
+    isReplying,
+    replyForm
+}: CommentItemProps) => {
+    const isAuthor = currentUserId === comment.user_id;
+
+    return (
+        <div className="space-y-3">
+            <div className="flex gap-3 group">
+                <Avatar className="h-8 w-8 shrink-0 border border-border/50">
+                    <AvatarImage src={comment.author?.avatar_url || comment.author?.avatarUrl} />
+                    <AvatarFallback className="bg-muted text-[10px] font-bold">
+                        {comment.author?.full_name?.charAt(0) || comment.author?.fullName?.charAt(0) || "?"}
+                    </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 space-y-1">
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-[11px] font-black text-foreground uppercase tracking-tighter">
+                            {comment.author?.full_name || comment.author?.fullName}
+                        </span>
+                        {(comment.author?.role === 'super_admin' || comment.author?.role === 'blogger') && (
+                            <VerifiedBadge size={10} />
+                        )}
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true, locale: uz }).replace('avval', '')}
+                        </span>
+                    </div>
+                    <p className="text-[13px] text-foreground/90 leading-snug font-medium">{comment.content}</p>
+                    <div className="flex items-center gap-4 mt-1">
+                        <button
+                            onClick={() => onLike(comment.id)}
+                            className="flex items-center gap-1.5"
+                        >
+                            <Heart className={cn(
+                                "h-3.5 w-3.5 transition-colors",
+                                comment.has_liked ? "text-red-500 fill-red-500" : "text-muted-foreground"
+                            )} />
+                            {comment.likes_count > 0 && (
+                                <span className="text-[10px] font-black text-muted-foreground">{comment.likes_count}</span>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => onReply(comment)}
+                            className="text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-foreground"
+                        >
+                            Reply
+                        </button>
+                        {isAuthor && (
+                            <button
+                                onClick={() => onDelete(comment.id)}
+                                className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest hover:text-destructive transition-colors ml-auto opacity-0 group-hover:opacity-100"
+                            >
+                                Delete
+                            </button>
+                        )}
+                    </div>
+
+                </div>
             </div>
 
             {/* Reply Form */}
-            {isReplying && replyForm}
+            {isReplying && (
+                <div className="ml-11">
+                    {replyForm}
+                </div>
+            )}
 
             {/* Nested Comments (Children) */}
             {comment.children && comment.children.length > 0 && (
-                <div className="mt-4 space-y-4 pl-4 border-l-2 border-zinc-100 dark:border-zinc-800">
+                <div className="ml-11 mt-3 space-y-4 pl-4 border-l-2 border-border/50">
                     {comment.children.map((child: any) => (
                         <CommentItem
                             key={child.id}
@@ -77,27 +110,13 @@ const CommentItem = ({ comment, onReply, onLike, onDelete, currentUserId, isRepl
                             onDelete={onDelete}
                             currentUserId={currentUserId}
                             isReplying={false}
-                        // Deep nesting reply form logic can be complex, simplifying to 1 level for UI or handling via main form
-                        // For true reddit/youtube style, each can reply.
-                        // We can let the parent handle the reply form rendering by passing state down if needed, 
-                        // but usually single active reply form is enough.
                         />
                     ))}
                 </div>
             )}
         </div>
-        {currentUserId === comment.user_id && (
-            <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 h-8 w-8 text-muted-foreground hover:text-destructive transition-all"
-                onClick={() => onDelete(comment.id)}
-            >
-                <Trash2 className="h-4 w-4" />
-            </Button>
-        )}
-    </div>
-);
+    );
+};
 
 export function PostComments({ postId }: PostCommentsProps) {
     const [newComment, setNewComment] = useState("");
@@ -154,7 +173,38 @@ export function PostComments({ postId }: PostCommentsProps) {
 
     const toggleLikeMutation = useMutation({
         mutationFn: (commentId: string) => postService.toggleCommentLike(commentId),
-        onSuccess: () => {
+        onMutate: async (commentId) => {
+            // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+            await queryClient.cancelQueries({ queryKey: ["post-comments", postId] });
+
+            // Snapshot the previous value
+            const previousComments = queryClient.getQueryData(["post-comments", postId]);
+
+            // Optimistically update to the new value
+            queryClient.setQueryData(["post-comments", postId], (old: any) => {
+                if (!old) return old;
+                return old.map((c: any) => {
+                    if (c.id === commentId) {
+                        const newHasLiked = !c.has_liked;
+                        return {
+                            ...c,
+                            has_liked: newHasLiked,
+                            likes_count: newHasLiked ? (c.likes_count || 0) + 1 : Math.max(0, (c.likes_count || 0) - 1)
+                        };
+                    }
+                    return c;
+                });
+            });
+
+            return { previousComments };
+        },
+        onError: (err, commentId, context) => {
+            if (context?.previousComments) {
+                queryClient.setQueryData(["post-comments", postId], context.previousComments);
+            }
+            toast.error("Xatolik yuz berdi");
+        },
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: ["post-comments", postId] });
         }
     });
@@ -178,100 +228,70 @@ export function PostComments({ postId }: PostCommentsProps) {
     };
 
     const ReplyForm = ({ parentComment }: { parentComment: any }) => {
-        const [replyContent, setReplyContent] = useState(`@${parentComment.author?.full_name || parentComment.author?.fullName} `);
+        const [replyContent, setReplyContent] = useState("");
 
         return (
-            <form
-                onSubmit={(e) => handleSubmit(e, replyContent, parentComment.id)}
-                className="mt-4 flex gap-3 animate-in fade-in slide-in-from-top-2"
-            >
-                <div className="flex-1 flex flex-col gap-2">
-                    <Textarea
+            <div className="mt-3 space-y-2 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 bg-muted/30 rounded-lg px-2 py-1.5 border border-border/50">
+                    <textarea
                         placeholder="Javob yozing..."
-                        className="bg-transparent border-0 border-b border-zinc-200 dark:border-zinc-800 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 py-1 min-h-[40px] resize-none text-sm"
+                        className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/40 text-foreground resize-none py-1 min-h-[20px] max-h-[120px]"
+                        rows={1}
                         value={replyContent}
-                        onChange={(e) => setReplyContent(e.target.value)}
+                        onChange={(e) => {
+                            setReplyContent(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
                         autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(e as any, replyContent, parentComment.id);
+                            }
+                        }}
                     />
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="rounded-full h-7 px-3 text-xs"
-                            onClick={() => setReplyingTo(null)}
-                        >
-                            Bekor qilish
-                        </Button>
-                        <Button
-                            type="submit"
-                            size="sm"
-                            className="rounded-full h-7 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={(e) => handleSubmit(e as any, replyContent, parentComment.id)}
                             disabled={!replyContent.trim()}
+                            className={cn("text-blue-500 font-bold text-[11px] px-2 py-1 hover:bg-blue-500/10 rounded-md transition-colors", !replyContent.trim() && "opacity-30")}
                         >
-                            Javob berish
-                        </Button>
+                            Post
+                        </button>
+                        <button
+                            onClick={() => setReplyingTo(null)}
+                            className="text-muted-foreground/60 font-medium text-[11px] px-2 py-1 hover:bg-muted rounded-md transition-colors"
+                        >
+                            Bekor
+                        </button>
                     </div>
                 </div>
-            </form>
+            </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                <h3 className="font-bold text-lg">{rawComments?.length || 0} ta izoh</h3>
+        <div className="flex flex-col h-full bg-background text-foreground transition-colors duration-300">
+            {/* Header with count */}
+            <div className="flex items-center gap-4 mb-6 shrink-0">
+                <h3 className="text-[14px] font-black uppercase tracking-widest text-muted-foreground">
+                    {rawComments?.length || 0} ta izoh
+                </h3>
             </div>
 
-            {/* Main Add Comment Form */}
-            <form onSubmit={(e) => handleSubmit(e, newComment)} className="flex gap-4">
-                <Avatar className="h-10 w-10 shrink-0">
-                    <AvatarImage src={user?.avatarUrl} />
-                    <AvatarFallback className="bg-zinc-100 dark:bg-zinc-800">
-                        {user?.name?.charAt(0) || "?"}
-                    </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 flex flex-col gap-2">
-                    <Textarea
-                        placeholder="Izoh qoldiring..."
-                        className="bg-transparent border-0 border-b border-zinc-200 dark:border-zinc-800 rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 py-1 min-h-[40px] resize-none"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                    />
-                    <div className="flex justify-end gap-2">
-                        {newComment && (
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-full font-bold"
-                                onClick={() => setNewComment("")}
-                            >
-                                Bekor qilish
-                            </Button>
-                        )}
-                        <Button
-                            type="submit"
-                            size="sm"
-                            className="rounded-full font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                            disabled={!newComment.trim() || addCommentMutation.isPending}
-                        >
-                            {addCommentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Izoh qoldirish"}
-                        </Button>
-                    </div>
-                </div>
-            </form>
-
-            {/* List Comments */}
-            <div className="space-y-6 mt-8">
+            {/* Scrollable List Comments */}
+            <div className="flex-1 overflow-y-auto space-y-6 min-h-0 pr-2 scrollbar-thin scrollbar-thumb-border pb-24">
                 {isLoading ? (
-                    <div className="flex justify-center py-4">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <p className="text-xs">Yuklanmoqda...</p>
                     </div>
                 ) : commentsTree?.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4 italic">
-                        Hali birorta ham izoh yo'q. Birinchi bo'lib izoh qoldiring!
-                    </p>
+                    <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8 text-center">
+                        <p className="text-sm font-medium text-foreground">Hali izohlar yo'q</p>
+                        <p className="text-xs mt-1">Birinchi bo'lib izoh qoldiring!</p>
+                    </div>
                 ) : (
                     commentsTree.map((comment: any) => (
                         <CommentItem
@@ -286,6 +306,47 @@ export function PostComments({ postId }: PostCommentsProps) {
                         />
                     ))
                 )}
+            </div>
+
+            {/* Fixed Main Add Comment Form at Bottom (Instagram Style) */}
+            <div className="shrink-0 bg-background border-t border-border pt-4 pb-8 md:pb-4 px-0">
+                <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2 border border-border focus-within:border-primary/20">
+                    <Avatar className="h-8 w-8 shrink-0 border border-border/50">
+                        <AvatarImage src={user?.avatarUrl} />
+                        <AvatarFallback className="bg-muted text-[10px] font-bold">
+                            {user?.name?.charAt(0) || "?"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <textarea
+                        placeholder="Izoh qoldiring..."
+                        className="flex-1 bg-transparent border-none focus:ring-0 p-0 text-sm placeholder:text-muted-foreground/50 text-foreground outline-none resize-none py-1 min-h-[20px] max-h-[150px]"
+                        rows={1}
+                        value={newComment}
+                        onChange={(e) => {
+                            setNewComment(e.target.value);
+                            e.target.style.height = 'auto';
+                            e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSubmit(e as any, newComment);
+                            }
+                        }}
+                    />
+                    <button
+                        type="button"
+                        onClick={(e) => handleSubmit(e as any, newComment)}
+                        disabled={!newComment.trim() || addCommentMutation.isPending}
+                        className={cn(
+                            "text-sm font-black transition-all",
+                            addCommentMutation.isPending ? "text-muted-foreground" : "text-blue-500 hover:scale-105 active:scale-95",
+                            !newComment.trim() && "opacity-0 pointer-events-none"
+                        )}
+                    >
+                        {addCommentMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+                    </button>
+                </div>
             </div>
         </div>
     );

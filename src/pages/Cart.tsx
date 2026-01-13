@@ -138,7 +138,7 @@ export default function Cart() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-zinc-50 to-white dark:from-zinc-950 dark:to-zinc-900 pb-36 md:pb-0 md:pt-16">
       <BottomNav />
-      
+
       {/* Header */}
       <header className={cn(
         "sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-zinc-200 dark:border-zinc-800",
@@ -186,7 +186,7 @@ export default function Cart() {
         {items.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Cart Items */}
-            <div className="lg:col-span-8 space-y-4">
+            <div className="lg:col-span-12 space-y-4">
               {/* Benefits Banner */}
               <div className="hidden md:grid grid-cols-3 gap-4 mb-6">
                 <div className="flex items-center gap-3 p-4 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -225,64 +225,26 @@ export default function Cart() {
                 ))}
               </div>
 
-              {/* Continue Shopping */}
-              <div className="pt-4">
-                <Link to="/products">
-                  <Button variant="outline" className="w-full md:w-auto gap-2">
+              {/* Actions */}
+              <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-zinc-200 dark:border-zinc-800 mt-4">
+                <Link to="/products" className="w-full md:w-auto order-2 md:order-1">
+                  <Button variant="ghost" className="w-full md:w-auto gap-2 text-muted-foreground hover:text-foreground">
                     <ArrowRight className="h-4 w-4 rotate-180" />
                     Xaridni davom ettirish
                   </Button>
                 </Link>
+                {!isMobile && (
+                  <Button
+                    onClick={() => setShowCheckout(true)}
+                    className="w-full md:w-auto gap-2 px-10 h-14 rounded-2xl text-lg font-black order-1 md:order-2 shadow-xl hover:shadow-2xl transition-all bg-primary hover:scale-[1.02] active:scale-95"
+                  >
+                    Buyurtma berish — {formatPrice(total)} UZS
+                    <ArrowRight className="h-5 w-5" />
+                  </Button>
+                )}
               </div>
             </div>
 
-            {/* Order Summary Sidebar */}
-            <div className="lg:col-span-4">
-              <div className="sticky top-20 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-lg">
-                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  Buyurtma xulosasi
-                </h2>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Mahsulotlar</span>
-                    <span className="font-medium text-foreground">{formatPrice(total)} UZS</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Yetkazib berish</span>
-                    <span className="font-medium text-green-600 flex items-center gap-1">
-                      <Truck className="h-3.5 w-3.5" />
-                      Bepul
-                    </span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-base font-semibold">Jami</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {formatPrice(total)} UZS
-                    </span>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => setShowCheckout(true)}
-                  className="w-full h-12 rounded-xl font-semibold gap-2 text-base shadow-lg hover:shadow-xl transition-shadow"
-                  size="lg"
-                >
-                  Buyurtma berish
-                  <ArrowRight className="h-5 w-5" />
-                </Button>
-
-                <p className="text-xs text-center text-muted-foreground mt-4">
-                  Buyurtma berish orqali siz{" "}
-                  <Link to="/terms" className="text-primary hover:underline">
-                    foydalanish shartlari
-                  </Link>{" "}
-                  bilan rozisiz
-                </p>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto">

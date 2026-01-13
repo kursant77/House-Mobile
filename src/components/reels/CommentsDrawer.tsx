@@ -27,7 +27,7 @@ export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDraw
     if (isMobile) {
         return (
             <Drawer open={isOpen} onOpenChange={onOpenChange} modal={true}>
-                <DrawerContent className="bg-background border-border text-foreground max-h-[85vh] flex flex-col focus:outline-none z-[100]">
+                <DrawerContent className="bg-background border-border text-foreground max-h-[85vh] flex flex-col focus:outline-none z-[150]">
                     <div className="mx-auto w-full max-w-sm flex-1 flex flex-col h-full">
                         <DrawerHeader className="border-b border-border relative shrink-0 px-4 pb-3">
                             <DrawerTitle className="text-center font-bold text-sm text-foreground">Comments</DrawerTitle>

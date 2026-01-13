@@ -99,10 +99,18 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 md:pt-16 uppercase-none">
+    <div className="min-h-screen bg-background pb-20 md:pb-0 pt-16 uppercase-none">
       <BottomNav />
 
-      <main className="max-w-4xl mx-auto pt-14 md:pt-8 px-4">
+      {/* Secondary Mobile Header */}
+      <div className="md:hidden flex items-center justify-end h-8 px-4 fixed top-16 left-0 right-0 z-40 pointer-events-none">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/settings")} className="pointer-events-auto">
+          <Settings className="h-6 w-6" />
+        </Button>
+      </div>
+
+      <main className="max-w-4xl mx-auto pt-2 md:pt-8 px-4">
+        {/* Mobile View */}
         <div className="md:hidden">
           <div className="flex items-center px-4 mb-3">
             <div className="relative mr-8">
@@ -171,7 +179,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="flex gap-1.5 mb-2 px-4">
+          <div className="flex gap-1.5 mb-6 px-4">
             <Button
               variant="secondary"
               className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
@@ -189,32 +197,10 @@ export default function Profile() {
             >
               Profilni ulashish
             </Button>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-8 w-8 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg shrink-0"
-              onClick={() => navigate("/onboarding")}
-            >
-              <div className="scale-x-[-1]">
-                <Plus className="h-4 w-4" />
-              </div>
-            </Button>
           </div>
-
-          {/* Highlights Placeholder - Removed for cleaner UI */}
-          {/* <div className="flex gap-4 px-4 overflow-x-auto pb-4 scrollbar-hide">
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <div className="w-16 h-16 rounded-full border border-border/50 bg-zinc-50 dark:bg-zinc-900 flex items-center justify-center p-1">
-                <div className="w-full h-full rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                  <Plus className="h-5 w-5 text-foreground/50" />
-                </div>
-              </div>
-              <span className="text-xs">Yangi</span>
-            </div>
-          </div> */}
         </div>
 
-        {/* Desktop Profile Info Section (Kept as is) */}
+        {/* Desktop Profile Info Section */}
         <div className="hidden md:flex flex-col md:flex-row items-start gap-4 md:gap-8 mb-6 md:mb-10">
           {/* Avatar */}
           <div className="relative mx-auto md:mx-0">
@@ -258,8 +244,8 @@ export default function Profile() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9 md:hidden"
-                  onClick={() => navigate("/profile/edit")}
+                  className="h-9 w-9"
+                  onClick={() => navigate("/settings")}
                 >
                   <Settings className="h-4 w-4" />
                 </Button>

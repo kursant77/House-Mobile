@@ -37,9 +37,9 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
   return (
     <nav
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-[70] pb-safe",
+        "fixed bottom-0 left-0 right-0 z-[110] pb-safe pt-2",
         "flex items-center justify-around",
-        "h-16 border-t backdrop-blur-lg transition-colors duration-300",
+        "h-auto border-t backdrop-blur-lg transition-colors duration-300",
         isReelsPage
           ? "bg-black/60 border-white/10 text-white"
           : "bg-background/95 border-border text-foreground"

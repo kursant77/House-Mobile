@@ -19,6 +19,62 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer";
+import { BottomNav } from "@/components/layout/BottomNav";
+
+const RecommendedPosts = ({ otherPosts }: { otherPosts: PublicPost[] }) => (
+    <div className="grid grid-cols-1 gap-4">
+        {otherPosts.map((p) => (
+            <Link
+                key={p.id}
+                to={`/post/${p.id}`}
+                className="flex gap-3 group cursor-pointer"
+            >
+                <div className="relative aspect-video w-[40%] md:w-[168px] shrink-0 bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden ring-1 ring-border/50">
+                    {p.mediaUrl ? (
+                        p.mediaType === 'video' ? (
+                            <video
+                                src={p.mediaUrl}
+                                className="w-full h-full object-cover"
+                                preload="metadata"
+                            />
+                        ) : (
+                            <img
+                                src={p.mediaUrl}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                alt=""
+                            />
+                        )
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                            <Play className="h-6 w-6 text-zinc-300" />
+                        </div>
+                    )}
+                    {p.mediaType === 'video' && (
+                        <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] text-white px-1 rounded font-bold">
+                            0:06
+                        </div>
+                    )}
+                </div>
+                <div className="flex-1 flex flex-col gap-1 min-w-0 pt-0.5">
+                    <h4 className="text-[14px] font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground">
+                        {p.content}
+                    </h4>
+                    <div className="flex flex-col text-[12px] text-muted-foreground mt-0.5">
+                        <span className="flex items-center gap-1 hover:text-foreground transition-colors font-medium">
+                            {p.author?.fullName}
+                            <VerifiedBadge size={10} />
+                        </span>
+                        <div className="flex items-center gap-1 font-medium">
+                            <span>{p.views.toLocaleString()} marta ko'rilgan</span>
+                            <span className="text-[8px] opacity-50">•</span>
+                            <span>{new Date(p.created_at).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+            </Link>
+        ))}
+    </div>
+);
 
 export default function PostDetail() {
     const { id } = useParams<{ id: string }>();
@@ -40,6 +96,7 @@ export default function PostDetail() {
     const [hasSaved, setHasSaved] = useState(false);
     const [isFollowing, setIsFollowing] = useState(false);
     const [authorFollowers, setAuthorFollowers] = useState(0);
+    const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
     const { data: recommendations = [] } = useQuery({
         queryKey: ["post-recommendations"],
         queryFn: () => postService.getPosts(),
@@ -233,7 +290,7 @@ export default function PostDetail() {
     const otherPosts = recommendations?.filter(p => p.id !== id).slice(0, 10) || [];
 
     return (
-        <div className="min-h-screen bg-background pb-4 md:pb-0">
+        <div className="bg-background">
             {/* Mobile Secondary Header (Below Main Header) */}
             <header className="flex items-center justify-between px-4 py-3 bg-background border-b border-zinc-100 dark:border-zinc-800 md:hidden sticky top-16 z-40">
                 <button
@@ -390,16 +447,29 @@ export default function PostDetail() {
                         </div>
 
                         {/* YouTube Expandable Description */}
-                        <div className="bg-zinc-100 dark:bg-zinc-900 rounded-xl p-3 text-[14px] group hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer">
-                            <div className="flex items-center gap-2 font-bold mb-1 text-sm">
-                                <span>{post.views} marta ko'rilgan</span>
-                                <span>•</span>
-                                <span>{new Date(post.created_at).toLocaleDateString()}</span>
+                        <div
+                            onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                            className={cn(
+                                "bg-zinc-100 dark:bg-zinc-900 rounded-xl p-3 text-[14px] transition-colors cursor-pointer",
+                                !isDescriptionExpanded && "hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                            )}
+                        >
+                            <div className="flex items-center gap-2 font-black mb-1.5 text-[13px] text-foreground">
+                                <span>{post.views.toLocaleString()} marta ko'rilgan</span>
+                                <span className="text-muted-foreground">•</span>
+                                <span>{new Date(post.created_at).toLocaleDateString('uz-UZ', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                             </div>
-                            <p className="whitespace-pre-wrap leading-relaxed text-zinc-800 dark:text-zinc-200">
+
+                            <p className={cn(
+                                "whitespace-pre-wrap leading-relaxed text-zinc-900 dark:text-zinc-100 font-medium",
+                                !isDescriptionExpanded && "line-clamp-2"
+                            )}>
                                 {post.content}
                             </p>
-                            <button className="mt-2 font-bold hover:underline cursor-pointer">Yana...</button>
+
+                            <button className="mt-1 font-black text-foreground hover:opacity-70 transition-opacity text-[13px]">
+                                {isDescriptionExpanded ? "Kamroq" : "Yana..."}
+                            </button>
                         </div>
 
                         {/* Comments Section (YouTube Style) */}
@@ -414,7 +484,7 @@ export default function PostDetail() {
 
                             {/* Mobile View: Drawer */}
                             <div className="lg:hidden">
-                                <Drawer>
+                                <Drawer modal={true}>
                                     <DrawerTrigger asChild>
                                         <div className="bg-zinc-100 dark:bg-zinc-900/50 p-4 rounded-xl flex items-center justify-between cursor-pointer active:scale-95 transition-transform ring-1 ring-white/5 mx-auto w-full">
                                             <div className="flex flex-col gap-1">
@@ -426,13 +496,14 @@ export default function PostDetail() {
                                             </Button>
                                         </div>
                                     </DrawerTrigger>
-                                    <DrawerContent>
-                                        <div className="mx-auto w-full max-w-sm">
-                                            <DrawerHeader>
-                                                <DrawerTitle>Izohlar</DrawerTitle>
-                                                <DrawerDescription>Ushbu post bo'yicha fikrlaringiz</DrawerDescription>
+                                    <DrawerContent className="bg-background border-border text-foreground max-h-[85vh] flex flex-col focus:outline-none z-[150]">
+                                        <div className="mx-auto w-full max-w-sm flex-1 flex flex-col h-full">
+                                            <DrawerHeader className="border-b border-border relative shrink-0 px-4 pb-3">
+                                                <DrawerTitle className="text-center font-bold text-sm text-foreground uppercase tracking-widest">
+                                                    Izohlar
+                                                </DrawerTitle>
                                             </DrawerHeader>
-                                            <div className="p-4 pb-8 max-h-[70vh] overflow-y-auto">
+                                            <div className="p-4 pt-0 flex-1 overflow-hidden h-full flex flex-col mt-4">
                                                 <PostComments postId={post.id} />
                                             </div>
                                         </div>
@@ -440,10 +511,16 @@ export default function PostDetail() {
                                 </Drawer>
                             </div>
                         </div>
+
+                        {/* Recommended Posts - Visible on Mobile (below main content) */}
+                        <div className="lg:hidden space-y-4 pt-4 border-t border-border/50">
+                            <h3 className="font-bold text-[15px] px-1 uppercase tracking-widest text-muted-foreground">Tavsiya etiladi</h3>
+                            <RecommendedPosts otherPosts={otherPosts} />
+                        </div>
                     </div>
 
-                    {/* Sidebar / Recommended Posts - 3 slots on wide grid */}
-                    <div className="md:col-span-4 xl:col-span-3 px-4 md:px-0 space-y-4">
+                    {/* Sidebar / Recommended Posts - Desktop (visible on lg and up) */}
+                    <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-4">
                         {/* Categories/Tabs - Desktop */}
                         <div className="flex overflow-x-auto gap-2 no-scrollbar py-2">
                             {['Hammasi', 'Manba: House', 'Aloqador'].map((tag, i) => (
@@ -461,61 +538,11 @@ export default function PostDetail() {
                             ))}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3">
-                            {otherPosts.map((p) => (
-                                <Link
-                                    key={p.id}
-                                    to={`/post/${p.id}`}
-                                    className="flex gap-2 group cursor-pointer"
-                                >
-                                    <div className="relative aspect-video w-[40%] md:w-[168px] shrink-0 bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden ring-1 ring-border/50">
-                                        {p.mediaUrl ? (
-                                            p.mediaType === 'video' ? (
-                                                <video
-                                                    src={p.mediaUrl}
-                                                    className="w-full h-full object-cover"
-                                                    preload="metadata"
-                                                />
-                                            ) : (
-                                                <img
-                                                    src={p.mediaUrl}
-                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                                    alt=""
-                                                />
-                                            )
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <Play className="h-6 w-6 text-zinc-300" />
-                                            </div>
-                                        )}
-                                        {p.mediaType === 'video' && (
-                                            <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] text-white px-1 rounded font-bold">
-                                                0:06
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex flex-col gap-1 min-w-0 pt-0.5">
-                                        <h4 className="text-[14px] font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-                                            {p.content}
-                                        </h4>
-                                        <div className="flex flex-col text-[12px] text-muted-foreground mt-0.5">
-                                            <span className="flex items-center gap-1 hover:text-foreground transition-colors">
-                                                {p.author?.fullName}
-                                                <VerifiedBadge size={10} />
-                                            </span>
-                                            <div className="flex items-center gap-1">
-                                                <span>{p.views} marta ko'rilgan</span>
-                                                <span className="text-[8px] opacity-50">•</span>
-                                                <span>1 yil oldin</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
-                        </div>
+                        <RecommendedPosts otherPosts={otherPosts} />
                     </div>
                 </div>
             </div>
+            <BottomNav />
         </div>
     );
 }
