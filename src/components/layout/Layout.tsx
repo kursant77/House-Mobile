@@ -47,8 +47,11 @@ export const Layout = () => {
 
             <main className={cn(
                 "transition-all duration-300 ease-in-out",
-                !isReelsPage ? "min-h-[calc(100dvh-64px)] pt-16 pb-16 md:pb-8" : "h-[100dvh] pb-16 md:pb-0 pt-0",
-                !isMobile && (isCollapsed ? "pl-[72px]" : "pl-64")
+                !isReelsPage
+                    ? "min-h-[calc(100dvh-64px)] pt-16 pb-16 md:pb-8"
+                    : "h-[100dvh] md:h-screen pt-0 md:pt-16 overflow-hidden",
+                !isMobile && (isCollapsed ? "pl-[72px]" : "pl-64"),
+                isMobile && isReelsPage && "pb-0" // Remove bottom padding for mobile reels
             )}>
                 <Outlet />
             </main>

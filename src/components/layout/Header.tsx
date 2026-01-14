@@ -16,10 +16,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCartStore } from "@/store/cartStore";
 import { socialService } from "@/services/api/social";
+import { productService } from "@/services/api/products";
+import { postService } from "@/services/api/posts";
 import { useQuery } from "@tanstack/react-query";
 import {
     Popover,
@@ -40,6 +43,7 @@ export const Header = () => {
     const isMobile = useIsMobile();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
+    const [activeSearchFilter, setActiveSearchFilter] = useState("all");
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -50,13 +54,37 @@ export const Header = () => {
     // Default context is 'users' (Global/Home)
     const searchContext = isReelsPage ? 'reels' : isProductsPage ? 'products' : 'users';
 
-    const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    const { data: userResults = [], isLoading: isSearchingUsers } = useQuery({
         queryKey: ["user-search", searchQuery],
         queryFn: () => socialService.searchUsers(searchQuery),
-        // Only fetch user search results if we are NOT in products or reels context
-        enabled: searchContext === 'users' && searchQuery.trim().length > 0 && searchOpen,
+        enabled: searchQuery.trim().length > 0 && searchOpen,
         staleTime: 1000 * 30,
     });
+
+    const { data: productResults = [], isLoading: isSearchingProducts } = useQuery({
+        queryKey: ["product-search-header", searchQuery],
+        queryFn: productService.getProducts,
+        enabled: searchQuery.trim().length > 0 && searchOpen,
+        select: (data) => data.filter(p =>
+            p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+        ).slice(0, 5),
+        staleTime: 1000 * 30,
+    });
+
+    const { data: postResults = [], isLoading: isSearchingPosts } = useQuery({
+        queryKey: ["post-search-header", searchQuery],
+        queryFn: () => postService.getPosts(1, 40),
+        enabled: searchQuery.trim().length > 0 && searchOpen,
+        select: (data) => data.filter(p =>
+            p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.content.toLowerCase().includes(searchQuery.toLowerCase())
+        ).slice(0, 8),
+        staleTime: 1000 * 30,
+    });
+
+    const isSearching = isSearchingUsers || isSearchingProducts || isSearchingPosts;
+    const hasAnyResults = userResults.length > 0 || productResults.length > 0 || postResults.length > 0;
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -83,10 +111,8 @@ export const Header = () => {
         } else if (searchContext === 'products') {
             navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
         } else {
-            // For user search, we don't navigate on enter, just keep popover open or maybe go to a dedicated page if we had one.
-            // But user request says "asosiy menuda... faqat profill...". The popover already shows profiles.
-            // If they insist on pressing Enter, maybe valid to do nothing or open popover.
-            setSearchOpen(true);
+            // Navigate to global search page
+            navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}&type=posts`);
         }
     };
 
@@ -100,7 +126,7 @@ export const Header = () => {
         switch (searchContext) {
             case 'reels': return "Reels qidirish...";
             case 'products': return "Mahsulot qidirish...";
-            default: return "Foydalanuvchi qidirish...";
+            default: return "Qidirish... (Foydalanuvchilar, Mahsulotlar, Postlar)";
         }
     };
 
@@ -159,48 +185,150 @@ export const Header = () => {
                     </form>
 
                     {/* Search Results Dropdown */}
-                    {searchOpen && searchContext === 'users' && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden max-h-[400px] overflow-y-auto z-[100]">
-                            {isSearching ? (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
-                                    <p className="text-sm">Qidirilmoqda...</p>
-                                </div>
-                            ) : searchResults.length > 0 ? (
-                                <div className="p-2">
-                                    {searchResults.map((userResult) => (
-                                        <button
-                                            key={userResult.id}
-                                            onClick={() => handleUserClick(userResult.id)}
-                                            className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                                        >
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={userResult.avatarUrl} />
-                                                <AvatarFallback>
-                                                    {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 text-left">
-                                                <div className="flex items-center gap-1">
-                                                    <p className="font-semibold text-sm">{userResult.username}</p>
-                                                    {(userResult.role === 'super_admin' || userResult.role === 'blogger') && (
-                                                        <VerifiedBadge size={12} />
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-muted-foreground">{userResult.fullName}</p>
+                    {searchOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden max-h-[500px] flex flex-col z-[100]">
+                            {/* Filter Bar */}
+                            <div className="p-2 border-b bg-muted/20">
+                                <Tabs value={activeSearchFilter} onValueChange={setActiveSearchFilter} className="w-full">
+                                    <TabsList className="w-full h-9 bg-transparent p-0 gap-1 justify-start">
+                                        <TabsTrigger value="all" className="h-7 px-3 text-[11px] rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Hammasi</TabsTrigger>
+                                        <TabsTrigger value="posts" className="h-7 px-3 text-[11px] rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Postlar</TabsTrigger>
+                                        <TabsTrigger value="products" className="h-7 px-3 text-[11px] rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Mahsulotlar</TabsTrigger>
+                                        <TabsTrigger value="users" className="h-7 px-3 text-[11px] rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all">Foydalanuvchilar</TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto">
+                                {isSearching ? (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent mx-auto mb-2" />
+                                        <p className="text-sm">Qidirilmoqda...</p>
+                                    </div>
+                                ) : hasAnyResults ? (
+                                    <div className="p-2 space-y-2">
+                                        {/* Posts Section */}
+                                        {(activeSearchFilter === 'all' || activeSearchFilter === 'posts') && postResults.length > 0 && (
+                                            <div>
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Postlar</h3>
+                                                {postResults.map((post) => (
+                                                    <button
+                                                        key={post.id}
+                                                        onClick={() => {
+                                                            setSearchOpen(false);
+                                                            setSearchQuery("");
+                                                            navigate(`/post/${post.id}`);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
+                                                    >
+                                                        <div className="h-10 w-10 rounded bg-muted overflow-hidden shrink-0 border border-border/50">
+                                                            {post.mediaUrl ? (
+                                                                post.mediaType === 'video' ? (
+                                                                    <video src={post.mediaUrl + "#t=0.1"} className="h-full w-full object-cover" />
+                                                                ) : (
+                                                                    <img src={post.mediaUrl} className="h-full w-full object-cover" onError={(e) => {
+                                                                        // Fallback if image fails but we might want to try video if it was actually a video
+                                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                                    }} />
+                                                                )
+                                                            ) : (
+                                                                <div className="h-full w-full flex items-center justify-center bg-primary/10">
+                                                                    <Search className="h-4 w-4 text-primary" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-bold truncate">{post.title || "Post"}</p>
+                                                            <p className="text-xs text-muted-foreground truncate">{post.content}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
                                             </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : searchQuery.trim() ? (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    <p className="text-sm">Hech narsa topilmadi</p>
-                                </div>
-                            ) : (
-                                <div className="p-8 text-center text-muted-foreground">
-                                    <p className="text-sm">Username yoki ism bo'yicha qidiring</p>
-                                </div>
-                            )}
+                                        )}
+
+                                        {/* Products Section */}
+                                        {(activeSearchFilter === 'all' || activeSearchFilter === 'products') && productResults.length > 0 && (
+                                            <div>
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Mahsulotlar</h3>
+                                                {productResults.map((product) => (
+                                                    <button
+                                                        key={product.id}
+                                                        onClick={() => {
+                                                            setSearchOpen(false);
+                                                            setSearchQuery("");
+                                                            navigate(`/product/${product.id}`);
+                                                        }}
+                                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
+                                                    >
+                                                        <div className="h-10 w-10 rounded bg-muted overflow-hidden shrink-0 border border-border/50">
+                                                            {product.images && product.images.length > 0 ? (
+                                                                <img src={product.images[0]} className="h-full w-full object-cover" />
+                                                            ) : (
+                                                                <div className="h-full w-full flex items-center justify-center bg-primary/10">
+                                                                    <ShoppingCart className="h-4 w-4 text-primary" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-bold truncate">{product.title}</p>
+                                                            <p className="text-xs text-primary font-bold">{product.price.toLocaleString()} so'm</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Users Section */}
+                                        {(activeSearchFilter === 'all' || activeSearchFilter === 'users') && userResults.length > 0 && (
+                                            <div>
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Foydalanuvchilar</h3>
+                                                {userResults.map((userResult) => (
+                                                    <button
+                                                        key={userResult.id}
+                                                        onClick={() => handleUserClick(userResult.id)}
+                                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
+                                                    >
+                                                        <Avatar className="h-10 w-10">
+                                                            <AvatarImage src={userResult.avatarUrl} />
+                                                            <AvatarFallback>
+                                                                {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-1">
+                                                                <p className="font-bold text-sm truncate">{userResult.username}</p>
+                                                                {(userResult.role === 'super_admin' || userResult.role === 'blogger') && (
+                                                                    <VerifiedBadge size={12} />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-muted-foreground truncate">{userResult.fullName}</p>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {!isSearching && hasAnyResults && (
+                                            <div className="sticky bottom-0 bg-background/80 backdrop-blur pb-2 px-2">
+                                                <button
+                                                    onClick={() => navigate(`/search?q=${encodeURIComponent(searchQuery)}&type=${activeSearchFilter === 'all' ? 'posts' : activeSearchFilter}`)}
+                                                    className="w-full py-2 text-xs font-bold text-primary hover:bg-muted rounded-lg transition-colors"
+                                                >
+                                                    Barcha natijalarni ko'rish
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : searchQuery.trim() ? (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <p className="text-sm">Hech narsa topilmadi</p>
+                                    </div>
+                                ) : (
+                                    <div className="p-8 text-center text-muted-foreground">
+                                        <p className="text-sm">Qidiruv so'zini kiriting (postlar, mahsulotlar, profillar)</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

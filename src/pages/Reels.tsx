@@ -41,22 +41,10 @@ export default function Reels() {
     const handleScroll = () => {
       const scrollTop = container.scrollTop;
       const itemHeight = container.clientHeight;
-      const scrollHeight = container.scrollHeight;
+      if (itemHeight === 0) return;
 
-      // Calculate active index with threshold
+      // Calculate active index with 50% threshold
       const newIndex = Math.round(scrollTop / itemHeight);
-
-      // Infinite Loop Logic: If at the bottom, wrap to top
-      if (scrollTop + itemHeight >= scrollHeight - 5) {
-        container.scrollTo({ top: 1, behavior: 'instant' });
-        setActiveIndex(0);
-        return;
-      }
-
-      // If at the very top (and trying to scroll up), wrap to bottom
-      if (scrollTop <= 0 && activeIndex === 0) {
-        // Optional: you could wrap to the bottom if desired
-      }
 
       if (newIndex !== activeIndex && newIndex >= 0 && newIndex < reels.length) {
         setActiveIndex(newIndex);
@@ -67,10 +55,14 @@ export default function Reels() {
     return () => container.removeEventListener("scroll", handleScroll);
   }, [activeIndex, reels.length]);
 
-  // Increment views for the active reel
+  // Increment views for the active reel with a delay (Debounce)
   useEffect(() => {
-    if (reels[activeIndex]?.id) {
-      productService.incrementViews(reels[activeIndex].id).catch(console.error);
+    const activeReelId = reels[activeIndex]?.id;
+    if (activeReelId) {
+      const timer = setTimeout(() => {
+        productService.incrementViews(activeReelId).catch(console.error);
+      }, 2500); // Only count view if user watches for 2.5 seconds
+      return () => clearTimeout(timer);
     }
   }, [activeIndex, reels]);
 
@@ -178,7 +170,7 @@ export default function Reels() {
       "bg-reels overflow-hidden select-none relative transition-colors duration-300",
       isMobile ? "z-[60]" : "w-full"
     )}
-      style={{ height: containerHeight }}
+      style={{ height: '100%' }}
     >
       <div
         ref={containerRef}
@@ -192,14 +184,14 @@ export default function Reels() {
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="w-full snap-start snap-always shrink-0 flex items-center justify-center relative border-b border-reels-foreground/5 md:border-none"
+            className="w-full snap-start snap-always shrink-0 flex items-center justify-center relative md:border-none"
             style={{
-              height: containerHeight,
+              height: '100%',
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always'
             }}
           >
-            <div className="h-full w-full md:h-[95vh] md:max-w-[450px] md:my-auto relative md:rounded-xl overflow-hidden shadow-[0_0_40px_rgba(0,0,0,0.8)]">
+            <div className="h-full w-full md:h-[96%] md:aspect-[9/16] md:w-auto md:my-auto relative md:rounded-[32px] overflow-hidden md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto bg-black">
               <ReelCard
                 reel={reel}
                 isActive={index === activeIndex}

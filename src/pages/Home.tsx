@@ -116,7 +116,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-4 py-4 md:px-6 lg:px-10 sticky top-16 z-30 bg-background/95 backdrop-blur-md border-b mb-4">
+      <div className="px-4 py-4 md:px-6 lg:px-10 sticky top-16 z-30 bg-background/95 backdrop-blur-md border-b mb-4 md:hidden">
         <div className="max-w-3xl mx-auto flex flex-col gap-4">
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />

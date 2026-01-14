@@ -17,7 +17,8 @@ import {
   Clock,
   Download,
   Flag,
-  UserX
+  UserX,
+  PlusSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -382,180 +383,221 @@ export function ReelCard({
   };
 
   return (
-    <div
-      className="relative h-full w-full bg-reels flex items-center justify-center overflow-hidden transition-colors duration-300"
-    >
-      <video
-        ref={videoRef}
-        src={reel.videoUrl}
-        poster={reel.thumbnailUrl}
-        loop
-        muted={isMuted || !isActive}
-        playsInline
-        onTimeUpdate={onTimeUpdate}
-        onTouchStart={handleVideoTouchStart}
-        onTouchEnd={handleVideoTouchEnd}
-        onTouchMove={handleVideoTouchMove}
-        onClick={handleTap}
-        className="h-full w-full object-cover md:max-w-[450px] md:rounded-lg"
-      />
-
-      {isMobile && isPaused && !isLongPressing && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/40" onClick={() => setIsPaused(false)}>
-          <div className="h-20 w-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border-4 border-white/20">
-            <Play className="h-10 w-10 text-white fill-white" />
-          </div>
-        </div>
-      )}
-
-      {showHeart && (
-        <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
-          <div className="animate-reel-heart">
-            <Heart className="h-32 w-32 text-white fill-white shadow-2xl" />
-          </div>
-        </div>
-      )}
-
-      <button
-        onClick={(e) => { e.stopPropagation(); toggleMuted(); }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 p-6 rounded-full bg-black/20 backdrop-blur-md opacity-0 hover:opacity-100 transition-opacity z-10 focus:opacity-100"
+    <div className="h-full w-full bg-black relative flex items-center justify-center">
+      <div
+        className="relative h-full w-full flex items-center justify-center overflow-hidden transition-colors duration-300"
       >
-        {isMuted ? <VolumeX className="h-10 w-10 text-white" /> : <Volume2 className="h-10 w-10 text-white" />}
-      </button>
+        <video
+          ref={videoRef}
+          src={reel.videoUrl}
+          poster={reel.thumbnailUrl}
+          loop
+          muted={isMuted || !isActive}
+          playsInline
+          onTimeUpdate={onTimeUpdate}
+          onTouchStart={handleVideoTouchStart}
+          onTouchEnd={handleVideoTouchEnd}
+          onTouchMove={handleVideoTouchMove}
+          onClick={handleTap}
+          className="h-full w-full object-cover"
+        />
 
-      <div className="absolute right-2 bottom-20 md:right-4 md:bottom-24 flex flex-col items-center gap-6 z-20">
-        <div className="flex flex-col items-center gap-1.5">
-          <button onClick={(e) => { e.stopPropagation(); handleLike(); }} className="transition-transform active:scale-125">
-            <Heart className={cn("h-8 w-8 drop-shadow-lg", isLiked ? "text-red-500 fill-red-500" : "text-white fill-none")} />
-          </button>
-          <span className="text-[11px] font-bold text-white drop-shadow-md">{formatCount(likesCount)}</span>
-        </div>
+        {isMobile && isPaused && !isLongPressing && (
+          <div className="absolute inset-0 flex items-center justify-center z-30 bg-black/40" onClick={() => setIsPaused(false)}>
+            <div className="h-20 w-20 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center border-4 border-white/20">
+              <Play className="h-10 w-10 text-white fill-white" />
+            </div>
+          </div>
+        )}
 
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
-            className="transition-transform active:scale-125"
-          >
-            <MessageCircle className="h-8 w-8 text-white drop-shadow-lg" />
-          </button>
-          <CommentCount productId={reel.product.id} />
-        </div>
-
-        <div className="flex flex-col items-center gap-1.5">
-          <button onClick={(e) => { e.stopPropagation(); handleFavorite(); }} className="transition-transform active:scale-125">
-            <Bookmark className={cn("h-8 w-8 drop-shadow-lg", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} />
-          </button>
-        </div>
-
-        <button
-          onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-          className={cn(
-            "h-12 w-12 rounded-full flex items-center justify-center transition-all animate-pulse-slow",
-            isProductInCart ? "bg-green-500" : "bg-primary text-primary-foreground shadow-lg"
-          )}
-        >
-          {isProductInCart ? <Check className="h-6 w-6" /> : <ShoppingBag className="h-6 w-6" />}
-        </button>
+        {showHeart && (
+          <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+            <div className="animate-reel-heart">
+              <Heart className="h-32 w-32 text-white fill-white shadow-2xl" />
+            </div>
+          </div>
+        )}
 
         <button
-          onClick={(e) => { e.stopPropagation(); handleShare(); }}
-          className="transition-transform active:scale-125"
+          onClick={(e) => { e.stopPropagation(); toggleMuted(); }}
+          className="absolute top-4 right-4 p-2 rounded-full bg-black/20 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity z-20 focus:opacity-100"
         >
-          <Share2 className="h-7 w-7 text-white drop-shadow-lg" />
+          {isMuted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
         </button>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        {/* Right Side Actions - Instagram Style */}
+        <div className="absolute right-2 bottom-[84px] md:right-3 md:bottom-[100px] flex flex-col items-center gap-5 z-20">
+          <div className="flex flex-col items-center">
             <button
-              onClick={(e) => e.stopPropagation()}
-              className="transition-transform active:scale-125"
+              onClick={(e) => { e.stopPropagation(); handleLike(); }}
+              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
             >
-              <MoreVertical className="h-6 w-6 text-white drop-shadow-lg" />
+              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                <Heart className={cn("h-7 w-7 transition-colors", isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-white fill-none")} strokeWidth={2.5} />
+              </div>
             </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }}>
-              <Clock className="h-4 w-4 mr-2" />
-              Keyinroq ko'rish
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
-              <Download className="h-4 w-4 mr-2" />
-              Yuklab olish
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }}>
-              <Flag className="h-4 w-4 mr-2" />
-              Shikoyat qilish
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
-              className="text-destructive focus:text-destructive"
+            <span className="text-[11px] font-bold text-white drop-shadow-md -mt-1">{formatCount(likesCount)}</span>
+          </div>
+
+          <div className="flex flex-col items-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
+              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
             >
-              <UserX className="h-4 w-4 mr-2" />
-              Foydalanuvchini bloklash
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                <MessageCircle className="h-7 w-7 text-white" strokeWidth={2.5} />
+              </div>
+            </button>
+            <CommentCount productId={reel.product.id} />
+          </div>
 
-        <button
-          onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
-          className="h-9 w-9 rounded-md border-2 border-white overflow-hidden shadow-xl mt-2 transition-transform hover:scale-110"
-        >
-          <img src={reel.product.images[0]} alt="" className="h-full w-full object-cover" />
-        </button>
-      </div>
+          <div className="flex flex-col items-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleShare(); }}
+              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
+            >
+              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                <Share2 className="h-7 w-7 text-white" strokeWidth={2.5} />
+              </div>
+            </button>
+          </div>
 
-      <div className="absolute bottom-6 left-0 right-0 px-4 pt-10 pb-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10 pointer-events-none">
-        <div className="flex flex-col gap-3 pointer-events-auto">
-          <div
-            className="flex items-center gap-2 cursor-pointer w-fit"
-            onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
+          <div className="flex flex-col items-center">
+            <button
+              onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
+              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
+            >
+              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                <Bookmark className={cn("h-7 w-7 transition-colors", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} strokeWidth={2.5} />
+              </div>
+            </button>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-2.5 rounded-full hover:bg-white/10 transition-all active:scale-125"
+              >
+                < MoreVertical className="h-6 w-6 text-white" strokeWidth={2.5} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-white/10 text-white">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                <Clock className="h-4 w-4 mr-2" />
+                Keyinroq ko'rish
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                <Download className="h-4 w-4 mr-2" />
+                Yuklab olish
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                <Flag className="h-4 w-4 mr-2" />
+                Shikoyat qilish
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+                className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
+              >
+                <UserX className="h-4 w-4 mr-2" />
+                Foydalanuvchini bloklash
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
+            className="h-10 w-10 rounded-lg border-2 border-white/80 overflow-hidden shadow-xl mt-4 transition-transform hover:scale-110 active:scale-90 bg-zinc-800 flex items-center justify-center p-0"
           >
-            <Avatar className="h-8 w-8 border border-white/20">
-              <AvatarImage src={reel.author?.avatarUrl} />
-              <AvatarFallback className="text-[10px]">{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
-            </Avatar>
-            <div className="flex items-center gap-1 drop-shadow-md">
-              <span className="text-white font-bold text-sm">
-                {reel.author?.fullName || "House Mobile"}
-              </span>
-              {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
-                <VerifiedBadge size={14} />
+            {reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl ? (
+              <img
+                src={reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <ShoppingBag className="h-5 w-5 text-white/50" />
+            )}
+          </button>
+        </div>
+
+        {/* Bottom Info Section - Instagram Style */}
+        <div className="absolute bottom-[72px] left-0 right-0 px-4 pt-16 pb-4 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none">
+          <div className="flex flex-col gap-3 pointer-events-auto max-w-[80%]">
+            <div className="flex items-center gap-3">
+              <div
+                className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80"
+                onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
+              >
+                <Avatar className="h-9 w-9 border-2 border-white/20">
+                  <AvatarImage src={reel.author?.avatarUrl} />
+                  <AvatarFallback className="text-[10px] bg-zinc-800 text-white font-bold">{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
+                </Avatar>
+                <div className="flex items-center gap-1 text-shadow-sm">
+                  <span className="text-white font-bold text-sm tracking-tight">
+                    {reel.author?.fullName || "House Mobile"}
+                  </span>
+                  {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
+                    <VerifiedBadge size={14} />
+                  )}
+                </div>
+              </div>
+
+              {user?.id !== (reel.author?.id || reel.product.sellerId) && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={isFollowLoading}
+                  onClick={handleFollow}
+                  className={cn(
+                    "h-7 px-3 text-[11px] font-bold border rounded-lg transition-all active:scale-95",
+                    isFollowing
+                      ? "bg-white/10 text-white border-white/20"
+                      : "bg-transparent text-white border-white hover:bg-white/20"
+                  )}
+                >
+                  {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Follow"}
+                </Button>
               )}
             </div>
-            {user?.id !== (reel.author?.id || reel.product.sellerId) && (
-              <Button
-                size="sm"
-                variant={isFollowing ? "secondary" : "outline"}
-                disabled={isFollowLoading}
-                onClick={handleFollow}
+
+            <div className="space-y-1.5 drop-shadow-md">
+              <h3 className="text-white font-bold text-sm leading-tight line-clamp-1">{reel.product.title}</h3>
+              <p className="text-white/95 text-xs line-clamp-2 leading-relaxed font-medium">
+                {reel.product.description}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 mt-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
                 className={cn(
-                  "h-7 px-3 text-[10px] font-black uppercase tracking-widest backdrop-blur-md rounded-md transition-all active:scale-95",
-                  isFollowing
-                    ? "bg-white/10 text-white border-white/20"
-                    : "bg-primary text-primary-foreground border-transparent border-primary/40"
+                  "w-full py-3 px-4 rounded-xl flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto",
+                  isProductInCart
+                    ? "bg-green-500 text-white"
+                    : "bg-white text-black hover:bg-zinc-100"
                 )}
               >
-                {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Obuna bo'lish"}
-              </Button>
-            )}
-          </div>
+                <div className="flex items-center gap-2">
+                  {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
+                  <span className="text-[13px] font-bold">
+                    {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
+                  </span>
+                </div>
+                <span className="text-[13px] font-black tracking-tight">
+                  {new Intl.NumberFormat("uz-UZ").format(reel.product.price)} UZS
+                </span>
+              </button>
+            </div>
 
-          <div className="space-y-1">
-            <h3 className="text-white font-bold text-sm drop-shadow-md">{reel.product.title}</h3>
-            <p className="text-white/90 text-xs line-clamp-2 leading-relaxed drop-shadow-sm max-w-[80%]">
-              {reel.product.description}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5 py-1 px-2.5 bg-zinc-900/40 backdrop-blur-md border border-white/10 rounded-full w-fit">
-            <span className="text-xs font-black text-primary">{new Intl.NumberFormat("uz-UZ").format(reel.product.price)} UZS</span>
-          </div>
-
-          <div className="flex items-center gap-2 overflow-hidden w-[60%]">
-            <Music2 className="h-3 w-3 text-white animate-pulse" />
-            <div className="text-[10px] text-white font-medium whitespace-nowrap animate-reel-music">
-              {reel.author?.fullName || "House Mobile"} • Original Audio
+            <div className="flex items-center gap-2 overflow-hidden bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit max-w-full">
+              <Music2 className="h-3 w-3 text-white flex-shrink-0" />
+              <div className="text-[11px] text-white font-semibold whitespace-nowrap overflow-hidden relative">
+                <div className="animate-reel-music inline-block">
+                  {reel.author?.fullName || "House Mobile"} • Original Audio
+                </div>
+              </div>
             </div>
           </div>
         </div>
