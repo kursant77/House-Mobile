@@ -4,12 +4,14 @@ import {
     DrawerContent,
     DrawerHeader,
     DrawerTitle,
+    DrawerDescription,
 } from "@/components/ui/drawer";
 import {
     Sheet,
     SheetContent,
     SheetHeader,
     SheetTitle,
+    SheetDescription,
 } from "@/components/ui/sheet";
 import { X } from "lucide-react";
 import { CommentsList } from "./CommentsList";
@@ -31,6 +33,7 @@ export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDraw
                     <div className="mx-auto w-full max-w-sm flex-1 flex flex-col h-full">
                         <DrawerHeader className="border-b border-border relative shrink-0 px-4 pb-3">
                             <DrawerTitle className="text-center font-bold text-sm text-foreground">Comments</DrawerTitle>
+                            <DrawerDescription className="sr-only">Displaying all comments for this video</DrawerDescription>
                             <DrawerClose asChild>
                                 <button className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-muted-foreground hover:text-foreground">
                                     <X className="h-4 w-4" />
@@ -52,8 +55,9 @@ export function CommentsDrawer({ isOpen, onOpenChange, productId }: CommentsDraw
                     className="bg-transparent h-full"
                     productId={productId}
                     header={
-                        <div className="flex items-center justify-between p-4 border-b border-border">
+                        <div className="flex flex-col p-4 border-b border-border">
                             <SheetTitle className="font-bold text-sm text-foreground">Comments</SheetTitle>
+                            <SheetDescription className="sr-only">Displaying all comments for this video</SheetDescription>
                         </div>
                     }
                 />

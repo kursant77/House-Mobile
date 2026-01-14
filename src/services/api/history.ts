@@ -111,7 +111,7 @@ class HistoryService {
                     .select(`
                         *,
                         product_media(*),
-                        seller:profiles!seller_id(id, full_name, avatar_url)
+                        profiles!seller_id(id, full_name, avatar_url)
                     `)
                     .eq('id', content_id)
                     .single();
@@ -141,10 +141,10 @@ class HistoryService {
                     mediaType: content_type === 'reel' ? 'video' : 'image',
                     videoUrl: content_type === 'reel' ? videoMedia?.url : undefined,
                     hasMedia: true,
-                    author: product.seller ? {
-                        id: product.seller.id,
-                        name: product.seller.full_name || 'House Mobile',
-                        avatar: product.seller.avatar_url || ''
+                    author: product.profiles ? {
+                        id: product.profiles.id,
+                        name: product.profiles.full_name || 'House Mobile',
+                        avatar: product.profiles.avatar_url || ''
                     } : undefined,
                     viewedAt: new Date(viewed_at),
                     duration: content_type === 'reel' ? '0:45' : undefined,
@@ -155,7 +155,7 @@ class HistoryService {
                     .from('public_posts')
                     .select(`
                         *,
-                        author:profiles!author_id(id, full_name, avatar_url)
+                        profiles!author_id(id, full_name, avatar_url)
                     `)
                     .eq('id', content_id)
                     .single();
@@ -176,10 +176,10 @@ class HistoryService {
                     mediaType: post.media_type as 'image' | 'video',
                     videoUrl: post.media_type === 'video' ? post.media_url : undefined,
                     hasMedia: !!post.media_url,
-                    author: post.author ? {
-                        id: post.author.id,
-                        name: post.author.full_name || 'Anonymous',
-                        avatar: post.author.avatar_url || ''
+                    author: post.profiles ? {
+                        id: post.profiles.id,
+                        name: post.profiles.full_name || 'Anonymous',
+                        avatar: post.profiles.avatar_url || ''
                     } : undefined,
                     viewedAt: new Date(viewed_at)
                 };

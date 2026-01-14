@@ -131,7 +131,7 @@ export const postService = {
                 post_id,
                 public_posts (
                     *,
-                    profiles:author_id (id, full_name, avatar_url, role)
+                    profiles!author_id (id, full_name, avatar_url, role)
                 )
             `)
             .eq('user_id', user.id);
@@ -199,7 +199,7 @@ export const postService = {
                 .from('public_post_comments')
                 .select(`
                     *,
-                    profiles(id, full_name, avatar_url, role)
+                    profiles!user_id(id, full_name, avatar_url, role)
                 `)
                 .eq('post_id', postId)
                 .order('created_at', { ascending: false });
@@ -247,7 +247,7 @@ export const postService = {
             }])
             .select(`
                 *,
-                profiles(id, full_name, avatar_url, role)
+                profiles!user_id(id, full_name, avatar_url, role)
             `)
             .single();
 

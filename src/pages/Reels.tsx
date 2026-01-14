@@ -191,7 +191,7 @@ export default function Reels() {
               scrollSnapStop: 'always'
             }}
           >
-            <div className="h-full w-full md:h-[96%] md:aspect-[9/16] md:w-auto md:my-auto relative md:rounded-[32px] overflow-hidden md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto bg-black">
+            <div className="h-full w-full md:h-full md:aspect-[9/16] md:w-auto md:my-auto relative md:rounded-[32px] overflow-hidden md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto bg-black">
               <ReelCard
                 reel={reel}
                 isActive={index === activeIndex}

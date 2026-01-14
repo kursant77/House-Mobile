@@ -21,7 +21,7 @@ export default function ReelsList() {
                 .from('products')
                 .select(`
                     *,
-                    profiles(full_name, avatar_url),
+                    profiles!seller_id(full_name, avatar_url),
                     product_media!inner(*)
                 `)
                 .eq('product_media.type', 'video')

@@ -107,7 +107,7 @@ export default function Dashboard() {
                 // Fetch recent activity
                 const { data: latestProducts } = await supabase
                     .from('products')
-                    .select('*, profiles(full_name, avatar_url)')
+                    .select('*, profiles!seller_id(full_name, avatar_url)')
                     .order('id', { ascending: false })
                     .limit(5);
 
