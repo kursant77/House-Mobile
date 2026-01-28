@@ -237,12 +237,7 @@ export default function UploadProduct() {
             navigate("/profile");
         } catch (error: unknown) {
             const appError = handleError(error, 'CreateProduct');
-            toast.error(appError.message, {
-                action: {
-                    label: 'Qayta urinish',
-                    onClick: () => handleSubmit(e as React.FormEvent<HTMLFormElement>)
-                }
-            });
+            toast.error(appError.message);
         } finally {
             setIsSubmitting(false);
         }
@@ -393,7 +388,9 @@ export default function UploadProduct() {
                                                 <div className="lg:flex-1 lg:min-h-0 lg:overflow-auto">
                                                     <ProductForm
                                                         formData={formData}
-                                                        onFormDataChange={(field, value) => setFormData({ ...formData, [field]: value })}
+                                                        onFormDataChange={(field, value) =>
+                                                            setValue(field as keyof ProductFormInput, value)
+                                                        }
                                                     />
                                                 </div>
                                                 <div className="flex flex-col sm:flex-row gap-3 pt-4 md:pt-6 lg:pt-4 border-t border-border/50 mt-4 lg:mt-0 lg:flex-shrink-0">

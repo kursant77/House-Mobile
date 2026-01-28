@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type { FC } from "react";
 import { postService, PublicPost } from "@/services/api/posts";
 import { Newspaper, Trash2, Edit, Search, Save, X, Loader2, Clock, Eye, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 
-export default function AdminNews() {
+const AdminNews: FC = () => {
     const [posts, setPosts] = useState<PublicPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -302,4 +303,6 @@ export default function AdminNews() {
             </Dialog>
         </div>
     );
-}
+};
+
+export default AdminNews;

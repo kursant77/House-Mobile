@@ -1,10 +1,9 @@
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { PublicPost } from "@/services/api/posts";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Eye, Clock, MessageSquare, Share2, Play } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Play } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface PostCardProps {

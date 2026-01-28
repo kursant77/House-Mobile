@@ -58,7 +58,6 @@ import { useFavoritesStore } from "@/store/favoritesStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   REACT_QUERY_GC_TIME_MS,
-  REACT_QUERY_REFETCH_INTERVAL_MS,
   REACT_QUERY_RETRY_DELAY_MS,
   REACT_QUERY_STALE_TIME_MS,
 } from "@/lib/config";
@@ -71,7 +70,7 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: true,
       refetchOnMount: true,
       refetchOnReconnect: true,
-      refetchInterval: REACT_QUERY_REFETCH_INTERVAL_MS,
+      refetchInterval: false,
       retry: 1,
       retryDelay: REACT_QUERY_RETRY_DELAY_MS,
     },
