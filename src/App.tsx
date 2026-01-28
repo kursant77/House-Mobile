@@ -43,6 +43,7 @@ const SupportAdmin = lazy(() => import("./pages/admin/SupportAdmin"));
 const AdminNews = lazy(() => import("./pages/admin/AdminNews"));
 
 // Loading fallback component
+
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
     <div className="flex flex-col items-center gap-4">
