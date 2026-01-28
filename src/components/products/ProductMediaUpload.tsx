@@ -31,20 +31,20 @@ export function ProductMediaUpload({
     onRemoveVideo,
 }: ProductMediaUploadProps) {
     return (
-        <div className="space-y-6">
-            <Card className="border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl font-bold">
+        <div className="space-y-5 md:space-y-6 lg:space-y-8 h-full">
+            <Card className="border border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-card backdrop-blur-sm rounded-2xl">
+                <CardHeader className="pb-4 md:pb-5">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl font-bold">
                         Mahsulot Rasmlari <span className="text-destructive">*</span>
                     </CardTitle>
-                    <CardDescription className="text-sm md:text-base">
+                    <CardDescription className="text-xs sm:text-sm md:text-base">
                         Mahsulotning yuqori sifatli rasmlarini yuklang
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-4 lg:gap-5">
                         {images.map((img, index) => (
-                            <div key={index} className="relative aspect-square rounded-xl overflow-hidden group border-2 border-border/50 hover:border-primary transition-all duration-200 shadow-md hover:shadow-lg">
+                            <div key={index} className="relative aspect-square rounded-xl md:rounded-2xl overflow-hidden group border-2 border-border/50 hover:border-primary/50 transition-all duration-300 shadow-md hover:shadow-lg">
                                 <img src={img.preview} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300" alt="preview" />
                                 <button
                                     type="button"
@@ -59,7 +59,7 @@ export function ProductMediaUpload({
                         <button
                             type="button"
                             onClick={() => imageInputRef.current?.click()}
-                            className="aspect-square rounded-xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent transition-all duration-300 text-muted-foreground hover:text-primary group"
+                            className="aspect-square rounded-xl md:rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent transition-all duration-300 text-muted-foreground hover:text-primary group"
                             aria-label="Rasm yuklash"
                         >
                             <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
@@ -80,18 +80,18 @@ export function ProductMediaUpload({
                 </CardContent>
             </Card>
 
-            <Card className="border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center gap-2 text-lg md:text-xl font-bold">
+            <Card className="border border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-card backdrop-blur-sm rounded-2xl">
+                <CardHeader className="pb-4 md:pb-5">
+                    <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl font-bold">
                         Reel Video <span className="text-destructive">*</span>
                     </CardTitle>
-                    <CardDescription className="text-sm md:text-base">
+                    <CardDescription className="text-xs sm:text-sm md:text-base">
                         Qisqa video sharh (Reels uchun)
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {video ? (
-                        <div className="relative aspect-[9/16] w-full max-w-[200px] md:max-w-[250px] rounded-xl overflow-hidden border-2 border-border/50 bg-black shadow-lg hover:shadow-xl transition-all duration-300 group">
+                        <div className="relative aspect-[9/16] w-full max-w-[200px] md:max-w-[250px] rounded-xl md:rounded-2xl overflow-hidden border-2 border-border/50 bg-black shadow-lg hover:shadow-xl transition-all duration-300 group">
                             <video src={video.preview} className="h-full w-full object-cover" controls />
                             <button
                                 type="button"
@@ -106,7 +106,7 @@ export function ProductMediaUpload({
                         <button
                             type="button"
                             onClick={() => videoInputRef.current?.click()}
-                            className="w-full h-40 md:h-48 rounded-xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent transition-all duration-300 text-muted-foreground hover:text-primary group"
+                            className="w-full h-36 sm:h-40 md:h-48 lg:h-52 rounded-xl md:rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent transition-all duration-300 text-muted-foreground hover:text-primary group"
                             aria-label="Video yuklash"
                         >
                             <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">

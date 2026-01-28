@@ -18,13 +18,13 @@ interface ProductFormProps {
 
 export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
     return (
-        <Card className="border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 bg-card/50 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-                <CardTitle className="text-xl md:text-2xl font-bold">Ma'lumotlar</CardTitle>
+        <Card className="border border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-card backdrop-blur-sm rounded-2xl h-full">
+            <CardHeader className="pb-4 md:pb-5">
+                <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Ma'lumotlar</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5 md:space-y-6">
+            <CardContent className="space-y-5 md:space-y-6 lg:space-y-8 pb-6">
                 <div className="space-y-2.5">
-                    <Label htmlFor="title" className="text-sm font-semibold text-foreground/80">
+                    <Label htmlFor="title" className="text-sm md:text-base font-semibold text-foreground/80">
                         Nomi <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -34,11 +34,11 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         onChange={e => onFormDataChange("title", e.target.value)}
                         required
                         aria-required="true"
-                        className="h-11 md:h-12 rounded-xl border-border/50 bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200 hover:border-border"
+                        className="h-11 md:h-12 lg:h-13 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary transition-all duration-200 hover:border-border"
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
                     <div className="space-y-2.5">
                         <Label htmlFor="price" className="text-sm font-semibold text-foreground/80">
                             Narxi <span className="text-destructive">*</span>
@@ -78,7 +78,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                 </div>
 
                 <div className="space-y-2.5">
-                    <Label htmlFor="category" className="text-sm font-semibold text-foreground/80">
+                    <Label htmlFor="category" className="text-sm md:text-base font-semibold text-foreground/80">
                         Kategoriya <span className="text-destructive">*</span>
                     </Label>
                     <Select
@@ -87,7 +87,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     >
                         <SelectTrigger 
                             aria-required="true"
-                            className="h-11 md:h-12 rounded-xl border-border/50 bg-muted/50 focus:ring-2 focus:ring-primary"
+                            className="h-11 md:h-12 lg:h-13 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus:ring-2 focus:ring-primary/50 transition-all"
                         >
                             <SelectValue placeholder="Kategoriyani tanlang" />
                         </SelectTrigger>
@@ -100,7 +100,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                 </div>
 
                 <div className="space-y-2.5">
-                    <Label htmlFor="description" className="text-sm font-semibold text-foreground/80">
+                    <Label htmlFor="description" className="text-sm md:text-base font-semibold text-foreground/80">
                         Tavsif <span className="text-destructive">*</span>
                     </Label>
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 md:p-4 rounded-xl text-xs md:text-sm text-yellow-600 dark:text-yellow-400 mb-2">
@@ -109,7 +109,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     <Textarea
                         id="description"
                         placeholder="Mahsulot haqida batafsil ma'lumot bering..."
-                        className="min-h-[140px] md:min-h-[160px] resize-none rounded-xl border-border/50 bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200 hover:border-border"
+                        className="min-h-[140px] md:min-h-[160px] lg:min-h-[180px] resize-none rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary transition-all duration-200 hover:border-border"
                         value={formData.description}
                         onChange={e => onFormDataChange("description", e.target.value)}
                         required
