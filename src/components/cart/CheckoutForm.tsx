@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Check, MapPin, Phone, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +10,7 @@ import { useCartStore } from "@/store/cartStore";
 import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { checkoutSchema, type CheckoutInput } from "@/lib/validation";
 
 interface CheckoutFormProps {
   onBack: () => void;
@@ -19,87 +22,49 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    notes: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<CheckoutInput>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      name: "",
+      phone: "",
+      address: "",
+      notes: "",
+    },
   });
 
-  const [errors, setErrors] = useState({
-    name: "",
-    phone: "",
-    address: "",
-  });
-
-  // Using shared utility function
-
-  const validateForm = () => {
-    const newErrors = { name: "", phone: "", address: "" };
-    let isValid = true;
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Ism kiritilishi shart";
-      isValid = false;
-    }
-
-    if (!formData.phone.trim()) {
-      newErrors.phone = "Telefon raqam kiritilishi shart";
-      isValid = false;
-    } else if (!/^[\d\s+()-]{9,}$/.test(formData.phone)) {
-      newErrors.phone = "Iltimos, to'g'ri telefon raqam kiriting";
-      isValid = false;
-    }
-
-    if (!formData.address.trim()) {
-      newErrors.address = "Manzil kiritilishi shart";
-      isValid = false;
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
+  const onSubmit = async (formData: CheckoutInput) => {
     setIsLoading(true);
 
     try {
-      const { orderService } = await import('@/services/api/orders');
-      
+      const { orderService } = await import("@/services/api/orders");
+
       const orderData = {
         customerName: formData.name,
         customerPhone: formData.phone,
         customerAddress: formData.address,
         notes: formData.notes || undefined,
-        items: items.map(item => ({
+        items: items.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
           price: item.product.price,
           currency: item.product.currency,
         })),
         totalAmount: getTotal(),
-        currency: items[0]?.product.currency || 'UZS',
+        currency: items[0]?.product.currency || "UZS",
       };
 
       const order = await orderService.createOrder(orderData);
-      
+
       toast.success(`Buyurtma qabul qilindi! Buyurtma raqami: ${order.orderNumber}`);
       setOrderPlaced(true);
       clearCart();
     } catch (error) {
-      const { handleError } = await import('@/lib/errorHandler');
-      const appError = handleError(error, 'CheckoutForm');
+      const { handleError } = await import("@/lib/errorHandler");
+      const appError = handleError(error, "CheckoutForm");
       toast.error(appError.message || "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
     } finally {
       setIsLoading(false);
@@ -142,7 +107,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
       {/* Content */}
       <main className="px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Contact Info */}
           <section className="space-y-4">
             <h2 className="text-lg font-semibold">Aloqa ma'lumotlari</h2>
@@ -156,16 +121,15 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                   id="name"
                   type="text"
                   placeholder="Ismingizni kiriting"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  {...register("name")}
                   className={cn(
                     "h-12 pl-10 rounded-xl bg-muted border-0",
                     errors.name && "ring-2 ring-destructive"
                   )}
                 />
               </div>
-              {errors.name && (
-                <p className="text-xs text-destructive">{errors.name}</p>
+              {errors.name?.message && (
+                <p className="text-xs text-destructive">{errors.name.message}</p>
               )}
             </div>
 
@@ -178,16 +142,15 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                   id="phone"
                   type="tel"
                   placeholder="+998 90 123 45 67"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  {...register("phone")}
                   className={cn(
                     "h-12 pl-10 rounded-xl bg-muted border-0",
                     errors.phone && "ring-2 ring-destructive"
                   )}
                 />
               </div>
-              {errors.phone && (
-                <p className="text-xs text-destructive">{errors.phone}</p>
+              {errors.phone?.message && (
+                <p className="text-xs text-destructive">{errors.phone.message}</p>
               )}
             </div>
           </section>
@@ -204,16 +167,15 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                 <Textarea
                   id="address"
                   placeholder="Shahar, ko'cha, uy raqami, xonadon"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange("address", e.target.value)}
+                  {...register("address")}
                   className={cn(
                     "min-h-[100px] pl-10 rounded-xl bg-muted border-0 resize-none",
                     errors.address && "ring-2 ring-destructive"
                   )}
                 />
               </div>
-              {errors.address && (
-                <p className="text-xs text-destructive">{errors.address}</p>
+              {errors.address?.message && (
+                <p className="text-xs text-destructive">{errors.address.message}</p>
               )}
             </div>
 
@@ -223,8 +185,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
               <Textarea
                 id="notes"
                 placeholder="Yetkazib berish bo'yicha maxsus ko'rsatmalar"
-                value={formData.notes}
-                onChange={(e) => handleInputChange("notes", e.target.value)}
+                {...register("notes")}
                 className="min-h-[80px] rounded-xl bg-muted border-0 resize-none"
               />
             </div>

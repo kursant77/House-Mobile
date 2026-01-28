@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone, AtSign, CheckCircle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,24 @@ import { sanitizeEmail, sanitizePhone, sanitizeUsername } from "@/lib/sanitize";
 
 type AuthMode = "login" | "register" | "forgot-password" | "reset-password";
 
+type AuthFormValues = {
+  name: string;
+  username: string;
+  phone: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+const defaultValues: AuthFormValues = {
+  name: "",
+  username: "",
+  phone: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+};
+
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -26,6 +45,19 @@ export default function Auth() {
   const [passwordResetSuccess, setPasswordResetSuccess] = useState(false);
   const { login, register } = useAuthStore();
 
+  const {
+    register: registerField,
+    handleSubmit,
+    setValue,
+    setError,
+    clearErrors,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<AuthFormValues>({ defaultValues });
+
+  const formValues = watch();
+
   // Check for reset password mode from URL
   useEffect(() => {
     const modeParam = searchParams.get("mode");
@@ -34,195 +66,159 @@ export default function Auth() {
     }
   }, [searchParams]);
 
-  const [formData, setFormData] = useState({
-    name: "",
-    username: "",
-    phone: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const [errors, setErrors] = useState({
-    name: "",
-    username: "",
-    phone: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
   const checkUsernameAvailability = async (username: string): Promise<boolean> => {
     try {
       return await authApi.checkUsernameAvailability(username);
-    } catch (error) {
+    } catch {
       return false;
     }
   };
 
-  const validateForm = async () => {
-    const newErrors = { name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" };
+  const onSubmit = async (data: AuthFormValues) => {
+    clearErrors();
     let isValid = true;
 
     try {
       if (mode === "register") {
-        // Sanitize inputs
         const sanitizedData = {
-          name: formData.name.trim(),
-          username: sanitizeUsername(formData.username),
-          phone: sanitizePhone(formData.phone),
-          email: sanitizeEmail(formData.email),
-          password: formData.password,
+          name: data.name.trim(),
+          username: sanitizeUsername(data.username),
+          phone: sanitizePhone(data.phone),
+          email: sanitizeEmail(data.email),
+          password: data.password,
         };
 
-        // Validate with Zod
         const result = registerSchema.safeParse(sanitizedData);
-        
+
         if (!result.success) {
           result.error.errors.forEach((err) => {
-            const field = err.path[0] as keyof typeof newErrors;
-            if (field in newErrors) {
-              newErrors[field] = err.message;
+            const field = err.path[0] as keyof AuthFormValues;
+            if (field in defaultValues) {
+              setError(field, { message: err.message });
             }
           });
           isValid = false;
         } else {
-          // Check username availability
           setCheckingUsername(true);
-          const isAvailable = await checkUsernameAvailability(sanitizedData.username);
+          const isAvailable = await checkUsernameAvailability(sanitizeUsername(data.username));
           setCheckingUsername(false);
           if (!isAvailable) {
-            newErrors.username = "Bu username allaqachon olingan";
+            setError("username", { message: "Bu username allaqachon olingan" });
             isValid = false;
           }
         }
       } else if (mode === "login") {
-        // Login validation
         const sanitizedData = {
-          email: sanitizeEmail(formData.email),
-          password: formData.password,
+          email: sanitizeEmail(data.email),
+          password: data.password,
         };
-
         const result = loginSchema.safeParse(sanitizedData);
-        
         if (!result.success) {
           result.error.errors.forEach((err) => {
-            const field = err.path[0] as keyof typeof newErrors;
-            if (field in newErrors) {
-              newErrors[field] = err.message;
+            const field = err.path[0] as keyof AuthFormValues;
+            if (field in defaultValues) {
+              setError(field, { message: err.message });
             }
           });
           isValid = false;
         }
       } else if (mode === "forgot-password") {
-        // Forgot password validation
-        if (!formData.email || !formData.email.includes("@")) {
-          newErrors.email = "To'g'ri email manzilini kiriting";
+        if (!data.email || !data.email.includes("@")) {
+          setError("email", { message: "To'g'ri email manzilini kiriting" });
           isValid = false;
         }
       } else if (mode === "reset-password") {
-        // Reset password validation
-        if (!formData.password || formData.password.length < 6) {
-          newErrors.password = "Parol kamida 6 ta belgidan iborat bo'lishi kerak";
+        if (!data.password || data.password.length < 6) {
+          setError("password", { message: "Parol kamida 6 ta belgidan iborat bo'lishi kerak" });
           isValid = false;
         }
-        if (formData.password !== formData.confirmPassword) {
-          newErrors.confirmPassword = "Parollar mos kelmaydi";
+        if (data.password !== data.confirmPassword) {
+          setError("confirmPassword", { message: "Parollar mos kelmaydi" });
           isValid = false;
         }
       }
-    } catch (error) {
-      // Validation error is handled by toast
+    } catch {
       isValid = false;
     }
 
-    setErrors(newErrors);
-    return isValid;
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const isValid = await validateForm();
     if (!isValid) return;
 
     setIsLoading(true);
 
-    // Real API call via authStore
     try {
       if (mode === "login") {
-        await login(formData.email, formData.password);
+        await login(data.email, data.password);
         toast.success("Muvaffaqiyatli kirildi!");
         navigate("/");
       } else if (mode === "register") {
-        await register(formData.name, formData.username, formData.phone, formData.email, formData.password);
+        await register(
+          data.name,
+          sanitizeUsername(data.username),
+          sanitizePhone(data.phone),
+          sanitizeEmail(data.email),
+          data.password
+        );
         toast.success("Hisob muvaffaqiyatli yaratildi!");
         navigate("/profile");
       } else if (mode === "forgot-password") {
-        await authApi.resetPassword(formData.email);
+        await authApi.resetPassword(data.email);
         setResetEmailSent(true);
         toast.success("Parol tiklash havolasi emailingizga yuborildi!");
       } else if (mode === "reset-password") {
-        await authApi.updatePasswordWithToken(formData.password);
+        await authApi.updatePasswordWithToken(data.password);
         setPasswordResetSuccess(true);
         toast.success("Parol muvaffaqiyatli yangilandi!");
         setTimeout(() => {
           setMode("login");
           setPasswordResetSuccess(false);
+          reset(defaultValues);
         }, 2000);
       }
     } catch (error: unknown) {
-      const appError = handleError(error, 'Auth');
+      const appError = handleError(error, "Auth");
       toast.error(appError.message, {
         action: {
-          label: 'Qayta urinish',
-          onClick: () => handleSubmit(e as React.FormEvent<HTMLFormElement>)
-        }
+          label: "Qayta urinish",
+          onClick: () => handleSubmit(onSubmit)(),
+        },
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleInputChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
-    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
-    setFormData({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    clearErrors();
+    reset(defaultValues);
     setResetEmailSent(false);
     setPasswordResetSuccess(false);
   };
 
   const goToForgotPassword = () => {
     setMode("forgot-password");
-    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    clearErrors();
     setResetEmailSent(false);
   };
 
   const goBackToLogin = () => {
     setMode("login");
-    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
-    setFormData({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    clearErrors();
+    reset(defaultValues);
     setResetEmailSent(false);
     setPasswordResetSuccess(false);
   };
 
   const handlePhoneChange = (value: string) => {
-    // Auto-format phone number
-    let formatted = value.replace(/\D/g, ''); // Remove non-digits
-    if (formatted.startsWith('998')) {
-      formatted = '+' + formatted;
-    } else if (formatted.length > 0 && !formatted.startsWith('998')) {
-      formatted = '+998' + formatted;
+    let formatted = value.replace(/\D/g, "");
+    if (formatted.startsWith("998")) {
+      formatted = "+" + formatted;
+    } else if (formatted.length > 0 && !formatted.startsWith("998")) {
+      formatted = "+998" + formatted;
     }
     if (formatted.length <= 13) {
-      handleInputChange("phone", formatted);
+      setValue("phone", formatted);
+      if (errors.phone) clearErrors("phone");
     }
   };
 
@@ -296,7 +292,7 @@ export default function Auth() {
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold">Email yuborildi!</h2>
                 <p className="text-sm text-muted-foreground">
-                  Parol tiklash havolasi <strong>{formData.email}</strong> manziliga yuborildi.
+                  Parol tiklash havolasi <strong>{formValues.email}</strong> manziliga yuborildi.
                   Iltimos, emailingizni tekshiring.
                 </p>
               </div>
@@ -328,7 +324,7 @@ export default function Auth() {
 
           {/* Form */}
           {!(mode === "forgot-password" && resetEmailSent) && !(mode === "reset-password" && passwordResetSuccess) && (
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Name field (register only) */}
             {mode === "register" && (
               <>
@@ -342,16 +338,15 @@ export default function Auth() {
                       id="name"
                       type="text"
                       placeholder="Ismingizni kiriting"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      {...registerField("name")}
                       className={cn(
                         "h-12 pl-10 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                         errors.name && "ring-2 ring-destructive"
                       )}
                     />
                   </div>
-                  {errors.name && (
-                    <p className="text-xs text-destructive">{errors.name}</p>
+                  {errors.name?.message && (
+                    <p className="text-xs text-destructive">{errors.name.message}</p>
                   )}
                 </div>
 
@@ -366,11 +361,12 @@ export default function Auth() {
                       id="username"
                       type="text"
                       placeholder="username"
-                      value={formData.username}
-                      onChange={(e) => {
-                        const value = sanitizeUsername(e.target.value);
-                        handleInputChange("username", value);
-                      }}
+                      {...registerField("username", {
+                        onChange: (e) => {
+                          const value = sanitizeUsername(e.target.value);
+                          setValue("username", value);
+                        },
+                      })}
                       className={cn(
                         "h-12 pl-10 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                         errors.username && "ring-2 ring-destructive"
@@ -382,8 +378,8 @@ export default function Auth() {
                       </div>
                     )}
                   </div>
-                  {errors.username && (
-                    <p className="text-xs text-destructive">{errors.username}</p>
+                  {errors.username?.message && (
+                    <p className="text-xs text-destructive">{errors.username.message}</p>
                   )}
                 </div>
 
@@ -398,7 +394,7 @@ export default function Auth() {
                       id="phone"
                       type="tel"
                       placeholder="+998901234567"
-                      value={formData.phone}
+                      value={formValues.phone}
                       onChange={(e) => handlePhoneChange(e.target.value)}
                       className={cn(
                         "h-12 pl-10 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
@@ -406,8 +402,8 @@ export default function Auth() {
                       )}
                     />
                   </div>
-                  {errors.phone && (
-                    <p className="text-xs text-destructive">{errors.phone}</p>
+                  {errors.phone?.message && (
+                    <p className="text-xs text-destructive">{errors.phone.message}</p>
                   )}
                 </div>
               </>
@@ -425,16 +421,20 @@ export default function Auth() {
                   id="email"
                   type="email"
                   placeholder="Email manzilingizni kiriting"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", sanitizeEmail(e.target.value))}
+                  {...registerField("email", {
+                    onChange: (e) => {
+                      setValue("email", sanitizeEmail(e.target.value));
+                      if (errors.email) clearErrors("email");
+                    },
+                  })}
                   className={cn(
                     "h-12 pl-10 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                     errors.email && "ring-2 ring-destructive"
                   )}
                 />
               </div>
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+              {errors.email?.message && (
+                <p className="text-xs text-destructive">{errors.email.message}</p>
               )}
               {mode === "forgot-password" && (
                 <p className="text-xs text-muted-foreground">
@@ -456,8 +456,7 @@ export default function Auth() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="Parolingizni kiriting"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange("password", e.target.value)}
+                  {...registerField("password")}
                   className={cn(
                     "h-12 pl-10 pr-12 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                     errors.password && "ring-2 ring-destructive"
@@ -475,8 +474,8 @@ export default function Auth() {
                   )}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
+              {errors.password?.message && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
               )}
               {mode === "reset-password" && (
                 <p className="text-xs text-muted-foreground">
@@ -511,8 +510,7 @@ export default function Auth() {
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Parolni qayta kiriting"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    {...registerField("confirmPassword")}
                     className={cn(
                       "h-12 pl-10 pr-12 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                       errors.confirmPassword && "ring-2 ring-destructive"
@@ -530,8 +528,8 @@ export default function Auth() {
                     )}
                   </button>
                 </div>
-                {errors.confirmPassword && (
-                  <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                {errors.confirmPassword?.message && (
+                  <p className="text-xs text-destructive">{errors.confirmPassword.message}</p>
                 )}
               </div>
             )}

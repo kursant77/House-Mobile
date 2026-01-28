@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_IMAGE_SIZE, MAX_VIDEO_SIZE, SUPABASE_STORAGE_LIMIT } from "@/lib/config";
 
 /**
  * Validation schemas for all forms and inputs
@@ -65,12 +66,6 @@ export const commentSchema = z.object({
   content: z.string().min(1, 'Komentariya bo\'sh bo\'lmasligi kerak').max(1000, 'Komentariya juda uzun'),
   parentId: z.string().uuid('Parent ID noto\'g\'ri formatda').optional(),
 });
-
-// File validation
-// Supabase storage default limit: 50MB (check your plan for actual limit)
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
-const MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB (Supabase storage limit)
-const SUPABASE_STORAGE_LIMIT = 50 * 1024 * 1024; // 50MB
 
 export const imageFileSchema = z.instanceof(File, { message: 'Rasm fayl bo\'lishi kerak' })
   .refine((file) => file.size <= MAX_IMAGE_SIZE, {

@@ -4,6 +4,7 @@ import { SupabaseProductWithRelations, SupabaseProductMedia } from "@/types/api"
 import { handleError, getErrorMessage } from "@/lib/errorHandler";
 import { imageFileSchema, videoFileSchema } from "@/lib/validation";
 import { sanitizeFilename } from "@/lib/sanitize";
+import { SUPABASE_STORAGE_LIMIT } from "@/lib/config";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
 import { mapSupabaseProductsToProducts, mapSupabaseProductToProduct } from "@/lib/productMapper";
 
@@ -258,9 +259,6 @@ export const productService = {
         const userId = user?.id || 'anonymous';
         checkRateLimit(`upload:${userId}`, RATE_LIMITS.FILE_UPLOAD);
 
-        // Supabase storage limit check
-        const SUPABASE_STORAGE_LIMIT = 50 * 1024 * 1024; // 50MB
-        
         // Validate file type and size
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');

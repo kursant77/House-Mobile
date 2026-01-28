@@ -56,21 +56,27 @@ import { authApi } from "@/services/api/auth";
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import {
+  REACT_QUERY_GC_TIME_MS,
+  REACT_QUERY_REFETCH_INTERVAL_MS,
+  REACT_QUERY_RETRY_DELAY_MS,
+  REACT_QUERY_STALE_TIME_MS,
+} from "@/lib/config";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 1, // 1 minute - data is fresh for 1 minute (faster updates)
-      gcTime: 1000 * 60 * 15, // 15 minutes - cache for 15 minutes (optimized memory)
-      refetchOnWindowFocus: true, // Refetch on window focus for fresh data
-      refetchOnMount: true, // Refetch on mount if data is stale (ensures fresh data)
-      refetchOnReconnect: true, // Refetch on reconnect
-      refetchInterval: 1000 * 60 * 2, // Refetch every 2 minutes in background (for real-time feel)
-      retry: 1, // Only retry once on failure
-      retryDelay: 1000, // 1 second delay between retries
+      staleTime: REACT_QUERY_STALE_TIME_MS,
+      gcTime: REACT_QUERY_GC_TIME_MS,
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      refetchInterval: REACT_QUERY_REFETCH_INTERVAL_MS,
+      retry: 1,
+      retryDelay: REACT_QUERY_RETRY_DELAY_MS,
     },
     mutations: {
-      retry: 0, // Don't retry mutations
+      retry: 0,
     },
   },
 });

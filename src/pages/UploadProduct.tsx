@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,19 @@ interface MediaFile {
     existingUrl?: string;
 }
 
+const productFormSchema = z.object({
+    title: productSchema.shape.title,
+    description: productSchema.shape.description,
+    // Keep price as string in the form, validate that it is a positive number
+    price: z.string()
+        .min(1, "Narx kiritilishi shart")
+        .refine((val) => !Number.isNaN(Number(val)) && Number(val) > 0, "Narx musbat son bo'lishi kerak"),
+    category: productSchema.shape.category,
+    currency: productSchema.shape.currency,
+});
+
+type ProductFormInput = z.infer<typeof productFormSchema>;
+
 export default function UploadProduct() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -50,13 +65,36 @@ export default function UploadProduct() {
         setVideo,
     } = useProductUpload();
 
-    const [formData, setFormData] = useState({
-        title: "",
-        description: "",
-        price: "",
-        category: "",
-        currency: "UZS",
+    const {
+        watch,
+        setValue,
+        reset,
+        handleSubmit: handleProductSubmit,
+        formState: { errors: productErrors },
+    } = useForm<ProductFormInput>({
+        resolver: async (values, context, options) => {
+            const result = await productFormSchema.safeParseAsync(values);
+            if (result.success) {
+                return { values: result.data, errors: {} };
+            }
+            const formErrors: Record<string, { type: string; message: string }> = {};
+            result.error.errors.forEach((err) => {
+                const field = err.path[0] as keyof ProductFormInput;
+                if (!field) return;
+                formErrors[field] = { type: "validation", message: err.message };
+            });
+            return { values: {}, errors: formErrors };
+        },
+        defaultValues: {
+            title: "",
+            description: "",
+            price: "",
+            category: "",
+            currency: "UZS",
+        },
     });
+
+    const formData = watch();
 
     // News form state
     const [newsTitle, setNewsTitle] = useState("");
@@ -72,7 +110,7 @@ export default function UploadProduct() {
                 try {
                     const product = await productService.getProductById(editId);
                     if (product) {
-                        setFormData({
+                        reset({
                             title: product.title,
                             description: product.description,
                             price: product.price.toString(),
@@ -98,10 +136,9 @@ export default function UploadProduct() {
             };
             fetchProduct();
         }
-    }, [editId]);
+    }, [editId, reset, setImages, setVideo]);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = handleProductSubmit(async (values: ProductFormInput) => {
 
         if (!user || !user.id) {
             toast.error("Iltimos, avval tizimga kiring");
@@ -132,11 +169,11 @@ export default function UploadProduct() {
                 await productService.updateProduct(
                     editId,
                     {
-                        title: formData.title,
-                        description: formData.description,
-                        price: parseFloat(formData.price),
-                        category: formData.category,
-                        currency: formData.currency,
+                        title: values.title.trim(),
+                        description: values.description.trim(),
+                        price: Number(values.price),
+                        category: values.category,
+                        currency: values.currency,
                         inStock: true,
                     },
                     mediaUploads.length > 0 ? mediaUploads : undefined,
@@ -163,24 +200,6 @@ export default function UploadProduct() {
             return;
         }
 
-        // Validate product data
-        const productData = {
-            title: formData.title.trim(),
-            description: formData.description.trim(),
-            price: parseFloat(formData.price),
-            category: formData.category,
-            currency: formData.currency,
-            inStock: true,
-        };
-
-        const productValidation = productSchema.safeParse(productData);
-        if (!productValidation.success) {
-            productValidation.error.errors.forEach(err => {
-                toast.error(err.message);
-            });
-            return;
-        }
-
         if (images.length === 0) {
             toast.error("Iltimos, kamida bitta rasm yuklang");
             return;
@@ -202,7 +221,12 @@ export default function UploadProduct() {
 
             await productService.createProduct(
                 {
-                    ...productValidation.data,
+                    title: values.title.trim(),
+                    description: values.description.trim(),
+                    price: Number(values.price),
+                    category: values.category,
+                    currency: values.currency,
+                    inStock: true,
                     sellerId: user.id
                 },
                 mediaUploads,
@@ -253,7 +277,7 @@ export default function UploadProduct() {
         try {
             let mediaUrl = "";
             if (newsMedia) {
-                // Note: Supabase storage limit (50MB) still applies even for news videos
+                // Note: Supabase storage limit still applies even for news videos (see SUPABASE_STORAGE_LIMIT)
                 // skipSizeValidation only skips client-side validation, not server limit
                 mediaUrl = await productService.uploadMedia(newsMedia.file, 'product-media', (progress) => setUploadProgress(progress), true);
             }
