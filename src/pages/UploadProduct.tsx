@@ -6,14 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Upload, Loader2, ArrowLeft, Save, Send, Film, X } from "lucide-react";
 import { productService } from "@/services/api/products";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
-import { Header } from "@/components/layout/Header";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { BottomNav } from "@/components/layout/BottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { postService } from "@/services/api/posts";
 import { handleError } from "@/lib/errorHandler";
@@ -47,6 +43,7 @@ export default function UploadProduct() {
     const [searchParams] = useSearchParams();
     const editId = searchParams.get('edit');
     const { user } = useAuthStore();
+    const canPostNews = user?.role === "super_admin" || user?.role === "blogger";
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(false);
     
@@ -241,7 +238,7 @@ export default function UploadProduct() {
         } finally {
             setIsSubmitting(false);
         }
-    };
+    });
 
     const handleNewsFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -306,214 +303,230 @@ export default function UploadProduct() {
     }
 
     return (
-        <div className="min-h-[100dvh] min-h-screen w-full flex flex-col bg-background pb-20 md:pb-0">
-            <Header />
-            <Sidebar />
-            <BottomNav />
-
+        <div className="relative w-full min-h-full flex flex-col bg-background">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.14),_transparent_45%),radial-gradient(circle_at_bottom,_rgba(16,185,129,0.12),_transparent_50%)]" />
             {/* Full-width content area - fills viewport below header */}
-            <div className="flex-1 w-full md:pl-64 pt-14 md:pt-16 lg:pt-20 flex flex-col min-h-0">
+            <div className="flex-1 w-full flex flex-col min-h-0">
                 <Tabs defaultValue="product" className="w-full flex-1 flex flex-col min-h-0">
-                    {/* Sticky top bar: title + tabs */}
-                    <div className="sticky top-14 md:top-16 lg:top-20 z-20 flex-shrink-0 w-full bg-background/95 dark:bg-background/90 backdrop-blur-md border-b border-border/60 shadow-sm">
-                        <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-3 sm:py-4 md:py-5">
-                            <div className="w-full max-w-[1920px] mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
-                                <div className="flex items-center gap-3 min-w-0">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => navigate(-1)}
-                                        className="h-9 w-9 sm:h-10 sm:w-10 md:h-11 md:w-11 rounded-xl hover:bg-muted/80 transition-all duration-200 active:scale-95 shrink-0"
-                                    >
-                                        <ArrowLeft className="h-5 w-5" />
-                                    </Button>
-                                    <div className="min-w-0 flex-1">
-                                        <h1 className="text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black tracking-tight text-foreground truncate">
-                                            {editId ? "Tahrirlash" : "Yangi e'lon"}
-                                        </h1>
-                                        <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">
-                                            {editId ? "Mahsulot ma'lumotlarini o'zgartirish" : "Mahsulot yoki yangilik qo'shish"}
-                                        </p>
-                                    </div>
-                                </div>
-                                {(user?.role === 'super_admin' || user?.role === 'blogger') && (
-                                    <div className="hidden lg:block w-full sm:w-auto sm:min-w-[280px] md:min-w-[320px]">
-                                        <TabsList className="w-full sm:w-full h-10 md:h-11 bg-muted/60 dark:bg-muted/40 p-1 rounded-xl border border-border/50">
-                                            <TabsTrigger value="product" className="flex-1 rounded-lg text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
-                                                Mahsulot
-                                            </TabsTrigger>
-                                            <TabsTrigger value="news" className="flex-1 rounded-lg text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
-                                                Yangilik
-                                            </TabsTrigger>
-                                        </TabsList>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Scrollable content - fills remaining viewport */}
                     <div className="flex-1 w-full min-h-0 overflow-auto">
                         <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-4 md:py-6 lg:py-8">
-                            <div className="w-full max-w-[1920px] mx-auto">
-                                {(user?.role === 'super_admin' || user?.role === 'blogger') && (
-                                    <div className="mb-4 md:mb-6 lg:hidden w-full">
-                                        <TabsList className="w-full h-11 bg-muted/60 dark:bg-muted/40 p-1 rounded-xl border border-border/50">
-                                            <TabsTrigger value="product" className="flex-1 rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">Mahsulot</TabsTrigger>
-                                            <TabsTrigger value="news" className="flex-1 rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">Yangilik</TabsTrigger>
-                                        </TabsList>
-                                    </div>
-                                )}
-
+                            <div className="w-full">
                                 <TabsContent value="product" className="mt-0 w-full">
-                                    <form onSubmit={handleSubmit} className="w-full">
-                                        {/* Two-column layout on lg+: media left, form right. Single column on small screens. */}
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-10 xl:gap-12 w-full">
-                                            {/* Left: Media upload - full width on mobile, half on desktop */}
-                                            <div className="w-full min-h-0 lg:min-h-[60vh] lg:flex lg:flex-col">
-                                                <ProductMediaUpload
-                                                    images={images}
-                                                    video={video}
-                                                    imageInputRef={imageInputRef}
-                                                    videoInputRef={videoInputRef}
-                                                    onImageSelect={handleImageSelect}
-                                                    onVideoSelect={handleVideoSelect}
-                                                    onRemoveImage={removeImage}
-                                                    onRemoveVideo={removeVideo}
-                                                />
-                                            </div>
-
-                                            {/* Right: Form + actions */}
-                                            <div className="w-full min-h-0 lg:flex lg:flex-col lg:gap-4">
-                                                <div className="lg:flex-1 lg:min-h-0 lg:overflow-auto">
-                                                    <ProductForm
-                                                        formData={formData}
-                                                        onFormDataChange={(field, value) =>
-                                                            setValue(field as keyof ProductFormInput, value)
-                                                        }
+                                    <div className="w-full rounded-[32px] border border-border/60 bg-gradient-to-br from-background via-background/90 to-muted/20 dark:from-background dark:via-background/90 dark:to-muted/20 shadow-2xl shadow-black/30 p-4 sm:p-6 md:p-8 lg:p-10">
+                                        <form onSubmit={handleSubmit} className="w-full">
+                                            {/* Two-column layout on lg+: media left, form right. Single column on small screens. */}
+                                            <div className="grid grid-cols-1 lg:grid-cols-[1.15fr,0.85fr] gap-6 md:gap-8 lg:gap-10 xl:gap-12 w-full items-stretch">
+                                                {/* Left: Media upload */}
+                                                <div className="w-full min-h-0 lg:min-h-[60vh] lg:flex lg:flex-col">
+                                                    <ProductMediaUpload
+                                                        images={images}
+                                                        video={video}
+                                                        imageInputRef={imageInputRef}
+                                                        videoInputRef={videoInputRef}
+                                                        onImageSelect={handleImageSelect}
+                                                        onVideoSelect={handleVideoSelect}
+                                                        onRemoveImage={removeImage}
+                                                        onRemoveVideo={removeVideo}
                                                     />
                                                 </div>
-                                                <div className="flex flex-col sm:flex-row gap-3 pt-4 md:pt-6 lg:pt-4 border-t border-border/50 mt-4 lg:mt-0 lg:flex-shrink-0">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className="flex-1 h-11 sm:h-12 rounded-xl font-semibold border-2 transition-all duration-200 active:scale-[0.98]"
-                                                        onClick={() => navigate(-1)}
-                                                    >
-                                                        Bekor qilish
-                                                    </Button>
-                                                    <Button
-                                                        type="submit"
-                                                        className="flex-1 h-11 sm:h-12 rounded-xl font-bold gap-2 bg-primary hover:bg-primary/90 shadow-lg transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        disabled={isSubmitting}
-                                                    >
-                                                        {isSubmitting ? (
-                                                            <>
-                                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                                <span>{uploadProgress}%</span>
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                {editId ? <Save className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
-                                                                {editId ? "Saqlash" : "Yuklash"}
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </form>
-                                </TabsContent>
 
-                                <TabsContent value="news" className="mt-0 w-full">
-                                    <div className="w-full max-w-2xl mx-auto lg:max-w-3xl">
-                                        <Card className="w-full border border-border/50 shadow-lg rounded-2xl bg-card/90 dark:bg-card/80 backdrop-blur-sm overflow-hidden">
-                                            <CardHeader className="pb-4 md:pb-5 px-4 sm:px-6 md:px-8">
-                                                <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold flex items-center gap-3">
-                                                    <div className="p-2.5 rounded-xl bg-primary/10">
-                                                        <Send className="h-5 w-5 text-primary" />
-                                                    </div>
-                                                    Asosiy sahifaga post joylash
-                                                </CardTitle>
-                                                <CardDescription className="text-sm md:text-base mt-1">
-                                                    Obunachilaringiz uchun yangilik yoki qiziqarli ma'lumot ulashing
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="px-4 sm:px-6 md:px-8 pb-6 md:pb-8">
-                                                <form onSubmit={handleNewsSubmit} className="space-y-5 md:space-y-6">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="newsTitle" className="text-sm font-semibold">Sarlavha</Label>
-                                                        <Input
-                                                            id="newsTitle"
-                                                            placeholder="Sarlavha kiriting..."
-                                                            className="h-12 md:h-14 text-base rounded-xl bg-muted/30 dark:bg-muted/20 border-border/50"
-                                                            value={newsTitle}
-                                                            onChange={(e) => setNewsTitle(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="newsContent" className="text-sm font-semibold">Tavsif</Label>
-                                                        <Textarea
-                                                            id="newsContent"
-                                                            placeholder="Nima yangiliklar?"
-                                                            className="min-h-[140px] md:min-h-[180px] resize-none rounded-xl bg-muted/30 dark:bg-muted/20 border-border/50 text-base p-4"
-                                                            value={newsContent}
-                                                            onChange={(e) => setNewsContent(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-4">
-                                                        {!newsMedia ? (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const el = newsFileInputRef.current;
-                                                                    if (el) {
-                                                                        el.accept = "video/*";
-                                                                        el.click();
-                                                                    }
-                                                                }}
-                                                                className="w-full h-40 sm:h-48 md:h-56 rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-primary/5 transition-all duration-300 text-muted-foreground hover:text-primary group"
+                                                {/* Right: Form + actions */}
+                                                <div className="w-full min-h-0 lg:flex lg:flex-col lg:gap-6">
+                                                    <div className="rounded-2xl border border-border/60 bg-card/80 dark:bg-card/70 shadow-lg shadow-black/20 backdrop-blur-sm p-4 sm:p-5">
+                                                        <div className="flex items-start gap-3">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => navigate(-1)}
+                                                                className="h-9 w-9 rounded-xl hover:bg-muted/80 transition-all duration-200 active:scale-95"
                                                             >
-                                                                <div className="p-4 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                                                                    <Film className="h-10 w-10 md:h-12 md:w-12" />
-                                                                </div>
-                                                                <p className="text-sm md:text-base font-semibold">Video yuklash <span className="text-destructive">*</span></p>
-                                                                <p className="text-xs text-muted-foreground">MP4, max 50MB</p>
-                                                            </button>
-                                                        ) : (
-                                                            <div className="relative rounded-2xl overflow-hidden border-2 border-border/50 aspect-video bg-muted/30 group">
-                                                                <video src={newsMedia.preview} className="w-full h-full object-cover" controls />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setNewsMedia(null)}
-                                                                    className="absolute top-3 right-3 p-2 bg-black/70 rounded-full text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100"
-                                                                >
-                                                                    <X className="h-4 w-4" />
-                                                                </button>
+                                                                <ArrowLeft className="h-5 w-5" />
+                                                            </Button>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                                                                    {editId ? "Tahrirlash" : "Yangi e'lon"}
+                                                                </p>
+                                                                <h2 className="text-lg sm:text-xl font-bold text-foreground">
+                                                                    {editId ? "Mahsulotni tahrirlash" : "Mahsulot joylash"}
+                                                                </h2>
+                                                                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                                                    {editId ? "Ma'lumotlarni yangilang va saqlang" : "Mahsulot yoki yangilik qo'shish"}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        {canPostNews && (
+                                                            <div className="mt-4">
+                                                                <TabsList className="w-full h-10 sm:h-11 bg-muted/20 dark:bg-muted/20 p-1 rounded-full border border-border/50">
+                                                                    <TabsTrigger value="product" className="flex-1 rounded-full text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                                                        Mahsulot
+                                                                    </TabsTrigger>
+                                                                    <TabsTrigger value="news" className="flex-1 rounded-full text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                                                        Yangilik
+                                                                    </TabsTrigger>
+                                                                </TabsList>
                                                             </div>
                                                         )}
-                                                        <input type="file" ref={newsFileInputRef} className="hidden" onChange={handleNewsFileSelect} accept="video/*" />
+                                                    </div>
+                                                    <div className="lg:flex-1 lg:min-h-0 lg:overflow-auto">
+                                                        <ProductForm
+                                                            formData={formData}
+                                                            onFormDataChange={(field, value) =>
+                                                                setValue(field as keyof ProductFormInput, value)
+                                                            }
+                                                        />
+                                                    </div>
+                                                    <div className="rounded-2xl border border-border/60 bg-card/70 dark:bg-card/60 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className="flex-1 h-11 sm:h-12 rounded-xl font-semibold border-2 border-border/70 bg-background/40 hover:bg-background/70 transition-all duration-200 active:scale-[0.98]"
+                                                            onClick={() => navigate(-1)}
+                                                        >
+                                                            Bekor qilish
+                                                        </Button>
                                                         <Button
                                                             type="submit"
-                                                            disabled={isNewsSubmitting || !newsTitle.trim() || !newsContent.trim() || !newsMedia || newsMedia.type !== 'video'}
-                                                            className="w-full h-12 md:h-14 rounded-xl font-bold text-base shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                                                            className="flex-1 h-11 sm:h-12 rounded-xl font-bold gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            disabled={isSubmitting}
                                                         >
-                                                            {isNewsSubmitting ? (
+                                                            {isSubmitting ? (
                                                                 <>
-                                                                    <Loader2 className="h-5 w-5 animate-spin" />
-                                                                    Yuklanmoqda {uploadProgress}%
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                    <span>{uploadProgress}%</span>
                                                                 </>
                                                             ) : (
                                                                 <>
-                                                                    <Send className="h-4 w-4 md:h-5 md:w-5 mr-2" />
-                                                                    Yangilikni ulashish
+                                                                    {editId ? <Save className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                                                                    {editId ? "Saqlash" : "Yuklash"}
                                                                 </>
                                                             )}
                                                         </Button>
                                                     </div>
-                                                </form>
-                                            </CardContent>
-                                        </Card>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </TabsContent>
+
+                                <TabsContent value="news" className="mt-0 w-full">
+                                    <div className="w-full rounded-[32px] border border-border/60 bg-gradient-to-br from-background via-background/90 to-muted/20 dark:from-background dark:via-background/90 dark:to-muted/20 shadow-2xl shadow-black/30 p-4 sm:p-6 md:p-8 lg:p-10">
+                                        <div className="rounded-2xl border border-border/60 bg-card/80 dark:bg-card/70 shadow-lg shadow-black/20 backdrop-blur-sm p-4 sm:p-5 mb-6">
+                                            <div className="flex items-start gap-3">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => navigate(-1)}
+                                                    className="h-9 w-9 rounded-xl hover:bg-muted/80 transition-all duration-200 active:scale-95"
+                                                >
+                                                    <ArrowLeft className="h-5 w-5" />
+                                                </Button>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Yangilik</p>
+                                                    <h2 className="text-lg sm:text-xl font-bold text-foreground">Post joylash</h2>
+                                                    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                                                        Obunachilaringiz uchun yangilik ulashing.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {canPostNews && (
+                                                <div className="mt-4">
+                                                    <TabsList className="w-full h-10 sm:h-11 bg-muted/20 dark:bg-muted/20 p-1 rounded-full border border-border/50">
+                                                        <TabsTrigger value="product" className="flex-1 rounded-full text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                                            Mahsulot
+                                                        </TabsTrigger>
+                                                        <TabsTrigger value="news" className="flex-1 rounded-full text-xs sm:text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                                                            Yangilik
+                                                        </TabsTrigger>
+                                                    </TabsList>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-start justify-between gap-4 mb-6">
+                                            <div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2.5 rounded-2xl bg-primary/10">
+                                                        <Send className="h-5 w-5 text-primary" />
+                                                    </div>
+                                                    <h2 className="text-lg sm:text-xl md:text-2xl font-bold">Asosiy sahifaga post</h2>
+                                                </div>
+                                                <p className="text-sm text-muted-foreground mt-1">
+                                                    Obunachilaringiz uchun yangilik yoki qiziqarli ma'lumot ulashing.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <form onSubmit={handleNewsSubmit} className="space-y-5 md:space-y-6">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="newsTitle" className="text-sm font-semibold">Sarlavha</Label>
+                                                <Input
+                                                    id="newsTitle"
+                                                    placeholder="Sarlavha kiriting..."
+                                                    className="h-12 md:h-14 text-base rounded-2xl bg-muted/15 dark:bg-muted/15 border-border/60"
+                                                    value={newsTitle}
+                                                    onChange={(e) => setNewsTitle(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="newsContent" className="text-sm font-semibold">Tavsif</Label>
+                                                <Textarea
+                                                    id="newsContent"
+                                                    placeholder="Nima yangiliklar?"
+                                                    className="min-h-[160px] md:min-h-[200px] resize-none rounded-2xl bg-muted/15 dark:bg-muted/15 border-border/60 text-base p-4"
+                                                    value={newsContent}
+                                                    onChange={(e) => setNewsContent(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="space-y-4">
+                                                {!newsMedia ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const el = newsFileInputRef.current;
+                                                            if (el) {
+                                                                el.accept = "video/*";
+                                                                el.click();
+                                                            }
+                                                        }}
+                                                        className="w-full h-44 sm:h-52 md:h-60 rounded-2xl border border-dashed border-border/60 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-primary/5 transition-all duration-300 text-muted-foreground hover:text-primary group bg-muted/10"
+                                                    >
+                                                        <div className="p-4 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                                            <Film className="h-10 w-10 md:h-12 md:w-12" />
+                                                        </div>
+                                                        <p className="text-sm md:text-base font-semibold">Video yuklash <span className="text-destructive">*</span></p>
+                                                        <p className="text-xs text-muted-foreground">MP4, max 50MB</p>
+                                                    </button>
+                                                ) : (
+                                                    <div className="relative rounded-2xl overflow-hidden border border-border/50 aspect-video bg-muted/15 group">
+                                                        <video src={newsMedia.preview} className="w-full h-full object-cover" controls />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setNewsMedia(null)}
+                                                            className="absolute top-3 right-3 p-2 bg-black/70 rounded-full text-white hover:bg-black/90 transition-all opacity-0 group-hover:opacity-100"
+                                                        >
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                                <input type="file" ref={newsFileInputRef} className="hidden" onChange={handleNewsFileSelect} accept="video/*" />
+                                                <Button
+                                                    type="submit"
+                                                    disabled={isNewsSubmitting || !newsTitle.trim() || !newsContent.trim() || !newsMedia || newsMedia.type !== 'video'}
+                                                    className="w-full h-12 md:h-14 rounded-2xl font-bold text-base shadow-lg transition-all active:scale-[0.98] disabled:opacity-50"
+                                                >
+                                                    {isNewsSubmitting ? (
+                                                        <>
+                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                            Yuklanmoqda {uploadProgress}%
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Send className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                                                            Yangilikni ulashish
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        </form>
                                     </div>
                                 </TabsContent>
                             </div>

@@ -2,7 +2,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { categories } from "@/data/mockProducts";
 
 interface ProductFormProps {
@@ -18,11 +17,16 @@ interface ProductFormProps {
 
 export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
     return (
-        <Card className="w-full border border-border/50 shadow-md hover:shadow-lg transition-all duration-300 bg-card/95 dark:bg-card/90 backdrop-blur-sm rounded-2xl overflow-hidden">
-            <CardHeader className="pb-3 sm:pb-4 md:pb-5 px-4 sm:px-5 md:px-6 pt-4 sm:pt-5 md:pt-6">
-                <CardTitle className="text-base sm:text-lg md:text-xl font-bold">Ma'lumotlar</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4 sm:space-y-5 md:space-y-6 pb-5 sm:pb-6 px-4 sm:px-5 md:px-6">
+        <div className="w-full rounded-3xl border border-border/60 bg-card/80 dark:bg-card/70 shadow-2xl shadow-black/25 backdrop-blur-sm p-4 sm:p-6 md:p-7">
+            <div className="flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Ma'lumotlar</span>
+                <h3 className="text-lg sm:text-xl font-bold">Mahsulot tafsilotlari</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                    Majburiy maydonlarni to‘ldiring va mahsulotni aniq tasvirlab bering.
+                </p>
+            </div>
+
+            <div className="mt-5 space-y-4 sm:space-y-5 md:space-y-6">
                 <div className="space-y-2.5">
                     <Label htmlFor="title" className="text-sm md:text-base font-semibold text-foreground/80">
                         Nomi <span className="text-destructive">*</span>
@@ -34,11 +38,11 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         onChange={e => onFormDataChange("title", e.target.value)}
                         required
                         aria-required="true"
-                        className="h-11 md:h-12 lg:h-13 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary transition-all duration-200 hover:border-border"
+                        className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-200"
                     />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr] gap-4 md:gap-5">
                     <div className="space-y-2.5">
                         <Label htmlFor="price" className="text-sm font-semibold text-foreground/80">
                             Narxi <span className="text-destructive">*</span>
@@ -51,7 +55,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                             onChange={e => onFormDataChange("price", e.target.value)}
                             required
                             aria-required="true"
-                            className="h-10 sm:h-11 md:h-12 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 transition-all"
+                            className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
                         />
                     </div>
 
@@ -65,7 +69,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         >
                             <SelectTrigger 
                                 aria-required="true"
-                                className="h-10 sm:h-11 md:h-12 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus:ring-2 focus:ring-primary/50"
+                                className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus:ring-2 focus:ring-primary/40"
                             >
                                 <SelectValue placeholder="Valyutani tanlang" />
                             </SelectTrigger>
@@ -87,7 +91,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     >
                         <SelectTrigger 
                             aria-required="true"
-                            className="h-11 md:h-12 lg:h-13 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus:ring-2 focus:ring-primary/50 transition-all"
+                            className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus:ring-2 focus:ring-primary/40 transition-all"
                         >
                             <SelectValue placeholder="Kategoriyani tanlang" />
                         </SelectTrigger>
@@ -103,20 +107,20 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     <Label htmlFor="description" className="text-xs sm:text-sm font-semibold text-foreground/80">
                         Tavsif <span className="text-destructive">*</span>
                     </Label>
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-2.5 sm:p-3 rounded-xl text-[11px] sm:text-xs text-yellow-600 dark:text-yellow-400">
+                    <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 px-3 py-2 text-[11px] sm:text-xs text-yellow-600 dark:text-yellow-400">
                         <strong>Maslahat:</strong> Qurilmaning texnik xususiyatlarini (xotira, kamera va h.k.) to'liq kiriting.
                     </div>
                     <Textarea
                         id="description"
                         placeholder="Mahsulot haqida batafsil ma'lumot bering..."
-                        className="min-h-[120px] sm:min-h-[140px] md:min-h-[160px] resize-none rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 transition-all text-sm sm:text-base"
+                        className="min-h-[140px] sm:min-h-[170px] resize-none rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm sm:text-base"
                         value={formData.description}
                         onChange={e => onFormDataChange("description", e.target.value)}
                         required
                         aria-required="true"
                     />
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
