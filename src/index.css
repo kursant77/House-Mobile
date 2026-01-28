@@ -97,6 +97,67 @@
     @apply border-border;
   }
 
+  /* Telegram-style chat animations */
+  @keyframes messageAppear {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes typingDot {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.7;
+    }
+    30% {
+      transform: translateY(-8px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes readReceipt {
+    0% {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .message-bubble {
+    animation: messageAppear 0.2s ease-out;
+  }
+
+  .chat-transition {
+    transition: all 0.2s ease-out;
+  }
+
+  .typing-dot {
+    animation: typingDot 1.4s infinite;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  .read-receipt {
+    animation: readReceipt 0.3s ease-out;
+  }
+
   html {
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -109,6 +170,8 @@
     overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
     min-height: 100vh;
     min-height: -webkit-fill-available;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Prevent image selection/drag ghosting */
@@ -125,6 +188,165 @@
     scrollbar-width: none;
   }
   .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Modern Custom Scrollbar Design - Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  .dark * {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.4) transparent;
+  }
+
+  /* Webkit Scrollbar Styles */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.2);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.4);
+    background-clip: padding-box;
+    transform: scale(1.1);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary) / 0.6);
+    background-clip: padding-box;
+  }
+
+  /* Dark mode scrollbar */
+  .dark *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    background-clip: padding-box;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    background-clip: padding-box;
+  }
+
+  .dark *::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary) / 0.7);
+    background-clip: padding-box;
+  }
+
+  /* Smooth scrollbar animation */
+  @keyframes scrollbar-fade-in {
+    from {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  *::-webkit-scrollbar-thumb {
+    animation: scrollbar-fade-in 0.3s ease-out;
+  }
+
+  /* Custom scrollbar for specific containers */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.5);
+    border-radius: 10px;
+    margin: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.4),
+      hsl(var(--primary) / 0.6)
+    );
+    border-radius: 10px;
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow: 0 2px 4px hsl(var(--foreground) / 0.1);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.6),
+      hsl(var(--primary) / 0.8)
+    );
+    box-shadow: 0 4px 8px hsl(var(--foreground) / 0.2);
+    transform: scaleY(1.05);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--primary));
+    box-shadow: 0 2px 4px hsl(var(--foreground) / 0.3);
+  }
+
+  /* Thin scrollbar variant */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 6px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+    transform: scale(1.1);
+  }
+
+  /* Scrollbar thumb color variants */
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+  }
+
+  .scrollbar-thumb-border::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--border) / 0.8);
+  }
+
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
@@ -249,5 +471,180 @@
 
   .text-shadow-lg {
     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.9);
+  }
+
+  /* Telegram-style Chat Animations - Perfect Match */
+  @keyframes messageSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes typingDots {
+    0%, 60%, 100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-5px);
+      opacity: 1;
+    }
+  }
+
+  @keyframes checkmarkFill {
+    0% {
+      opacity: 0;
+      transform: scale(0.8);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes conversationHighlight {
+    0% {
+      background-color: transparent;
+    }
+    50% {
+      background-color: rgba(51, 144, 236, 0.08);
+    }
+    100% {
+      background-color: transparent;
+    }
+  }
+
+  /* Message bubble animations - Telegram style - Optimized */
+  .message-bubble {
+    animation: messageSlideIn 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  .message-bubble-enter {
+    animation: messageSlideIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Typing indicator animation - Telegram style */
+  .typing-dot {
+    animation: typingDots 1.4s infinite ease-in-out;
+  }
+
+  .typing-dot:nth-child(1) {
+    animation-delay: -0.32s;
+  }
+
+  .typing-dot:nth-child(2) {
+    animation-delay: -0.16s;
+  }
+
+  /* Read receipt animation - Telegram style */
+  .read-receipt {
+    animation: checkmarkFill 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Conversation selection animation - Telegram style */
+  .conversation-selected {
+    animation: conversationHighlight 0.25s ease-out;
+  }
+
+  /* Smooth transitions for chat elements - Telegram style */
+  .chat-transition {
+    transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Sidebar slide animation */
+  .sidebar-slide-enter {
+    transform: translateX(-100%);
+  }
+
+  .sidebar-slide-enter-active {
+    transform: translateX(0);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .sidebar-slide-exit {
+    transform: translateX(0);
+  }
+
+  .sidebar-slide-exit-active {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Instagram-style Avatar */
+  .instagram-avatar {
+    position: relative;
+    will-change: transform;
+  }
+
+  /* Smooth hover effect */
+  .instagram-avatar:hover {
+    transform: scale(1.05);
+  }
+
+  /* Avatar gradient border for stories - Instagram style */
+  .instagram-avatar-gradient {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    padding: 2px;
+    border-radius: 50%;
+  }
+
+  .instagram-avatar-gradient > div {
+    background: white;
+    border-radius: 50%;
+  }
+
+  /* Status indicator animation */
+  @keyframes statusPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(0.95);
+    }
+  }
+
+  .instagram-avatar[data-status="online"]::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background: #31A24C;
+    border: 2px solid white;
+    border-radius: 50%;
+    animation: statusPulse 2s infinite;
+  }
+
+  /* Performance optimizations */
+  .message-bubble,
+  .chat-transition {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Smooth scrolling for chat */
+  .custom-scrollbar {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Optimize rendering */
+  .custom-scrollbar > * {
+    contain: layout style paint;
   }
 }

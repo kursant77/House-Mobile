@@ -1,4 +1,7 @@
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
+import { handleError, getErrorMessage } from "@/lib/errorHandler";
+import { sessionStorage as sessionStorageUtil } from "@/lib/sessionStorage";
 
 export interface LoginRequest {
   email: string;
@@ -39,6 +42,9 @@ export const authApi = {
    * Login with email and password
    */
   login: async (data: LoginRequest): Promise<AuthResponse> => {
+    // Rate limiting for login attempts
+    checkRateLimit('login', RATE_LIMITS.API_CALL_STRICT);
+    
     const { data: authData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
@@ -105,6 +111,9 @@ export const authApi = {
    * Register a new user
    */
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
+    // Rate limiting for registration
+    checkRateLimit('register', RATE_LIMITS.FORM_SUBMIT);
+    
     // Check username availability
     const isUsernameAvailable = await authApi.checkUsernameAvailability(data.username);
     if (!isUsernameAvailable) {
@@ -124,7 +133,13 @@ export const authApi = {
       },
     });
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Provide user-friendly error messages
+      if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+        throw new Error("Bu email allaqachon ro'yxatdan o'tgan. Iltimos, tizimga kirishni urinib ko'ring.");
+      }
+      throw new Error(error.message);
+    }
 
     const user = authData.user;
     if (!user) throw new Error("Ro'yxatdan o'tishda xatolik");
@@ -170,6 +185,8 @@ export const authApi = {
    */
   logout: async (): Promise<void> => {
     await supabase.auth.signOut();
+    sessionStorageUtil.clear();
+    // Clear legacy localStorage
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user");
   },
@@ -181,7 +198,8 @@ export const authApi = {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
-      throw new Error("Failed to get profile");
+      const appError = handleError(error || new Error("Failed to get profile"), 'getProfile');
+      throw new Error(appError.message);
     }
 
     // Fetch profile from public.profiles table
@@ -234,26 +252,84 @@ export const authApi = {
   },
 
   /**
-   * Save auth data to localStorage (compatibility with existing store)
+   * Save auth data - uses Supabase session instead of localStorage
+   * Only stores minimal non-sensitive data in sessionStorage
    */
   saveAuth: (data: AuthResponse) => {
-    localStorage.setItem("auth_token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    // Store minimal data in sessionStorage (cleared on tab close)
+    // Token is managed by Supabase auth session
+    if (data.user.id && data.user.role) {
+      sessionStorageUtil.saveUser(data.user.id, data.user.role);
+    }
+    // Store minimal non-sensitive data in localStorage for backward compatibility
+    // Only store ID and role, not full user object
+    const minimalUser = {
+      id: data.user.id,
+      role: data.user.role,
+    };
+    try {
+      localStorage.setItem("user", JSON.stringify(minimalUser));
+    } catch (error) {
+      // Silently ignore localStorage errors (quota exceeded, etc.)
+    }
   },
 
   /**
-   * Get saved user from localStorage
+   * Get saved user from localStorage or sessionStorage
+   * Returns minimal user data for initial state
    */
   getSavedUser: (): AuthResponse["user"] | null => {
-    const user = localStorage.getItem("user");
-    return user ? JSON.parse(user) : null;
+    try {
+      // First try to get from sessionStorage (more secure)
+      const sessionUserId = sessionStorageUtil.getUserId();
+      const sessionUserRole = sessionStorageUtil.getUserRole();
+      
+      if (sessionUserId && sessionUserRole) {
+        // Return minimal user object for initial state
+        return {
+          id: sessionUserId,
+          role: sessionUserRole as 'user' | 'blogger' | 'super_admin',
+          name: '',
+          email: '',
+          isProfessional: false,
+          isBlocked: false,
+        };
+      }
+      
+      // Fallback to localStorage for backward compatibility
+      const user = localStorage.getItem("user");
+      if (!user) return null;
+      const parsed = JSON.parse(user);
+      
+      // Return minimal user if it exists
+      if (parsed && parsed.id && parsed.role) {
+        return {
+          id: parsed.id,
+          role: parsed.role,
+          name: parsed.name || '',
+          email: parsed.email || '',
+          isProfessional: parsed.isProfessional || false,
+          isBlocked: parsed.isBlocked || false,
+        };
+      }
+      
+      return null;
+    } catch (error) {
+      return null;
+    }
   },
 
   /**
    * Check if user is authenticated
+   * Uses Supabase session instead of localStorage token
    */
-  isAuthenticated: (): boolean => {
-    return !!localStorage.getItem("auth_token");
+  isAuthenticated: async (): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      return !!session;
+    } catch (error) {
+      return false;
+    }
   },
 
   /**
@@ -324,7 +400,9 @@ export const authApi = {
       const { error: authError } = await supabase.auth.updateUser({
         data: { name: updates.name }
       });
-      if (authError) console.error("Auth metadata update failed:", authError);
+      if (authError) {
+        // Silently ignore auth metadata update errors
+      }
     }
   },
 
@@ -382,5 +460,65 @@ export const authApi = {
       .eq('id', userId);
 
     if (error) throw error;
+  },
+
+  /**
+   * Request password reset email
+   */
+  resetPassword: async (email: string): Promise<void> => {
+    checkRateLimit('password-reset', RATE_LIMITS.API_CALL_STRICT);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth?mode=reset-password`,
+    });
+
+    if (error) {
+      throw new Error("Parol tiklash xabarini yuborishda xatolik: " + error.message);
+    }
+  },
+
+  /**
+   * Update password with reset token (from email link)
+   */
+  updatePasswordWithToken: async (newPassword: string): Promise<void> => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) {
+      throw new Error("Parolni yangilashda xatolik: " + error.message);
+    }
+  },
+
+  /**
+   * Change password (requires current password)
+   */
+  changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {
+    checkRateLimit('password-change', RATE_LIMITS.FORM_SUBMIT);
+    
+    // First verify current password by re-authenticating
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !user.email) {
+      throw new Error("Foydalanuvchi topilmadi");
+    }
+
+    // Try to sign in with current password to verify it
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      throw new Error("Joriy parol noto'g'ri");
+    }
+
+    // Update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (updateError) {
+      throw new Error("Yangi parolni o'rnatishda xatolik: " + updateError.message);
+    }
   },
 };

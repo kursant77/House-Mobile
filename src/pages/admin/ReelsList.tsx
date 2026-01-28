@@ -66,7 +66,7 @@ export default function ReelsList() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Reels Boshqaruvi</h2>
                     <p className="text-zinc-500 text-sm font-medium">Platformadagi barcha qisqa videolar va ularning statistikasi</p>
@@ -97,7 +97,7 @@ export default function ReelsList() {
                     </div>
                 ) : (
                     reels.map((reel) => (
-                        <div key={reel.id} className="group relative aspect-[9/16] rounded-2xl bg-zinc-900 overflow-hidden shadow-xl border border-white/10 transition-transform duration-500 hover:scale-[1.02]">
+                        <div key={reel.id} className="group relative aspect-[9/16] rounded-xl md:rounded-2xl bg-zinc-900 overflow-hidden shadow-xl border border-white/10 transition-transform duration-500 hover:scale-[1.02]">
                             {/* Video / Thumbnail Overlay */}
                             <div className="absolute inset-0 z-0 bg-gradient-to-br from-zinc-800 to-zinc-900">
                                 {reel.thumbnail_url ? (
@@ -140,9 +140,9 @@ export default function ReelsList() {
                             </div>
 
                             {/* Content Overlay */}
-                            <div className="absolute bottom-0 left-0 right-0 p-5 z-10 space-y-4">
+                            <div className="absolute bottom-0 left-0 right-0 p-4 md:p-5 z-10 space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-10 w-10 rounded-full border-2 border-[#3C50E0] p-0.5 overflow-hidden shadow-lg shadow-[#3C50E0]/20">
+                                    <div className="h-9 w-9 md:h-10 md:w-10 rounded-full border-2 border-[#3C50E0] p-0.5 overflow-hidden shadow-lg shadow-[#3C50E0]/20">
                                         {reel.profiles?.avatar_url ? (
                                             <img src={reel.profiles.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
                                         ) : (

@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone, AtSign } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Phone, AtSign, CheckCircle } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,16 +8,31 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api/auth";
+import { handleError } from "@/lib/errorHandler";
+import { loginSchema, registerSchema } from "@/lib/validation";
+import { sanitizeEmail, sanitizePhone, sanitizeUsername } from "@/lib/sanitize";
 
-type AuthMode = "login" | "register";
+type AuthMode = "login" | "register" | "forgot-password" | "reset-password";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [passwordResetSuccess, setPasswordResetSuccess] = useState(false);
   const { login, register } = useAuthStore();
+
+  // Check for reset password mode from URL
+  useEffect(() => {
+    const modeParam = searchParams.get("mode");
+    if (modeParam === "reset-password") {
+      setMode("reset-password");
+    }
+  }, [searchParams]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -25,6 +40,7 @@ export default function Auth() {
     phone: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
   const [errors, setErrors] = useState({
@@ -33,6 +49,7 @@ export default function Auth() {
     phone: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
 
   const checkUsernameAvailability = async (username: string): Promise<boolean> => {
@@ -44,56 +61,78 @@ export default function Auth() {
   };
 
   const validateForm = async () => {
-    const newErrors = { name: "", username: "", phone: "", email: "", password: "" };
+    const newErrors = { name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" };
     let isValid = true;
 
-    if (mode === "register") {
-      if (!formData.name.trim()) {
-        newErrors.name = "Ism kiritilishi shart";
-        isValid = false;
-      }
+    try {
+      if (mode === "register") {
+        // Sanitize inputs
+        const sanitizedData = {
+          name: formData.name.trim(),
+          username: sanitizeUsername(formData.username),
+          phone: sanitizePhone(formData.phone),
+          email: sanitizeEmail(formData.email),
+          password: formData.password,
+        };
 
-      if (!formData.username.trim()) {
-        newErrors.username = "Username kiritilishi shart";
-        isValid = false;
-      } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-        newErrors.username = "Username faqat harflar, raqamlar va _ belgisidan iborat bo'lishi kerak";
-        isValid = false;
-      } else if (formData.username.length < 3) {
-        newErrors.username = "Username kamida 3 belgidan iborat bo'lishi kerak";
-        isValid = false;
-      } else {
-        setCheckingUsername(true);
-        const isAvailable = await checkUsernameAvailability(formData.username);
-        setCheckingUsername(false);
-        if (!isAvailable) {
-          newErrors.username = "Bu username allaqachon olingan";
+        // Validate with Zod
+        const result = registerSchema.safeParse(sanitizedData);
+        
+        if (!result.success) {
+          result.error.errors.forEach((err) => {
+            const field = err.path[0] as keyof typeof newErrors;
+            if (field in newErrors) {
+              newErrors[field] = err.message;
+            }
+          });
+          isValid = false;
+        } else {
+          // Check username availability
+          setCheckingUsername(true);
+          const isAvailable = await checkUsernameAvailability(sanitizedData.username);
+          setCheckingUsername(false);
+          if (!isAvailable) {
+            newErrors.username = "Bu username allaqachon olingan";
+            isValid = false;
+          }
+        }
+      } else if (mode === "login") {
+        // Login validation
+        const sanitizedData = {
+          email: sanitizeEmail(formData.email),
+          password: formData.password,
+        };
+
+        const result = loginSchema.safeParse(sanitizedData);
+        
+        if (!result.success) {
+          result.error.errors.forEach((err) => {
+            const field = err.path[0] as keyof typeof newErrors;
+            if (field in newErrors) {
+              newErrors[field] = err.message;
+            }
+          });
+          isValid = false;
+        }
+      } else if (mode === "forgot-password") {
+        // Forgot password validation
+        if (!formData.email || !formData.email.includes("@")) {
+          newErrors.email = "To'g'ri email manzilini kiriting";
+          isValid = false;
+        }
+      } else if (mode === "reset-password") {
+        // Reset password validation
+        if (!formData.password || formData.password.length < 6) {
+          newErrors.password = "Parol kamida 6 ta belgidan iborat bo'lishi kerak";
+          isValid = false;
+        }
+        if (formData.password !== formData.confirmPassword) {
+          newErrors.confirmPassword = "Parollar mos kelmaydi";
           isValid = false;
         }
       }
-
-      if (!formData.phone.trim()) {
-        newErrors.phone = "Telefon raqam kiritilishi shart";
-        isValid = false;
-      } else if (!/^\+998\d{9}$/.test(formData.phone) && !/^998\d{9}$/.test(formData.phone) && !/^\d{9}$/.test(formData.phone)) {
-        newErrors.phone = "Telefon raqam noto'g'ri formatda (masalan: +998901234567 yoki 998901234567)";
-        isValid = false;
-      }
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email kiritilishi shart";
-      isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email noto'g'ri formatda";
-      isValid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Parol kiritilishi shart";
-      isValid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Parol kamida 6 belgidan iborat bo'lishi kerak";
+    } catch (error) {
+      // Validation error is handled by toast
       isValid = false;
     }
 
@@ -115,13 +154,31 @@ export default function Auth() {
         await login(formData.email, formData.password);
         toast.success("Muvaffaqiyatli kirildi!");
         navigate("/");
-      } else {
+      } else if (mode === "register") {
         await register(formData.name, formData.username, formData.phone, formData.email, formData.password);
         toast.success("Hisob muvaffaqiyatli yaratildi!");
         navigate("/profile");
+      } else if (mode === "forgot-password") {
+        await authApi.resetPassword(formData.email);
+        setResetEmailSent(true);
+        toast.success("Parol tiklash havolasi emailingizga yuborildi!");
+      } else if (mode === "reset-password") {
+        await authApi.updatePasswordWithToken(formData.password);
+        setPasswordResetSuccess(true);
+        toast.success("Parol muvaffaqiyatli yangilandi!");
+        setTimeout(() => {
+          setMode("login");
+          setPasswordResetSuccess(false);
+        }, 2000);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
+    } catch (error: unknown) {
+      const appError = handleError(error, 'Auth');
+      toast.error(appError.message, {
+        action: {
+          label: 'Qayta urinish',
+          onClick: () => handleSubmit(e as React.FormEvent<HTMLFormElement>)
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -136,8 +193,24 @@ export default function Auth() {
 
   const toggleMode = () => {
     setMode(mode === "login" ? "register" : "login");
-    setErrors({ name: "", username: "", phone: "", email: "", password: "" });
-    setFormData({ name: "", username: "", phone: "", email: "", password: "" });
+    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    setFormData({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    setResetEmailSent(false);
+    setPasswordResetSuccess(false);
+  };
+
+  const goToForgotPassword = () => {
+    setMode("forgot-password");
+    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    setResetEmailSent(false);
+  };
+
+  const goBackToLogin = () => {
+    setMode("login");
+    setErrors({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    setFormData({ name: "", username: "", phone: "", email: "", password: "", confirmPassword: "" });
+    setResetEmailSent(false);
+    setPasswordResetSuccess(false);
   };
 
   const handlePhoneChange = (value: string) => {
@@ -177,41 +250,84 @@ export default function Auth() {
               House Mobile
             </h1>
             <p className="text-muted-foreground">
-              {mode === "login"
-                ? "Xush kelibsiz"
-                : "Hisob yaratish"}
+              {mode === "login" && "Xush kelibsiz"}
+              {mode === "register" && "Hisob yaratish"}
+              {mode === "forgot-password" && "Parolni tiklash"}
+              {mode === "reset-password" && "Yangi parol o'rnatish"}
             </p>
           </div>
 
-          {/* Mode Toggle */}
-          <div className="flex rounded-xl bg-muted p-1">
-            <button
-              type="button"
-              onClick={() => setMode("login")}
-              className={cn(
-                "flex-1 rounded-lg py-2.5 text-sm font-medium transition-all",
-                mode === "login"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              )}
-            >
-              Kirish
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("register")}
-              className={cn(
-                "flex-1 rounded-lg py-2.5 text-sm font-medium transition-all",
-                mode === "register"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground"
-              )}
-            >
-              Ro'yxatdan o'tish
-            </button>
-          </div>
+          {/* Mode Toggle - only for login/register */}
+          {(mode === "login" || mode === "register") && (
+            <div className="flex rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setMode("login")}
+                className={cn(
+                  "flex-1 rounded-lg py-2.5 text-sm font-medium transition-all",
+                  mode === "login"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                )}
+              >
+                Kirish
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode("register")}
+                className={cn(
+                  "flex-1 rounded-lg py-2.5 text-sm font-medium transition-all",
+                  mode === "register"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground"
+                )}
+              >
+                Ro'yxatdan o'tish
+              </button>
+            </div>
+          )}
+
+          {/* Forgot Password - Email Sent Success */}
+          {mode === "forgot-password" && resetEmailSent && (
+            <div className="text-center space-y-4 py-6 animate-fade-in">
+              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Email yuborildi!</h2>
+                <p className="text-sm text-muted-foreground">
+                  Parol tiklash havolasi <strong>{formData.email}</strong> manziliga yuborildi.
+                  Iltimos, emailingizni tekshiring.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={goBackToLogin}
+                className="w-full h-12 rounded-xl"
+              >
+                Kirishga qaytish
+              </Button>
+            </div>
+          )}
+
+          {/* Reset Password Success */}
+          {mode === "reset-password" && passwordResetSuccess && (
+            <div className="text-center space-y-4 py-6 animate-fade-in">
+              <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Parol yangilandi!</h2>
+                <p className="text-sm text-muted-foreground">
+                  Yangi parolingiz bilan tizimga kiring.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Form */}
+          {!(mode === "forgot-password" && resetEmailSent) && !(mode === "reset-password" && passwordResetSuccess) && (
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name field (register only) */}
             {mode === "register" && (
@@ -252,7 +368,7 @@ export default function Auth() {
                       placeholder="username"
                       value={formData.username}
                       onChange={(e) => {
-                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                        const value = sanitizeUsername(e.target.value);
                         handleInputChange("username", value);
                       }}
                       className={cn(
@@ -297,7 +413,8 @@ export default function Auth() {
               </>
             )}
 
-            {/* Email field */}
+            {/* Email field - show for login, register, and forgot-password */}
+            {(mode === "login" || mode === "register" || mode === "forgot-password") && (
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">
                 Email
@@ -309,7 +426,7 @@ export default function Auth() {
                   type="email"
                   placeholder="Email manzilingizni kiriting"
                   value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  onChange={(e) => handleInputChange("email", sanitizeEmail(e.target.value))}
                   className={cn(
                     "h-12 pl-10 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
                     errors.email && "ring-2 ring-destructive"
@@ -319,9 +436,16 @@ export default function Auth() {
               {errors.email && (
                 <p className="text-xs text-destructive">{errors.email}</p>
               )}
+              {mode === "forgot-password" && (
+                <p className="text-xs text-muted-foreground">
+                  Parol tiklash havolasini yuboramiz
+                </p>
+              )}
             </div>
+            )}
 
-            {/* Password field */}
+            {/* Password field - show for login, register, and reset-password */}
+            {(mode === "login" || mode === "register" || mode === "reset-password") && (
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium">
                 Parol
@@ -354,17 +478,61 @@ export default function Auth() {
               {errors.password && (
                 <p className="text-xs text-destructive">{errors.password}</p>
               )}
+              {mode === "reset-password" && (
+                <p className="text-xs text-muted-foreground">
+                  Kamida 6 ta belgidan iborat bo'lishi kerak
+                </p>
+              )}
             </div>
+            )}
 
             {/* Forgot password (login only) */}
             {mode === "login" && (
               <div className="text-right">
                 <button
                   type="button"
+                  onClick={goToForgotPassword}
                   className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Parolni unutdingizmi?
                 </button>
+              </div>
+            )}
+
+            {/* Confirm Password field (reset-password only) */}
+            {mode === "reset-password" && (
+              <div className="space-y-2 animate-fade-in">
+                <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                  Parolni tasdiqlang
+                </Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Parolni qayta kiriting"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    className={cn(
+                      "h-12 pl-10 pr-12 rounded-xl bg-muted border-0 focus-visible:ring-2 focus-visible:ring-primary",
+                      errors.confirmPassword && "ring-2 ring-destructive"
+                    )}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.confirmPassword && (
+                  <p className="text-xs text-destructive">{errors.confirmPassword}</p>
+                )}
               </div>
             )}
 
@@ -378,13 +546,32 @@ export default function Auth() {
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
               ) : mode === "login" ? (
                 "Kirish"
-              ) : (
+              ) : mode === "register" ? (
                 "Hisob yaratish"
+              ) : mode === "forgot-password" ? (
+                "Havola yuborish"
+              ) : (
+                "Parolni yangilash"
               )}
             </Button>
-          </form>
 
-          {/* Switch mode */}
+            {/* Back to login for forgot-password and reset-password */}
+            {(mode === "forgot-password" || mode === "reset-password") && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={goBackToLogin}
+                className="w-full h-10 text-muted-foreground"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Kirishga qaytish
+              </Button>
+            )}
+          </form>
+          )}
+
+          {/* Switch mode - only for login/register */}
+          {(mode === "login" || mode === "register") && (
           <p className="text-center text-sm text-muted-foreground">
             {mode === "login" ? (
               <>
@@ -410,6 +597,7 @@ export default function Auth() {
               </>
             )}
           </p>
+          )}
         </div>
       </main>
     </div>

@@ -87,7 +87,7 @@ export default function NotificationsAdmin() {
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                     placeholder="Xabar mavzusi..."
-                                    className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                    className="bg-zinc-50 dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                 />
                             </div>
 
@@ -97,7 +97,7 @@ export default function NotificationsAdmin() {
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
                                     placeholder="Xabarni shu yerga yozing..."
-                                    className="min-h-[120px] w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#3C50E0]/20"
+                                    className="min-h-[110px] md:min-h-[130px] w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-bold dark:bg-zinc-950 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#3C50E0]/20"
                                 />
                             </div>
 
@@ -174,7 +174,7 @@ export default function NotificationsAdmin() {
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
                                         className={cn(
-                                            "text-[10px] font-bold uppercase tracking-wider px-4 py-2 rounded-lg transition-all border",
+                                            "text-[10px] font-bold uppercase tracking-wider px-3 md:px-4 py-1.5 md:py-2 rounded-lg transition-all border",
                                             activeTab === tab
                                                 ? "bg-[#3C50E0] text-white border-[#3C50E0]"
                                                 : "text-zinc-500 border-transparent hover:bg-zinc-50"

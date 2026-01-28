@@ -10,6 +10,7 @@ interface NotificationState {
     fetchNotifications: () => Promise<void>;
     addNotification: (notification: Notification) => void;
     markAsRead: (id: string) => Promise<void>;
+    markAllAsRead: () => Promise<void>;
     subscribe: () => () => void;
 }
 
@@ -47,8 +48,8 @@ export const useNotificationStore = create<NotificationState>()(
                     const unreadCount = filtered.filter(n => !n.read_by.includes(user?.id || '')).length;
                     set({ notifications: filtered, unreadCount, isLoading: false });
                 } catch (error) {
-                    console.error('Failed to fetch notifications:', error);
-                    set({ isLoading: false });
+                    // Return empty array on error
+                    set({ notifications: [], unreadCount: 0, isLoading: false });
                 }
             },
 
@@ -73,7 +74,24 @@ export const useNotificationStore = create<NotificationState>()(
                     const unreadCount = newNotifications.filter(n => !n.read_by.includes(user?.id || '')).length;
                     set({ notifications: newNotifications, unreadCount });
                 } catch (error) {
-                    console.error('Failed to mark notification as read:', error);
+                    // Silently ignore mark as read errors
+                }
+            },
+
+            markAllAsRead: async () => {
+                try {
+                    await notificationService.markAllAsRead();
+                    const { notifications } = get();
+                    const { data: { user } } = await supabase.auth.getUser();
+
+                    const newNotifications = notifications.map(n => ({
+                        ...n,
+                        read_by: n.read_by?.includes(user?.id || '') ? n.read_by : [...(n.read_by || []), user?.id || '']
+                    }));
+
+                    set({ notifications: newNotifications, unreadCount: 0 });
+                } catch (error) {
+                    // Silently ignore mark all as read errors
                 }
             },
 

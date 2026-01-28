@@ -1,4 +1,4 @@
-import { Menu, Search, ShoppingCart, User, Bell, MapPin, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
+import { Menu, Search, ShoppingCart, User, Bell, Settings, LogOut, PlusSquare, ShieldCheck, Info, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -17,26 +17,21 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencySymbol } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCartStore } from "@/store/cartStore";
 import { socialService } from "@/services/api/social";
 import { productService } from "@/services/api/products";
 import { postService } from "@/services/api/posts";
 import { useQuery } from "@tanstack/react-query";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
 
 import { useSidebarStore } from "@/store/sidebarStore";
 
 export const Header = () => {
     const { user, isAuthenticated, logout } = useAuthStore();
-    const { notifications, unreadCount, fetchNotifications, markAsRead, subscribe } = useNotificationStore();
+    const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, subscribe, isLoading: notificationsLoading } = useNotificationStore();
+    const [notificationOpen, setNotificationOpen] = useState(false);
     const { toggleOpen, toggleCollapsed } = useSidebarStore();
     const { getItemCount } = useCartStore();
     const cartCount = getItemCount();
@@ -147,6 +142,8 @@ export const Header = () => {
                                 toggleOpen();
                             }
                         }}
+                        aria-label="Yon panelni ochish/yopish"
+                        aria-expanded={!useSidebarStore.getState().isCollapsed}
                     >
                         <Menu className="h-6 w-6" />
                     </Button>
@@ -160,7 +157,7 @@ export const Header = () => {
 
                 {/* Center Section: Search (Hidden on small mobile, visible on desktop) */}
                 <div className="hidden md:flex items-center flex-1 max-w-2xl mx-8 relative z-50">
-                    <form onSubmit={handleSearch} className="flex w-full items-center relative">
+                    <form onSubmit={handleSearch} className="flex w-full items-center relative" role="search" aria-label="Qidiruv">
                         <div className="relative w-full">
                             <Input
                                 type="search"
@@ -174,11 +171,15 @@ export const Header = () => {
                                 // We wait a bit before closing to allow clicking on results
                                 onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
                                 className="w-full rounded-l-full rounded-r-none border-r-0 focus-visible:ring-0 pl-4 bg-muted/40 focus:bg-background transition-colors"
+                                aria-label="Qidiruv maydoni"
+                                aria-expanded={searchOpen}
+                                aria-controls="search-results"
                             />
                         </div>
                         <Button
                             type="submit"
                             className="rounded-l-none rounded-r-full bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-l-0 px-6 shrink-0"
+                            aria-label="Qidiruvni boshlash"
                         >
                             <Search className="h-5 w-5" />
                         </Button>
@@ -271,7 +272,7 @@ export const Header = () => {
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-bold truncate">{product.title}</p>
-                                                            <p className="text-xs text-primary font-bold">{product.price.toLocaleString()} so'm</p>
+                                                            <p className="text-xs text-primary font-bold">{product.price.toLocaleString()} {formatCurrencySymbol(product.currency || "UZS")}</p>
                                                         </div>
                                                     </button>
                                                 ))}
@@ -288,7 +289,7 @@ export const Header = () => {
                                                         onClick={() => handleUserClick(userResult.id)}
                                                         className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors text-left"
                                                     >
-                                                        <Avatar className="h-10 w-10">
+                                                        <Avatar size="md" showStatus={true} isOnline={true}>
                                                             <AvatarImage src={userResult.avatarUrl} />
                                                             <AvatarFallback>
                                                                 {userResult.fullName?.charAt(0) || userResult.username?.charAt(0) || "U"}
@@ -339,6 +340,130 @@ export const Header = () => {
 
                     <ThemeToggle />
 
+                    {/* Notifications Bell Icon */}
+                    {isAuthenticated && (
+                        <DropdownMenu open={notificationOpen} onOpenChange={setNotificationOpen}>
+                            <DropdownMenuTrigger asChild>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="relative rounded-full hover:bg-muted transition-all hover:scale-105"
+                                >
+                                    <Bell className={cn(
+                                        "h-5 w-5 transition-all",
+                                        unreadCount > 0 && "animate-pulse"
+                                    )} />
+                                    {unreadCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background animate-bounce">
+                                            {unreadCount > 9 ? "9+" : unreadCount}
+                                        </span>
+                                    )}
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent 
+                                align="end" 
+                                className="w-80 md:w-96 max-h-[500px] overflow-y-auto p-0 bg-background border shadow-xl rounded-xl"
+                            >
+                                <div className="sticky top-0 bg-background border-b p-4 z-10 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <DropdownMenuLabel className="text-lg font-black text-foreground px-0">
+                                            Bildirishnomalar
+                                        </DropdownMenuLabel>
+                                        {unreadCount > 0 && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    await markAllAsRead();
+                                                }}
+                                                className="text-xs font-bold h-7 px-2 text-primary hover:text-primary/80"
+                                            >
+                                                Barchasini o'qildi deb belgilash
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                <div className="divide-y divide-border">
+                                    {notificationsLoading ? (
+                                        <div className="p-8 flex flex-col items-center gap-3">
+                                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                            <p className="text-sm text-muted-foreground font-medium">Yuklanmoqda...</p>
+                                        </div>
+                                    ) : notifications.length === 0 ? (
+                                        <div className="p-12 flex flex-col items-center gap-3 text-center">
+                                            <Bell className="h-12 w-12 text-muted-foreground/30" />
+                                            <p className="text-sm font-bold text-muted-foreground">Bildirishnomalar yo'q</p>
+                                            <p className="text-xs text-muted-foreground/70">Yangi xabarlar shu yerda ko'rinadi</p>
+                                        </div>
+                                    ) : (
+                                        notifications.map((notification) => {
+                                            const isUnread = !notification.read_by?.includes(user?.id || '');
+                                            const getTypeIcon = () => {
+                                                switch (notification.type) {
+                                                    case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
+                                                    case 'warning': return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+                                                    case 'error': return <X className="h-5 w-5 text-red-500" />;
+                                                    default: return <Info className="h-5 w-5 text-blue-500" />;
+                                                }
+                                            };
+                                            const getTypeStyles = () => {
+                                                switch (notification.type) {
+                                                    case 'success': return "bg-green-50 dark:bg-green-950/20 text-green-500 border-green-100 dark:border-green-900";
+                                                    case 'warning': return "bg-amber-50 dark:bg-amber-950/20 text-amber-500 border-amber-100 dark:border-amber-900";
+                                                    case 'error': return "bg-red-50 dark:bg-red-950/20 text-red-500 border-red-100 dark:border-red-900";
+                                                    default: return "bg-blue-50 dark:bg-blue-950/20 text-blue-500 border-blue-100 dark:border-blue-900";
+                                                }
+                                            };
+
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={notification.id}
+                                                    onClick={async () => {
+                                                        if (isUnread) {
+                                                            await markAsRead(notification.id);
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "p-4 cursor-pointer rounded-none border-l-4 border-transparent transition-all",
+                                                        isUnread && "bg-muted/50 border-l-primary",
+                                                        "hover:bg-muted focus:bg-muted"
+                                                    )}
+                                                >
+                                                    <div className="flex items-start gap-3 w-full">
+                                                        <div className={cn(
+                                                            "h-10 w-10 shrink-0 rounded-full flex items-center justify-center border-2 shadow-sm",
+                                                            getTypeStyles()
+                                                        )}>
+                                                            {getTypeIcon()}
+                                                        </div>
+                                                        <div className="flex-1 min-w-0 space-y-1">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <h5 className="text-sm font-black text-foreground leading-tight">
+                                                                    {notification.title}
+                                                                </h5>
+                                                                {isUnread && (
+                                                                    <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs font-medium text-muted-foreground leading-relaxed line-clamp-2">
+                                                                {notification.message}
+                                                            </p>
+                                                            <span className="text-[10px] font-bold text-muted-foreground/70">
+                                                                {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: uz })}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+
                     {/* Mobile Cart Icon */}
                     {isMobile && isAuthenticated && (
                         <Link to="/cart">
@@ -352,71 +477,6 @@ export const Header = () => {
                             </Button>
                         </Link>
                     )}
-
-                    {isAuthenticated && (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="relative rounded-full">
-                                    <Bell className="h-5 w-5" />
-                                    {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
-                                            {unreadCount > 9 ? "9+" : unreadCount}
-                                        </span>
-                                    )}
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-80 max-h-[500px] overflow-y-auto">
-                                <DropdownMenuLabel className="flex items-center justify-between">
-                                    <span>Bildirishnomalar</span>
-                                    {unreadCount > 0 && (
-                                        <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full uppercase font-black">
-                                            {unreadCount} yangi
-                                        </span>
-                                    )}
-                                </DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                {notifications.length === 0 ? (
-                                    <div className="p-8 text-center text-zinc-500">
-                                        <Bell className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                                        <p className="text-xs font-bold uppercase tracking-widest">Hozircha xabarlar yo'q</p>
-                                    </div>
-                                ) : (
-                                    notifications.slice(0, 10).map((n) => (
-                                        <DropdownMenuItem
-                                            key={n.id}
-                                            className={cn(
-                                                "p-4 flex flex-col items-start gap-1 cursor-pointer focus:bg-zinc-50 dark:focus:bg-zinc-800/50",
-                                                !n.read_by.includes(user?.id || '') && "bg-blue-50/30 dark:bg-primary/5"
-                                            )}
-                                            onClick={() => markAsRead(n.id)}
-                                        >
-                                            <div className="flex items-center gap-2 w-full">
-                                                <div className={cn(
-                                                    "h-2 w-2 rounded-full shrink-0",
-                                                    n.type === 'info' && "bg-blue-500",
-                                                    n.type === 'success' && "bg-green-500",
-                                                    n.type === 'warning' && "bg-orange-500",
-                                                    n.type === 'error' && "bg-red-500",
-                                                )} />
-                                                <span className="text-xs font-black uppercase tracking-tight truncate flex-1">{n.title}</span>
-                                                <span className="text-[9px] font-bold text-zinc-400 whitespace-nowrap">
-                                                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: uz })}
-                                                </span>
-                                            </div>
-                                            <p className="text-[11px] font-medium text-zinc-500 line-clamp-2 pl-4">
-                                                {n.message}
-                                            </p>
-                                        </DropdownMenuItem>
-                                    ))
-                                )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="justify-center text-xs font-black uppercase tracking-widest text-primary cursor-pointer py-3">
-                                    Barchasini ko'rish
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )}
-
 
                     <Link to="/upload" className="hidden md:block">
                         <Button className="rounded-full gap-2 px-6">
@@ -500,23 +560,3 @@ export const Header = () => {
         </header>
     );
 };
-
-function Mic2(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="m12 8-9.04 9.06a2.82 2.82 0 1 0 3.98 3.98L16 12" />
-            <circle cx="17" cy="7" r="5" />
-        </svg>
-    )
-}

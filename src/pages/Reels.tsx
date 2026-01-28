@@ -60,14 +60,16 @@ export default function Reels() {
     const activeReelId = reels[activeIndex]?.id;
     if (activeReelId) {
       const timer = setTimeout(() => {
-        productService.incrementViews(activeReelId).catch(console.error);
+        productService.incrementViews(activeReelId).catch(() => {
+          // Silently ignore view increment errors
+        });
       }, 2500); // Only count view if user watches for 2.5 seconds
       return () => clearTimeout(timer);
     }
   }, [activeIndex, reels]);
 
   const handleLike = (id: string) => {
-    console.log("Liked:", id);
+    // Like action handled by ReelCard component
   };
 
   if (isLoading) {
@@ -131,6 +133,8 @@ export default function Reels() {
                     src={reel.thumbnailUrl}
                     alt={reel.product.title}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded textxs text-white font-medium">Reels</div>
                 </div>
@@ -174,7 +178,10 @@ export default function Reels() {
     >
       <div
         ref={containerRef}
-        className="h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none flex flex-col items-center"
+        className={cn(
+          "h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none",
+          isMobile ? "flex flex-col items-center" : "flex flex-col"
+        )}
         style={{
           scrollSnapType: 'y mandatory',
           scrollBehavior: 'smooth',
@@ -184,14 +191,23 @@ export default function Reels() {
         {reels.map((reel, index) => (
           <div
             key={reel.id}
-            className="w-full snap-start snap-always shrink-0 flex items-center justify-center relative md:border-none"
+            className={cn(
+              "w-full snap-start snap-always shrink-0 relative",
+              isMobile ? "flex items-center justify-center" : "flex items-center justify-center"
+            )}
             style={{
               height: '100%',
+              minHeight: '100%',
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always'
             }}
           >
-            <div className="h-full w-full md:h-full md:aspect-[9/16] md:w-auto md:my-auto relative md:rounded-[32px] overflow-hidden md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto bg-black">
+            <div className={cn(
+              "h-full relative bg-black",
+              isMobile 
+                ? "w-full md:h-full md:aspect-[9/16] md:w-auto md:my-auto md:rounded-[32px] md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto overflow-hidden"
+                : "w-full max-w-7xl mx-auto flex items-center"
+            )}>
               <ReelCard
                 reel={reel}
                 isActive={index === activeIndex}

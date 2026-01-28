@@ -40,9 +40,9 @@ const CommentItem = ({
     return (
         <div className="space-y-3">
             <div className="flex gap-3 group">
-                <Avatar className="h-8 w-8 shrink-0 border border-border/50">
+                <Avatar size="sm" className="shrink-0">
                     <AvatarImage src={comment.author?.avatar_url || comment.author?.avatarUrl} />
-                    <AvatarFallback className="bg-muted text-[10px] font-bold">
+                    <AvatarFallback>
                         {comment.author?.full_name?.charAt(0) || comment.author?.fullName?.charAt(0) || "?"}
                     </AvatarFallback>
                 </Avatar>
@@ -311,9 +311,9 @@ export function PostComments({ postId }: PostCommentsProps) {
             {/* Fixed Main Add Comment Form at Bottom (Instagram Style) */}
             <div className="shrink-0 bg-background border-t border-border pt-4 pb-8 md:pb-4 px-0">
                 <div className="flex items-center gap-3 bg-muted/50 rounded-full px-4 py-2 border border-border focus-within:border-primary/20">
-                    <Avatar className="h-8 w-8 shrink-0 border border-border/50">
+                    <Avatar size="sm" className="shrink-0">
                         <AvatarImage src={user?.avatarUrl} />
-                        <AvatarFallback className="bg-muted text-[10px] font-bold">
+                        <AvatarFallback>
                             {user?.name?.charAt(0) || "?"}
                         </AvatarFallback>
                     </Avatar>

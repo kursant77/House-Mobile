@@ -27,35 +27,42 @@ const RecommendedPosts = ({ otherPosts }: { otherPosts: PublicPost[] }) => (
             <Link
                 key={p.id}
                 to={`/post/${p.id}`}
-                className="flex gap-3 group cursor-pointer"
+                className="flex flex-col md:flex-row gap-3 group cursor-pointer"
+                role="article"
+                aria-label={`${p.content || 'Post'} ni ko'rish`}
             >
-                <div className="relative aspect-video w-[40%] md:w-[168px] shrink-0 bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden ring-1 ring-border/50">
+                {/* Thumbnail - Full width on mobile, fixed width on desktop */}
+                <div className="relative aspect-video w-full md:w-[168px] md:shrink-0 bg-zinc-100 dark:bg-zinc-900 rounded-lg overflow-hidden ring-1 ring-border/50">
                     {p.mediaUrl ? (
                         p.mediaType === 'video' ? (
                             <video
                                 src={p.mediaUrl}
                                 className="w-full h-full object-cover"
                                 preload="metadata"
+                                aria-hidden="true"
                             />
                         ) : (
                             <img
                                 src={p.mediaUrl}
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                                alt=""
+                                alt={p.content || "Post media"}
+                                loading="lazy"
+                                decoding="async"
                             />
                         )
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="w-full h-full flex items-center justify-center" aria-hidden="true">
                             <Play className="h-6 w-6 text-zinc-300" />
                         </div>
                     )}
                     {p.mediaType === 'video' && (
-                        <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] text-white px-1 rounded font-bold">
+                        <div className="absolute bottom-1 right-1 bg-black/80 text-[10px] text-white px-1 rounded font-bold" aria-label="Video davomiyligi">
                             0:06
                         </div>
                     )}
                 </div>
-                <div className="flex-1 flex flex-col gap-1 min-w-0 pt-0.5">
+                {/* Content - Below thumbnail on mobile, beside on desktop */}
+                <div className="flex-1 flex flex-col gap-1 min-w-0 pt-0 md:pt-0.5">
                     <h4 className="text-[14px] font-bold leading-tight line-clamp-2 group-hover:text-primary transition-colors text-foreground">
                         {p.content}
                     </h4>
@@ -66,7 +73,7 @@ const RecommendedPosts = ({ otherPosts }: { otherPosts: PublicPost[] }) => (
                         </span>
                         <div className="flex items-center gap-1 font-medium">
                             <span>{p.views.toLocaleString()} marta ko'rilgan</span>
-                            <span className="text-[8px] opacity-50">•</span>
+                            <span className="text-[8px] opacity-50" aria-hidden="true">•</span>
                             <span>{new Date(p.created_at).toLocaleDateString()}</span>
                         </div>
                     </div>
@@ -140,6 +147,53 @@ export default function PostDetail() {
             return () => clearTimeout(timer);
         }
     }, [id, user]);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-background pb-20 md:pb-0">
+                <BottomNav />
+                <div className="max-w-4xl mx-auto px-4 py-8">
+                    <div className="space-y-6">
+                        {/* Header skeleton */}
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+                            <div className="flex-1 space-y-2">
+                                <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                                <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                            </div>
+                        </div>
+                        {/* Media skeleton */}
+                        <div className="aspect-video w-full rounded-xl bg-muted animate-pulse" />
+                        {/* Content skeleton */}
+                        <div className="space-y-3">
+                            <div className="h-6 w-full bg-muted animate-pulse rounded" />
+                            <div className="h-6 w-3/4 bg-muted animate-pulse rounded" />
+                            <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                            <div className="h-4 w-5/6 bg-muted animate-pulse rounded" />
+                        </div>
+                        {/* Actions skeleton */}
+                        <div className="flex items-center gap-4">
+                            <div className="h-10 w-20 bg-muted animate-pulse rounded" />
+                            <div className="h-10 w-20 bg-muted animate-pulse rounded" />
+                            <div className="h-10 w-20 bg-muted animate-pulse rounded" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (!post) {
+        return (
+            <div className="min-h-screen bg-background pb-20 md:pb-0 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <h2 className="text-2xl font-bold">Post topilmadi</h2>
+                    <p className="text-muted-foreground">Bu post mavjud emas yoki o'chirilgan</p>
+                    <Button onClick={() => navigate("/")}>Bosh sahifaga qaytish</Button>
+                </div>
+            </div>
+        );
+    }
 
     const handleLike = async () => {
         if (!id || !user) return;
@@ -532,6 +586,7 @@ export default function PostDetail() {
                                             ? "bg-foreground text-background"
                                             : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"
                                     )}
+                                    aria-label={`${tag} kategoriyasi`}
                                 >
                                     {tag}
                                 </button>

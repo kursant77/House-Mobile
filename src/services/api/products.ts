@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { Product, ReelItem } from "@/types/product";
+import { SupabaseProductWithRelations, SupabaseProductMedia } from "@/types/api";
+import { handleError, getErrorMessage } from "@/lib/errorHandler";
+import { imageFileSchema, videoFileSchema } from "@/lib/validation";
+import { sanitizeFilename } from "@/lib/sanitize";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
+import { mapSupabaseProductsToProducts, mapSupabaseProductToProduct } from "@/lib/productMapper";
 
 export const productService = {
     /**
@@ -15,29 +21,12 @@ export const productService = {
             `)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            const appError = handleError(error, 'getProducts');
+            throw new Error(appError.message);
+        }
 
-        return data.map((p: any) => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            currency: p.currency,
-            category: p.category,
-            inStock: p.in_stock,
-            rating: p.rating,
-            reviewCount: p.review_count,
-            sellerId: p.seller_id,
-            views: p.views || 0,
-            author: p.profiles ? {
-                id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
-                role: p.profiles.role // Ensure role is available
-            } : undefined,
-            images: p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-            videoUrl: p.product_media.find((m: any) => m.type === 'video')?.url,
-        }));
+        return mapSupabaseProductsToProducts(data as SupabaseProductWithRelations[]);
     },
 
     /**
@@ -54,29 +43,16 @@ export const productService = {
             .in('profiles.role', ['admin', 'super_admin'])
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            const appError = handleError(error, 'getProducts');
+            throw new Error(appError.message);
+        }
 
-        return data.map((p: any) => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            currency: p.currency,
-            category: p.category,
-            inStock: p.in_stock,
-            rating: p.rating,
-            reviewCount: p.review_count,
-            sellerId: p.seller_id,
-            views: p.views || 0,
-            author: p.profiles ? {
-                id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
-                role: p.profiles.role
-            } : undefined,
-            images: p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-            videoUrl: p.product_media.find((m: any) => m.type === 'video')?.url,
-        }));
+        if (!data) {
+            return [];
+        }
+
+        return mapSupabaseProductsToProducts(data as SupabaseProductWithRelations[]);
     },
 
     /**
@@ -93,28 +69,16 @@ export const productService = {
             .eq('seller_id', userId)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            const appError = handleError(error, 'getProducts');
+            throw new Error(appError.message);
+        }
 
-        return data.map((p: any) => ({
-            id: p.id,
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            currency: p.currency,
-            category: p.category,
-            inStock: p.in_stock,
-            rating: p.rating,
-            reviewCount: p.review_count,
-            sellerId: p.seller_id,
-            views: p.views || 0,
-            author: p.profiles ? {
-                id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
-            } : undefined,
-            images: p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-            videoUrl: p.product_media.find((m: any) => m.type === 'video')?.url,
-        }));
+        if (!data) {
+            return [];
+        }
+
+        return mapSupabaseProductsToProducts(data as SupabaseProductWithRelations[]);
     },
 
     /**
@@ -131,28 +95,12 @@ export const productService = {
             .eq('id', id)
             .single();
 
-        if (error) return null;
+        if (error) {
+            handleError(error, 'getProductById');
+            return null;
+        }
 
-        return {
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            price: data.price,
-            currency: data.currency,
-            category: data.category,
-            inStock: data.in_stock,
-            rating: data.rating,
-            reviewCount: data.review_count,
-            sellerId: data.seller_id,
-            views: data.views || 0,
-            author: data.profiles ? {
-                id: data.profiles.id,
-                fullName: data.profiles.full_name,
-                avatarUrl: data.profiles.avatar_url,
-            } : undefined,
-            images: data.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-            videoUrl: data.product_media.find((m: any) => m.type === 'video')?.url,
-        };
+        return mapSupabaseProductToProduct(data as SupabaseProductWithRelations);
     },
 
     /**
@@ -173,7 +121,10 @@ export const productService = {
             .eq('product_media.type', 'video')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            const appError = handleError(error, 'getProducts');
+            throw new Error(appError.message);
+        }
 
         // 2. Fetch user's view history if logged in
         let viewedReelIds = new Set<string>();
@@ -189,87 +140,210 @@ export const productService = {
             }
         }
 
-        // 3. Map and sort reels
-        const reels = await Promise.all(
-            data.filter((p: any) => p.product_media.some((m: any) => m.type === 'video'))
-                .map(async (p: any) => {
-                    const videoMedia = p.product_media.find((m: any) => m.type === 'video');
-                    const images = p.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url);
-                    const author = p.profiles ? {
-                        id: p.profiles.id,
-                        fullName: p.profiles.full_name,
-                        avatarUrl: p.profiles.avatar_url,
-                    } : undefined;
+        // 3. Optimize: Batch fetch all likes and comments counts
+        const productIds = (data as SupabaseProductWithRelations[])
+            .filter((p) => {
+                const media = Array.isArray(p.product_media) ? p.product_media : (p.product_media ? [p.product_media] : []);
+                return media.some((m: SupabaseProductMedia) => m.type === 'video');
+            })
+            .map(p => p.id);
 
-                    // Fetch real counts
-                    const [likes, comments, userLike] = await Promise.all([
-                        supabase.from('product_likes').select('*', { count: 'exact', head: true }).eq('product_id', p.id),
-                        supabase.from('product_comments').select('*', { count: 'exact', head: true }).eq('product_id', p.id).is('parent_comment_id', null),
-                        userId ? supabase.from('product_likes').select('*').eq('user_id', userId).eq('product_id', p.id).maybeSingle() : Promise.resolve({ data: null }),
-                    ]);
+        // Batch fetch likes counts for all products
+        const { data: allLikes } = await supabase
+            .from('product_likes')
+            .select('product_id')
+            .in('product_id', productIds);
 
-                    return {
-                        id: `reel-${p.id}`,
+        // Batch fetch comment counts for all products
+        const { data: allComments } = await supabase
+            .from('product_comments')
+            .select('product_id')
+            .in('product_id', productIds)
+            .is('parent_comment_id', null);
+
+        // Batch fetch user likes if logged in
+        const { data: userLikes } = userId
+            ? await supabase
+                .from('product_likes')
+                .select('product_id')
+                .eq('user_id', userId)
+                .in('product_id', productIds)
+            : { data: null };
+
+        // Count likes and comments per product
+        const likesCounts = new Map<string, number>();
+        const commentCounts = new Map<string, number>();
+        const userLikedProducts = new Set<string>();
+
+        allLikes?.forEach(like => {
+            likesCounts.set(like.product_id, (likesCounts.get(like.product_id) || 0) + 1);
+        });
+
+        allComments?.forEach(comment => {
+            commentCounts.set(comment.product_id, (commentCounts.get(comment.product_id) || 0) + 1);
+        });
+
+        userLikes?.forEach(like => {
+            userLikedProducts.add(like.product_id);
+        });
+
+        // 4. Map reels with pre-fetched data
+        const reels: ReelItem[] = (data as SupabaseProductWithRelations[])
+            .filter((p) => {
+                const media = Array.isArray(p.product_media) ? p.product_media : (p.product_media ? [p.product_media] : []);
+                return media.some((m: SupabaseProductMedia) => m.type === 'video');
+            })
+            .map((p) => {
+                const media = Array.isArray(p.product_media) ? p.product_media : (p.product_media ? [p.product_media] : []);
+                const videoMedia = media.find((m: SupabaseProductMedia) => m.type === 'video');
+                if (!videoMedia) return null;
+                
+                const images = media
+                    .filter((m: SupabaseProductMedia) => m.type === 'image')
+                    .map((m: SupabaseProductMedia) => m.url);
+                
+                const author: ReelItem['author'] = p.profiles ? {
+                    id: p.profiles.id,
+                    fullName: p.profiles.full_name ?? undefined,
+                    avatarUrl: p.profiles.avatar_url ?? undefined,
+                } : undefined;
+
+                const reelItem: ReelItem = {
+                    id: `reel-${p.id}`,
+                    videoUrl: videoMedia.url,
+                    thumbnailUrl: videoMedia.thumbnail_url || images[0],
+                    author,
+                    product: {
+                        id: p.id,
+                        title: p.title,
+                        description: p.description,
+                        price: p.price,
+                        currency: p.currency,
+                        category: p.category,
+                        inStock: p.in_stock,
+                        rating: p.rating ?? undefined,
+                        reviewCount: p.review_count ?? undefined,
+                        sellerId: p.seller_id,
+                        images,
                         videoUrl: videoMedia.url,
-                        thumbnailUrl: videoMedia.thumbnail_url || images[0],
                         author,
-                        product: {
-                            id: p.id,
-                            title: p.title,
-                            description: p.description,
-                            price: p.price,
-                            currency: p.currency,
-                            category: p.category,
-                            inStock: p.in_stock,
-                            rating: p.rating,
-                            reviewCount: p.review_count,
-                            sellerId: p.seller_id,
-                            images,
-                            videoUrl: videoMedia.url,
-                            author,
-                            commentCount: comments.count || 0,
-                        },
-                        likes: likes.count || 0,
-                        commentCount: comments.count || 0,
-                        isLiked: !!userLike.data,
-                        isFavorite: false,
-                        isViewed: viewedReelIds.has(p.id)
-                    };
-                })
-        );
+                        views: p.views ?? 0,
+                    },
+                    likes: likesCounts.get(p.id) || 0,
+                    commentCount: commentCounts.get(p.id) || 0,
+                    isLiked: userLikedProducts.has(p.id),
+                    isFavorite: false,
+                    isViewed: viewedReelIds.has(p.id)
+                };
+
+                return reelItem;
+            })
+            .filter((reel): reel is ReelItem => reel !== null);
 
         // Sort: Unviewed first (already sorted by date), then viewed
         return reels.sort((a, b) => {
-            if (a.isViewed === b.isViewed) return 0;
-            return a.isViewed ? 1 : -1;
+            const aViewed = a.isViewed ?? false;
+            const bViewed = b.isViewed ?? false;
+            if (aViewed === bViewed) return 0;
+            return aViewed ? 1 : -1;
         });
     },
 
     /**
-     * Upload media to Supabase Storage with progress
+     * Upload media to Supabase Storage with progress and validation
      */
-    uploadMedia: async (file: File, bucket: string = 'product-media', onProgress?: (progress: number) => void): Promise<string> => {
-        const fileExt = file.name.split('.').pop();
+    uploadMedia: async (file: File, bucket: string = 'product-media', onProgress?: (progress: number) => void, skipSizeValidation: boolean = false): Promise<string> => {
+        // Rate limiting for file uploads
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || 'anonymous';
+        checkRateLimit(`upload:${userId}`, RATE_LIMITS.FILE_UPLOAD);
+
+        // Supabase storage limit check
+        const SUPABASE_STORAGE_LIMIT = 50 * 1024 * 1024; // 50MB
+        
+        // Validate file type and size
+        const isImage = file.type.startsWith('image/');
+        const isVideo = file.type.startsWith('video/');
+        
+        if (isImage) {
+            const imageValidation = imageFileSchema.safeParse(file);
+            if (!imageValidation.success) {
+                throw new Error(imageValidation.error.errors[0]?.message || 'Rasm fayli noto\'g\'ri');
+            }
+        } else if (isVideo) {
+            // Check Supabase storage limit first (even for news videos)
+            if (file.size > SUPABASE_STORAGE_LIMIT) {
+                const sizeInMB = (file.size / 1024 / 1024).toFixed(2);
+                const limitInMB = (SUPABASE_STORAGE_LIMIT / 1024 / 1024).toFixed(0);
+                throw new Error(
+                    `Fayl hajmi ${sizeInMB}MB, lekin maksimal ruxsat etilgan hajm ${limitInMB}MB. ` +
+                    `Iltimos, videoni siqish yoki kichikroq fayl tanlang.`
+                );
+            }
+            
+            // Skip size validation if requested (for news uploads, but still check Supabase limit)
+            if (!skipSizeValidation) {
+                const videoValidation = videoFileSchema.safeParse(file);
+                if (!videoValidation.success) {
+                    throw new Error(videoValidation.error.errors[0]?.message || 'Video fayli noto\'g\'ri');
+                }
+            } else {
+                // Only validate file type, not size (but Supabase limit still applies)
+                if (!file.type.startsWith('video/')) {
+                    throw new Error('Fayl video formatida bo\'lishi kerak');
+                }
+            }
+        } else {
+            throw new Error('Faqat rasm yoki video fayllar qabul qilinadi');
+        }
+
+        // Sanitize filename
+        const sanitizedOriginalName = sanitizeFilename(file.name);
+        const fileExt = sanitizedOriginalName.split('.').pop() || 'bin';
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(2, 10);
-        const fileName = `${timestamp}-${randomString}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const sanitizedFileName = `${timestamp}-${randomString}.${fileExt}`;
+        const filePath = sanitizedFileName;
+
+        // Upload with progress tracking
+        if (onProgress) {
+            onProgress(10); // Start
+        }
 
         const { error: uploadError } = await supabase.storage
             .from(bucket)
             .upload(filePath, file, {
                 cacheControl: '3600',
                 upsert: false,
-                // Specify duplex for large files if needed, but standard upload handles it
             });
 
-        if (uploadError) throw uploadError;
+        if (onProgress) {
+            onProgress(90); // Almost done
+        }
 
-        // Since standard upload doesn't always provide progress easily in all environments, 
-        // we'll use a listener if we used resumable, but for now we'll return URL.
+        if (uploadError) {
+            // Check for specific error types
+            if (uploadError.message.includes('exceeded') || uploadError.message.includes('maximum') || uploadError.message.includes('size')) {
+                const sizeInMB = (file.size / 1024 / 1024).toFixed(2);
+                throw new Error(
+                    `Fayl juda katta (${sizeInMB}MB). Supabase storage limiti: 50MB. ` +
+                    `Iltimos, faylni siqish yoki kichikroq fayl tanlang.`
+                );
+            }
+            throw new Error(`Fayl yuklashda xatolik: ${uploadError.message}`);
+        }
+
         const { data } = supabase.storage
             .from(bucket)
             .getPublicUrl(filePath);
+
+        if (!data?.publicUrl) {
+            throw new Error(getErrorMessage(new Error('Fayl URL olishda xatolik')));
+        }
+
+        if (onProgress) {
+            onProgress(100); // Complete
+        }
 
         return data.publicUrl;
     },
@@ -282,11 +356,16 @@ export const productService = {
         media: { file: File, type: 'image' | 'video' }[],
         onProgress?: (percent: number) => void
     ) => {
+        // Rate limiting for product creation
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || 'anonymous';
+        checkRateLimit(`create-product:${userId}`, RATE_LIMITS.FORM_SUBMIT);
+
         // 1. Insert product
         const { data: productData, error: productError } = await supabase
             .from('products')
             .insert([{
-                seller_id: (product as any).sellerId || (product as any).seller_id,
+                seller_id: product.sellerId,
                 title: product.title,
                 description: product.description,
                 price: product.price,
@@ -338,14 +417,30 @@ export const productService = {
             .delete()
             .eq('id', productId);
 
-        if (error) throw error;
+        if (error) {
+            const appError = handleError(error, 'deleteProduct');
+            throw new Error(appError.message);
+        }
     },
 
     /**
      * Update an existing product
      */
-    updateProduct: async (productId: string, updates: Partial<Product>): Promise<void> => {
-        const { error } = await supabase
+    updateProduct: async (
+        productId: string, 
+        updates: Partial<Product>,
+        media?: { file: File, type: 'image' | 'video' }[],
+        onProgress?: (percent: number) => void
+    ): Promise<void> => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:408',message:'updateProduct service called',data:{productId,updates:{title:updates.title,price:updates.price,currency:updates.currency},hasMedia:!!media,mediaCount:media?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
+        // 1. Update product basic info
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:421',message:'Before supabase update',data:{productId,updateData:{title:updates.title,price:updates.price,currency:updates.currency}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        const { data: updatedData, error } = await supabase
             .from('products')
             .update({
                 title: updates.title,
@@ -355,9 +450,88 @@ export const productService = {
                 currency: updates.currency,
                 in_stock: updates.inStock,
             })
-            .eq('id', productId);
+            .eq('id', productId)
+            .select();
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:433',message:'After supabase update',data:{error:error?.message,errorCode:error?.code,errorDetails:error?.details,hasData:!!updatedData,productId,updatedTitle:updatedData?.[0]?.title},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        if (error) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:436',message:'updateProduct error thrown',data:{error:error.message,errorCode:error.code,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
+            const appError = handleError(error, 'updateProduct');
+            throw new Error(appError.message);
+        }
 
-        if (error) throw error;
+        // 2. Handle media updates if provided
+        if (media && media.length > 0) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:440',message:'Starting media update',data:{productId,mediaCount:media.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+            // Get existing media
+            const { data: existingMedia } = await supabase
+                .from('product_media')
+                .select('*')
+                .eq('product_id', productId);
+
+            // Delete all existing media
+            if (existingMedia && existingMedia.length > 0) {
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:449',message:'Deleting existing media',data:{productId,existingMediaCount:existingMedia.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                const { error: deleteError } = await supabase
+                    .from('product_media')
+                    .delete()
+                    .eq('product_id', productId);
+                
+                if (deleteError) {
+                    // #region agent log
+                    fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:454',message:'Delete media error',data:{error:deleteError.message,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                    // #endregion
+                    const appError = handleError(deleteError, 'updateProduct.deleteMedia');
+                    throw new Error(appError.message);
+                }
+            }
+
+            // Upload new media
+            const totalFiles = media.length;
+            let uploadedFiles = 0;
+
+            const mediaInserts = await Promise.all(
+                media.map(async (m, index) => {
+                    const url = await productService.uploadMedia(m.file);
+                    uploadedFiles++;
+                    if (onProgress) {
+                        onProgress(Math.round((uploadedFiles / totalFiles) * 100));
+                    }
+                    return {
+                        product_id: productId,
+                        type: m.type,
+                        url,
+                        order_index: index,
+                    };
+                })
+            );
+
+            // Insert new media records
+            const { error: mediaError } = await supabase
+                .from('product_media')
+                .insert(mediaInserts);
+
+            if (mediaError) {
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:486',message:'Insert media error',data:{error:mediaError.message,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                const appError = handleError(mediaError, 'updateProduct.insertMedia');
+                throw new Error(appError.message);
+            }
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:489',message:'Media update completed',data:{productId,mediaCount:mediaInserts.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
+        }
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:492',message:'updateProduct completed successfully',data:{productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
     },
 
     /**
@@ -377,10 +551,271 @@ export const productService = {
 
             await supabase
                 .from('products')
-                .update({ views: (p?.views || 0) + 1 })
+                .update({ views: (p?.views ?? 0) + 1 })
                 .eq('id', realId);
         } catch (err) {
             // Silently ignore
         }
-    }
+    },
+
+    // ==================== PRODUCT REVIEWS ====================
+
+    /**
+     * Get reviews for a product
+     */
+    getReviews: async (productId: string): Promise<ProductReview[]> => {
+        const { data, error } = await supabase
+            .from('product_reviews')
+            .select(`
+                *,
+                profiles!user_id(id, full_name, avatar_url)
+            `)
+            .eq('product_id', productId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            handleError(error, 'getReviews');
+            return [];
+        }
+
+        return (data || []).map(review => ({
+            id: review.id,
+            productId: review.product_id,
+            userId: review.user_id,
+            rating: review.rating,
+            comment: review.comment,
+            createdAt: review.created_at,
+            updatedAt: review.updated_at,
+            user: review.profiles ? {
+                id: review.profiles.id,
+                fullName: review.profiles.full_name,
+                avatarUrl: review.profiles.avatar_url,
+            } : undefined,
+        }));
+    },
+
+    /**
+     * Add a review for a product
+     */
+    addReview: async (productId: string, rating: number, comment: string): Promise<ProductReview> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            throw new Error("Sharh qoldirish uchun tizimga kiring");
+        }
+
+        checkRateLimit(`review:${user.id}`, RATE_LIMITS.FORM_SUBMIT);
+
+        // Check if user already reviewed this product
+        const { data: existing } = await supabase
+            .from('product_reviews')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (existing) {
+            throw new Error("Siz bu mahsulotga allaqachon sharh qoldirgansiz");
+        }
+
+        const { data, error } = await supabase
+            .from('product_reviews')
+            .insert([{
+                product_id: productId,
+                user_id: user.id,
+                rating,
+                comment,
+            }])
+            .select(`
+                *,
+                profiles!user_id(id, full_name, avatar_url)
+            `)
+            .single();
+
+        if (error) {
+            const appError = handleError(error, 'addReview');
+            throw new Error(appError.message);
+        }
+
+        // Update product average rating
+        await productService.updateProductRating(productId);
+
+        return {
+            id: data.id,
+            productId: data.product_id,
+            userId: data.user_id,
+            rating: data.rating,
+            comment: data.comment,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+            user: data.profiles ? {
+                id: data.profiles.id,
+                fullName: data.profiles.full_name,
+                avatarUrl: data.profiles.avatar_url,
+            } : undefined,
+        };
+    },
+
+    /**
+     * Update a review
+     */
+    updateReview: async (reviewId: string, rating: number, comment: string): Promise<void> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            throw new Error("Avtorizatsiya zarur");
+        }
+
+        // Verify ownership
+        const { data: review } = await supabase
+            .from('product_reviews')
+            .select('user_id, product_id')
+            .eq('id', reviewId)
+            .single();
+
+        if (!review || review.user_id !== user.id) {
+            throw new Error("Bu sharhni tahrirlash huquqingiz yo'q");
+        }
+
+        const { error } = await supabase
+            .from('product_reviews')
+            .update({
+                rating,
+                comment,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', reviewId);
+
+        if (error) {
+            const appError = handleError(error, 'updateReview');
+            throw new Error(appError.message);
+        }
+
+        // Update product average rating
+        await productService.updateProductRating(review.product_id);
+    },
+
+    /**
+     * Delete a review
+     */
+    deleteReview: async (reviewId: string): Promise<void> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            throw new Error("Avtorizatsiya zarur");
+        }
+
+        // Verify ownership or admin
+        const { data: review } = await supabase
+            .from('product_reviews')
+            .select('user_id, product_id')
+            .eq('id', reviewId)
+            .single();
+
+        if (!review) {
+            throw new Error("Sharh topilmadi");
+        }
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        const isAdmin = profile?.role === 'super_admin';
+        if (review.user_id !== user.id && !isAdmin) {
+            throw new Error("Bu sharhni o'chirish huquqingiz yo'q");
+        }
+
+        const { error } = await supabase
+            .from('product_reviews')
+            .delete()
+            .eq('id', reviewId);
+
+        if (error) {
+            const appError = handleError(error, 'deleteReview');
+            throw new Error(appError.message);
+        }
+
+        // Update product average rating
+        await productService.updateProductRating(review.product_id);
+    },
+
+    /**
+     * Get review statistics for a product
+     */
+    getReviewStats: async (productId: string): Promise<{
+        averageRating: number;
+        totalReviews: number;
+        ratingDistribution: Record<number, number>;
+    }> => {
+        const { data, error } = await supabase
+            .from('product_reviews')
+            .select('rating')
+            .eq('product_id', productId);
+
+        if (error || !data || data.length === 0) {
+            return {
+                averageRating: 0,
+                totalReviews: 0,
+                ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+            };
+        }
+
+        const totalReviews = data.length;
+        const sum = data.reduce((acc, r) => acc + r.rating, 0);
+        const averageRating = sum / totalReviews;
+
+        const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        data.forEach(r => {
+            ratingDistribution[r.rating] = (ratingDistribution[r.rating] || 0) + 1;
+        });
+
+        return { averageRating, totalReviews, ratingDistribution };
+    },
+
+    /**
+     * Update product's average rating (internal helper)
+     */
+    updateProductRating: async (productId: string): Promise<void> => {
+        const stats = await productService.getReviewStats(productId);
+        
+        await supabase
+            .from('products')
+            .update({
+                rating: stats.averageRating,
+                review_count: stats.totalReviews,
+            })
+            .eq('id', productId);
+    },
+
+    /**
+     * Check if user has reviewed a product
+     */
+    hasUserReviewed: async (productId: string): Promise<boolean> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        const { data } = await supabase
+            .from('product_reviews')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        return !!data;
+    },
 };
+
+// Review type
+export interface ProductReview {
+    id: string;
+    productId: string;
+    userId: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    updatedAt: string;
+    user?: {
+        id: string;
+        fullName: string;
+        avatarUrl?: string;
+    };
+}

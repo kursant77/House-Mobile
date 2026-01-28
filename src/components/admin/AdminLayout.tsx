@@ -24,7 +24,7 @@ export const AdminLayout = () => {
                 <AdminHeader sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
                 {/* Content */}
-                <main className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10 w-full min-h-screen bg-zinc-50 dark:bg-zinc-950">
+                <main className="mx-auto max-w-screen-2xl p-4 md:p-5 lg:p-6 2xl:p-8 w-full min-h-screen bg-zinc-50 dark:bg-zinc-950">
                     <Outlet />
                 </main>
 

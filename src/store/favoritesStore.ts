@@ -25,8 +25,8 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
       const favorites = await userDataService.getFavorites();
       set({ favorites, isLoading: false });
     } catch (error) {
-      console.error("Failed to fetch favorites", error);
-      set({ isLoading: false });
+      // Return empty array on error
+      set({ favorites: [], isLoading: false });
     }
   },
 

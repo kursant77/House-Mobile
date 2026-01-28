@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCartStore } from "@/store/cartStore";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -32,9 +32,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
     address: "",
   });
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("uz-UZ").format(price);
-  };
+  // Using shared utility function
 
   const validateForm = () => {
     const newErrors = { name: "", phone: "", address: "" };
@@ -76,25 +74,33 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
     setIsLoading(true);
 
-    // Simulate API call - replace with your backend
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const { orderService } = await import('@/services/api/orders');
+      
+      const orderData = {
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        customerAddress: formData.address,
+        notes: formData.notes || undefined,
+        items: items.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+          currency: item.product.currency,
+        })),
+        totalAmount: getTotal(),
+        currency: items[0]?.product.currency || 'UZS',
+      };
 
-      // TODO: Call your backend API
-      // const response = await fetch('/api/orders', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     customer: formData,
-      //     items: items.map(i => ({ productId: i.product.id, quantity: i.quantity })),
-      //     total: getTotal()
-      //   })
-      // });
-
+      const order = await orderService.createOrder(orderData);
+      
+      toast.success(`Buyurtma qabul qilindi! Buyurtma raqami: ${order.orderNumber}`);
       setOrderPlaced(true);
       clearCart();
     } catch (error) {
-      toast.error("Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
+      const { handleError } = await import('@/lib/errorHandler');
+      const appError = handleError(error, 'CheckoutForm');
+      toast.error(appError.message || "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.");
     } finally {
       setIsLoading(false);
     }
@@ -233,12 +239,12 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                   <span className="text-muted-foreground">
                     {item.product.title} x {item.quantity}
                   </span>
-                  <span>{formatPrice(item.product.price * item.quantity)}</span>
+                  <span>{formatPriceNumber(item.product.price * item.quantity)}</span>
                 </div>
               ))}
               <div className="border-t border-border pt-3 flex justify-between font-semibold">
                 <span>Jami</span>
-                <span>{formatPrice(getTotal())} UZS</span>
+                <span>{formatPriceNumber(getTotal())} {formatCurrencySymbol(items[0]?.product.currency || "UZS")}</span>
               </div>
             </div>
           </section>
@@ -252,7 +258,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
             {isLoading ? (
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
             ) : (
-              `Buyurtma berish — ${formatPrice(getTotal())} UZS`
+              `Buyurtma berish — ${formatPriceNumber(getTotal())} ${formatCurrencySymbol(items[0]?.product.currency || "UZS")}`
             )}
           </Button>
         </form>

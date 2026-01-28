@@ -121,9 +121,9 @@ export const Sidebar = () => {
                             variant="ghost"
                             className="w-full justify-start gap-4 h-10 text-[14px] font-normal px-3 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800"
                         >
-                            <Avatar className="h-6 w-6">
+                            <Avatar size="sm" className="h-6 w-6">
                                 <AvatarImage src={profile.avatarUrl} />
-                                <AvatarFallback className="text-[8px]">{profile.fullName?.charAt(0)}</AvatarFallback>
+                                <AvatarFallback>{profile.fullName?.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <span className="flex-1 text-left truncate">{profile.fullName}</span>
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.6)]" />

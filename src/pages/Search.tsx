@@ -42,19 +42,25 @@ export default function Search() {
         queryKey: ["search-products", query],
         queryFn: productService.getProducts, // Fetches all, filter locally or update API for search
         enabled: activeTab === "products" && query.length > 0,
-        select: (data) => data.filter(p =>
-            p.title.toLowerCase().includes(query.toLowerCase()) ||
-            p.description.toLowerCase().includes(query.toLowerCase())
-        )
+        select: (data) => {
+            if (!Array.isArray(data)) return [];
+            return data.filter(p =>
+                p?.title?.toLowerCase().includes(query.toLowerCase()) ||
+                p?.description?.toLowerCase().includes(query.toLowerCase())
+            );
+        }
     });
 
     const { data: reels = [], isLoading: reelsLoading } = useQuery({
         queryKey: ["search-reels", query],
         queryFn: productService.getReels,
         enabled: activeTab === "reels" && query.length > 0,
-        select: (data) => data.filter(r =>
-            r.product.title.toLowerCase().includes(query.toLowerCase())
-        )
+        select: (data) => {
+            if (!Array.isArray(data)) return [];
+            return data.filter(r =>
+                r?.product?.title?.toLowerCase().includes(query.toLowerCase())
+            );
+        }
     });
 
     return (
@@ -101,7 +107,19 @@ export default function Search() {
                 <div className="p-4">
                     {/* USERS TAB */}
                     <TabsContent value="users" className="space-y-4 m-0">
-                        {usersLoading && <div className="text-center py-10">Qidirilmoqda...</div>}
+                        {usersLoading && (
+                            <div className="space-y-4">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="flex items-center gap-4 p-2 rounded-xl">
+                                        <div className="h-12 w-12 rounded-full bg-muted animate-pulse" />
+                                        <div className="flex-1 space-y-2">
+                                            <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                                            <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
 
                         {!usersLoading && query && users.length === 0 && (
                             <div className="text-center py-20 text-muted-foreground">Foydalanuvchilar topilmadi</div>
@@ -140,7 +158,20 @@ export default function Search() {
 
                     {/* REELS TAB (YouTube Style List) */}
                     <TabsContent value="reels" className="m-0 space-y-4">
-                        {reelsLoading && <div className="text-center py-10">Qidirilmoqda...</div>}
+                        {reelsLoading && (
+                            <div className="space-y-4">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="flex gap-3">
+                                        <div className="w-40 aspect-video rounded-lg bg-muted animate-pulse" />
+                                        <div className="flex-1 space-y-2 py-1">
+                                            <div className="h-4 w-full bg-muted animate-pulse rounded" />
+                                            <div className="h-3 w-32 bg-muted animate-pulse rounded" />
+                                            <div className="h-3 w-24 bg-muted animate-pulse rounded" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         {!reelsLoading && query && reels.length === 0 && (
                             <div className="text-center py-20 text-muted-foreground">Videolar topilmadi</div>
                         )}

@@ -92,7 +92,7 @@ export default function AdminUserProfile() {
         <div className="space-y-6">
             <div className="flex items-center gap-4">
                 <Link to="/admin/users">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
+                    <Button variant="ghost" size="icon" className="h-10 w-10 md:h-11 md:w-11 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
                 </Link>
@@ -239,12 +239,12 @@ export default function AdminUserProfile() {
 
                 {/* Content Area */}
                 <div className="xl:col-span-2 space-y-6">
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-6">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl md:rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm p-5 md:p-6">
                         <h4 className="text-lg font-black text-zinc-800 dark:text-white uppercase tracking-tighter mb-6 flex items-center gap-2">
                             <ShoppingBag className="h-5 w-5 text-[#3C50E0]" /> Foydalanuvchi mahsulotlari
                         </h4>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
                             {products.length === 0 ? (
                                 <div className="col-span-full py-20 text-center opacity-30">
                                     <Package className="h-12 w-12 mx-auto mb-2" />
@@ -252,8 +252,8 @@ export default function AdminUserProfile() {
                                 </div>
                             ) : (
                                 products.map(p => (
-                                    <Link key={p.id} to={`/product/${p.id}`} className="p-4 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md hover:border-primary/20 transition-all group bg-white dark:bg-zinc-900">
-                                        <div className="h-16 w-16 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 overflow-hidden">
+                                    <Link key={p.id} to={`/product/${p.id}`} className="p-4 md:p-5 rounded-xl border border-zinc-100 dark:border-zinc-800 flex items-center gap-4 hover:shadow-md hover:border-primary/20 transition-all group bg-white dark:bg-zinc-900">
+                                        <div className="h-14 w-14 md:h-16 md:w-16 rounded-lg bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 border border-zinc-100 dark:border-zinc-700 overflow-hidden">
                                             {p.images && p.images[0] ? (
                                                 <img src={p.images[0]} className="h-full w-full object-cover" alt="" />
                                             ) : (

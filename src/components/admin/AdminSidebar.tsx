@@ -61,7 +61,7 @@ export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 )}
             >
                 {/* Sidebar Header */}
-                <div className="flex items-center justify-between gap-2 px-6 py-8 lg:py-10 border-b border-zinc-200 dark:border-[#2e3a47]">
+                <div className="flex items-center justify-between gap-2 px-5 md:px-6 py-6 md:py-8 lg:py-10 border-b border-zinc-200 dark:border-[#2e3a47]">
                     <Link to="/admin" className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-xl bg-[#3C50E0] flex items-center justify-center shrink-0 shadow-lg shadow-[#3C50E0]/20">
                             <ShieldCheck className="text-white h-6 w-6" />
@@ -81,7 +81,7 @@ export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                 </div>
 
                 {/* Sidebar Content */}
-                <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto px-4 py-8 duration-300 ease-linear">
+                <div className="no-scrollbar flex flex-1 flex-col overflow-y-auto px-4 py-6 md:py-8 duration-300 ease-linear">
                     <nav className="space-y-8">
                         {menuGroups.map((group) => (
                             <div key={group.name} className="space-y-1.5">

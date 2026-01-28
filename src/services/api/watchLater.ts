@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Product } from "@/types/product";
+import { SupabaseProductWithRelations } from "@/types/api";
 
 export class WatchLaterService {
     /**
@@ -25,7 +26,7 @@ export class WatchLaterService {
             if (error) throw error;
 
             // Map the nested products with media
-            return (data as any[] || [])
+            return (data as Array<{ product: SupabaseProductWithRelations | SupabaseProductWithRelations[] }> || [])
                 .map(item => {
                     const p = Array.isArray(item.product) ? item.product[0] : item.product;
                     if (!p) return null;
@@ -34,8 +35,8 @@ export class WatchLaterService {
                         ...p,
                         inStock: p.in_stock,
                         sellerId: p.seller_id,
-                        images: p.product_media?.filter((m: any) => m.type === 'image').map((m: any) => m.url) || [],
-                        videoUrl: p.product_media?.find((m: any) => m.type === 'video')?.url,
+                        images: p.product_media?.filter(m => m.type === 'image').map(m => m.url) || [],
+                        videoUrl: p.product_media?.find(m => m.type === 'video')?.url,
                         author: p.author ? {
                             id: p.author.id,
                             fullName: p.author.full_name,
@@ -46,7 +47,7 @@ export class WatchLaterService {
                 })
                 .filter((p): p is Product => p !== null);
         } catch (error) {
-            console.error('Error fetching watch later items:', error);
+            // Return empty array on error
             return [];
         }
     }
@@ -68,7 +69,7 @@ export class WatchLaterService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Error adding to watch later:', error);
+            // Silently ignore add watch later errors
             throw error;
         }
     }
@@ -112,7 +113,7 @@ export class WatchLaterService {
             if (error) throw error;
             return !!data;
         } catch (error) {
-            console.error('Error checking watch later status:', error);
+            // Return false on error
             return false;
         }
     }

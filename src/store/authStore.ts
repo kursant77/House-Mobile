@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { authApi } from "@/services/api/auth";
 import { useCartStore } from "./cartStore";
 import { useFavoritesStore } from "./favoritesStore";
+import { sessionStorage as sessionStorageUtil } from "@/lib/sessionStorage";
 
 interface User {
   id: string;
@@ -65,8 +66,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     useFavoritesStore.getState().fetchFavorites();
   },
 
-  logout: () => {
-    authApi.logout();
+  logout: async () => {
+    await authApi.logout();
     set({ user: null, isAuthenticated: false });
     // Clear user specific data
     useCartStore.getState().resetCart();
@@ -74,38 +75,72 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   checkAuth: async () => {
-    const savedUser = authApi.getSavedUser();
-    const isAuthenticated = authApi.isAuthenticated();
+    const isAuthenticated = await authApi.isAuthenticated();
 
-    if (isAuthenticated && savedUser) {
-      // Use saved user as initial state but keep loading true while we sync
-      set({ user: savedUser as User, isAuthenticated: true });
-
-      try {
-        const freshUser = await authApi.getProfile();
-
-        // Check if user is blocked
-        if (freshUser.isBlocked) {
-          // Logout blocked user
-          authApi.logout();
-          set({ user: null, isAuthenticated: false, isLoading: false });
-          useCartStore.getState().resetCart();
-          useFavoritesStore.getState().clearFavorites();
-          return;
-        }
-
-        set({ user: freshUser as User, isAuthenticated: true, isLoading: false });
-        localStorage.setItem("user", JSON.stringify(freshUser));
-
-        // Fetch user specific data
+    if (isAuthenticated) {
+      // If authenticated, try to get saved user for initial state (fast UI)
+      const savedUser = authApi.getSavedUser();
+      
+      // Set initial state with saved user immediately for fast UI
+      if (savedUser) {
+        set({ user: savedUser as User, isAuthenticated: true, isLoading: false });
+        // Fetch user specific data immediately with saved user
         useCartStore.getState().fetchCart();
         useFavoritesStore.getState().fetchFavorites();
-      } catch (e) {
-        console.error("Auth sync failed", e);
-        // If sync fails, we can still use saved data or logout if it's a 401
-        set({ isLoading: false });
+      } else {
+        set({ isLoading: true });
       }
+
+      // Background: fetch fresh user data from server (non-blocking)
+      authApi.getProfile()
+        .then((freshUser) => {
+          // Check if user is blocked
+          if (freshUser.isBlocked) {
+            // Logout blocked user
+            authApi.logout();
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            useCartStore.getState().resetCart();
+            useFavoritesStore.getState().clearFavorites();
+            return;
+          }
+
+          // Update state with fresh user data
+          set({ user: freshUser as User, isAuthenticated: true, isLoading: false });
+          
+          // Save minimal user data for next time
+          try {
+            const minimalUser = { id: freshUser.id, role: freshUser.role };
+            localStorage.setItem("user", JSON.stringify(minimalUser));
+            // Also save to sessionStorage
+            sessionStorageUtil.saveUser(freshUser.id, freshUser.role);
+          } catch (error) {
+            // Silently ignore storage errors
+          }
+
+          // Fetch user specific data with fresh user
+          useCartStore.getState().fetchCart();
+          useFavoritesStore.getState().fetchFavorites();
+        })
+        .catch((e) => {
+          // If sync fails, check if it's a 401 (unauthorized)
+          const error = e as any;
+          if (error?.status === 401 || error?.message?.includes('401')) {
+            // Session expired or invalid, logout
+            authApi.logout();
+            set({ user: null, isAuthenticated: false, isLoading: false });
+            useCartStore.getState().resetCart();
+            useFavoritesStore.getState().clearFavorites();
+          } else {
+            // Other error, keep saved user if available (don't break the app)
+            if (savedUser) {
+              set({ user: savedUser as User, isAuthenticated: true, isLoading: false });
+            } else {
+              set({ user: null, isAuthenticated: false, isLoading: false });
+            }
+          }
+        });
     } else {
+      // Not authenticated, clear everything
       set({ user: null, isAuthenticated: false, isLoading: false });
     }
   },
@@ -115,7 +150,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     const user = useAuthStore.getState().user;
     if (user) {
       const updatedUser: User = { ...user, isProfessional: true };
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      try {
+        const minimalUser = { id: updatedUser.id, role: updatedUser.role };
+        localStorage.setItem("user", JSON.stringify(minimalUser));
+      } catch (error) {
+        // Silently ignore localStorage errors
+      }
       set({ user: updatedUser });
     }
   },

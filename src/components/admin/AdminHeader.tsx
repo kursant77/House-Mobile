@@ -24,7 +24,7 @@ export const AdminHeader = ({ sidebarOpen, setSidebarOpen }: HeaderProps) => {
 
     return (
         <header className="sticky top-0 z-[80] flex w-full bg-[#ffffff] border-b border-zinc-200 dark:bg-zinc-950 dark:border-zinc-900 shadow-sm transition-colors duration-300">
-            <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11">
+            <div className="flex flex-grow items-center justify-between px-4 py-4 md:px-5 lg:px-6 2xl:px-8">
                 {/* Mobile Hamburger & Logo */}
                 <div className="flex items-center gap-2 sm:gap-4 lg:hidden">
                     <button

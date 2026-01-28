@@ -41,6 +41,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { BioDisplay } from "@/components/shared/BioDisplay";
 
 export default function Profile() {
   const isMobile = useIsMobile();
@@ -76,7 +77,7 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ["user-products", user?.id] });
       toast.success("Mahsulot muvaffaqiyatli o'chirildi");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message || "Xatolik yuz berdi"),
   });
 
   const handleLogout = () => {
@@ -204,9 +205,9 @@ export default function Profile() {
         <div className="hidden md:flex flex-col md:flex-row items-start gap-4 md:gap-8 mb-6 md:mb-10">
           {/* Avatar */}
           <div className="relative mx-auto md:mx-0">
-            <Avatar className="h-24 w-24 md:h-32 md:w-32 lg:h-40 lg:w-40 border border-border">
+            <Avatar size="xl" borderColor="white" className="md:h-32 md:w-32 lg:h-40 lg:w-40">
               <AvatarImage src={user.avatarUrl} alt={user.name} />
-              <AvatarFallback className="text-3xl md:text-4xl bg-gradient-to-br from-primary/20 to-primary/10">
+              <AvatarFallback>
                 {user.name?.charAt(0)?.toUpperCase() || "U"}
               </AvatarFallback>
             </Avatar>
@@ -287,15 +288,7 @@ export default function Profile() {
             {/* Bio and Name */}
             <div className="space-y-1">
               <p className="font-semibold text-sm md:text-base">{user.name || "To'liq ism"}</p>
-              {user.bio ? (
-                <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-                  {user.bio}
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  Bio ma'lumotlari hozircha kiritilmagan
-                </p>
-              )}
+              <BioDisplay bio={user.bio || ""} maxLines={3} className="text-sm leading-relaxed" />
               {user.phone && (
                 <p className="text-sm text-muted-foreground mt-1">
                   📱 {user.phone}
@@ -386,6 +379,8 @@ export default function Profile() {
                       src={product.images[0]}
                       className="h-full w-full object-cover"
                       alt={product.title}
+                      loading="lazy"
+                      decoding="async"
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="flex gap-6 text-white font-bold text-xs md:text-sm">
@@ -499,7 +494,7 @@ export default function Profile() {
                     className="aspect-[9/16] relative group cursor-pointer overflow-hidden bg-zinc-900"
                     onClick={() => navigate(`/reels?id=${product.id}`)}
                   >
-                    <img src={product.images[0]} className="h-full w-full object-cover group-hover:scale-110 transition-transform" />
+                    <img src={product.images[0]} className="h-full w-full object-cover group-hover:scale-110 transition-transform" loading="lazy" decoding="async" />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <Play className="h-8 w-8 text-white fill-white" />
                     </div>

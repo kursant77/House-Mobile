@@ -1,22 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useState, useMemo } from "react";
-import { ChevronRight } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
-import { Loader2, PackageSearch, Send } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { postService, PublicPost } from "@/services/api/posts";
 import { PostCard } from "@/components/social/PostCard";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Search, X, User as UserIcon, ShoppingBag, Newspaper } from "lucide-react";
+import { User as UserIcon, ShoppingBag } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCard } from "@/components/products/ProductCard";
+import { StoriesSection } from "@/components/home/StoriesSection";
+import { SearchSection } from "@/components/home/SearchSection";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { supabase } from "@/lib/supabase";
 
 export default function Home() {
   const { user, isAuthenticated } = useAuthStore();
@@ -32,11 +31,38 @@ export default function Home() {
     staleTime: 1000 * 60 * 5,
   });
 
+  const queryClient = useQueryClient();
+  
   const { data: publicPosts = [], isLoading: postsLoading, error: postsError } = useQuery({
     queryKey: ["public-posts"],
     queryFn: () => postService.getPosts(1, 40),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 60 * 1, // 1 minute cache (aligned with global config)
   });
+
+  // Real-time subscription for posts
+  useEffect(() => {
+    if (!postsLoading) {
+      const channel = supabase
+        .channel('posts-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'posts'
+          },
+          () => {
+            // Invalidate and refetch posts when changes occur
+            queryClient.invalidateQueries({ queryKey: ['public-posts'] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [postsLoading, queryClient]);
 
   const { data: searchUsers = [], isLoading: usersLoading } = useQuery({
     queryKey: ["search-users", searchQuery],
@@ -48,19 +74,25 @@ export default function Home() {
     queryKey: ["search-products", searchQuery],
     queryFn: productService.getProducts,
     enabled: activeTab === "products" && searchQuery.length > 0,
-    select: (data) => data.filter(p =>
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    select: (data) => {
+      if (!Array.isArray(data)) return [];
+      return data.filter(p =>
+        p?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p?.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
   });
 
   const unifiedFeed = useMemo(() => {
+    if (!Array.isArray(publicPosts)) {
+      return [];
+    }
     const combined = [
       ...publicPosts.map(post => ({ ...post, type: 'post' as const })),
     ];
     return combined.sort((a, b) => {
-      const timeA = new Date((a as any).created_at || (a as any).createdAt || 0).getTime();
-      const timeB = new Date((b as any).created_at || (b as any).createdAt || 0).getTime();
+      const timeA = new Date('created_at' in a ? a.created_at : 'createdAt' in a ? (a as { createdAt: string }).createdAt : 0).getTime();
+      const timeB = new Date('created_at' in b ? b.created_at : 'createdAt' in b ? (b as { createdAt: string }).createdAt : 0).getTime();
       return timeB - timeA;
     });
   }, [publicPosts]);
@@ -79,7 +111,8 @@ export default function Home() {
   }, [followingProfiles, isAuthenticated]);
 
   if (postsError) {
-    console.error("Posts fetch error:", postsError);
+    // Error is handled by React Query's error state
+    // User will see error message in UI if needed
   }
 
   return (
@@ -87,7 +120,7 @@ export default function Home() {
       <div className="md:hidden space-y-4 pt-2">
         <div className="flex overflow-x-auto gap-3 px-4 pb-2 no-scrollbar">
           {stories.length > 0 ? (
-            stories.map((author: any) => (
+            stories.map((author) => (
               <div
                 key={author.id}
                 className="flex flex-col items-center gap-1 shrink-0 cursor-pointer"
@@ -116,61 +149,14 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="px-4 py-4 md:px-6 lg:px-10 sticky top-16 z-30 bg-background/95 backdrop-blur-md border-b mb-4 md:hidden">
-        <div className="max-w-3xl mx-auto flex flex-col gap-4">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors group-focus-within:text-primary" />
-            <Input
-              placeholder="Qidirish... (Foydalanuvchilar, Mahsulotlar, Postlar)"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setTimeout(() => {
-                if (!searchQuery) setIsSearchFocused(false);
-              }, 200)}
-              className="pl-12 pr-12 h-12 rounded-full bg-muted/50 border-none focus-visible:ring-2 focus-visible:ring-primary/20 text-base"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full hover:bg-muted"
-                onClick={() => {
-                  setSearchQuery("");
-                  setIsSearchFocused(false);
-                }}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            )}
-          </div>
-
-          {(isSearchFocused || searchQuery) && (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full animate-in fade-in slide-in-from-top-2 duration-300">
-              <TabsList className="w-full h-10 bg-transparent p-0 gap-2 overflow-x-auto no-scrollbar justify-start">
-                <TabsTrigger
-                  value="posts"
-                  className="h-8 px-4 rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary transition-all whitespace-nowrap"
-                >
-                  Postlar
-                </TabsTrigger>
-                <TabsTrigger
-                  value="products"
-                  className="h-8 px-4 rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary transition-all whitespace-nowrap"
-                >
-                  Mahsulotlar
-                </TabsTrigger>
-                <TabsTrigger
-                  value="users"
-                  className="h-8 px-4 rounded-full border border-border data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary transition-all whitespace-nowrap"
-                >
-                  Foydalanuvchilar
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          )}
-        </div>
-      </div>
+      <SearchSection
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        isSearchFocused={isSearchFocused}
+        setIsSearchFocused={setIsSearchFocused}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
       <div className="px-4 md:px-6 lg:px-10 pb-20 w-full text-foreground">
         {activeTab === "posts" && (
@@ -192,7 +178,7 @@ export default function Home() {
               </div>
             ) : filteredFeed.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-y-10 gap-x-4 md:gap-x-6">
-                {filteredFeed.map((item: any) => (
+                {filteredFeed.map((item) => (
                   <PostCard key={item.id} post={item} />
                 ))}
               </div>

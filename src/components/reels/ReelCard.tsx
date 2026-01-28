@@ -21,7 +21,7 @@ import {
   PlusSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,6 +43,7 @@ import { supabase } from "@/lib/supabase";
 import { historyService } from "@/services/api/history";
 import { useWatchLaterStore } from "@/store/watchLaterStore";
 import { useUiStore } from "@/store/uiStore";
+import { BioDisplay } from "@/components/shared/BioDisplay";
 
 // Real-time comment count component
 function CommentCount({ productId }: { productId: string }) {
@@ -141,7 +142,7 @@ export function ReelCard({
           const status = await socialService.isFollowing(reel.author.id);
           setIsFollowing(status);
         } catch (error) {
-          console.error("Check follow status error:", error);
+          // Silently ignore follow status check errors
         }
       }
     };
@@ -374,7 +375,6 @@ export function ReelCard({
       toast.success("Video yuklanmoqda...");
     } catch (err) {
       toast.error("Yuklab olishda xatolik");
-      console.error("Download error:", err);
     }
   };
 
@@ -383,9 +383,17 @@ export function ReelCard({
   };
 
   return (
-    <div className="h-full w-full bg-black relative flex items-center justify-center">
+    <div className={cn(
+      "h-full w-full bg-black relative",
+      isMobile ? "flex items-center justify-center" : "flex flex-row"
+    )}>
+      {/* Video Section - Left on Desktop, Center on Mobile */}
       <div
-        className="relative h-full w-full flex items-center justify-center overflow-hidden transition-colors duration-300"
+        className={cn(
+          "relative overflow-hidden transition-colors duration-300",
+          isMobile ? "h-full w-full flex items-center justify-center" : "h-full flex-shrink-0"
+        )}
+        style={!isMobile ? { width: 'min(50%, 500px)' } : {}}
       >
         <video
           ref={videoRef}
@@ -425,8 +433,9 @@ export function ReelCard({
           {isMuted ? <VolumeX className="h-5 w-5 text-white" /> : <Volume2 className="h-5 w-5 text-white" />}
         </button>
 
-        {/* Right Side Actions - Instagram Style */}
-        <div className="absolute right-2 bottom-[84px] md:right-3 md:bottom-[100px] flex flex-col items-center gap-5 z-20">
+        {/* Right Side Actions - Mobile Only (Instagram Style) */}
+        {isMobile && (
+          <div className="absolute right-2 bottom-[84px] flex flex-col items-center gap-5 z-20">
           <div className="flex flex-col items-center">
             <button
               onClick={(e) => { e.stopPropagation(); handleLike(); }}
@@ -520,26 +529,125 @@ export function ReelCard({
               <ShoppingBag className="h-5 w-5 text-white/50" />
             )}
           </button>
-        </div>
+          </div>
+        )}
 
-        {/* Bottom Info Section - Instagram Style */}
-        <div className="absolute bottom-[72px] left-0 right-0 px-4 pt-16 pb-4 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none">
-          <div className="flex flex-col gap-3 pointer-events-auto max-w-[80%]">
+        {/* Bottom Info Section - Mobile Only (Instagram Style) */}
+        {isMobile && (
+          <div className="absolute bottom-[72px] left-0 right-0 px-4 pt-16 pb-4 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10 pointer-events-none">
+            <div className="flex flex-col gap-3 pointer-events-auto max-w-[80%]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
+                >
+                  <Avatar size="md" borderColor="white">
+                    <AvatarImage src={reel.author?.avatarUrl} />
+                    <AvatarFallback>{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex items-center gap-1 text-shadow-sm">
+                    <span className="text-white font-bold text-sm tracking-tight">
+                      {reel.author?.fullName || "House Mobile"}
+                    </span>
+                    {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
+                      <VerifiedBadge size={14} />
+                    )}
+                  </div>
+                </div>
+
+                {user?.id !== (reel.author?.id || reel.product.sellerId) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={isFollowLoading}
+                    onClick={handleFollow}
+                    className={cn(
+                      "h-7 px-3 text-[11px] font-bold border rounded-lg transition-all active:scale-95",
+                      isFollowing
+                        ? "bg-white/10 text-white border-white/20"
+                        : "bg-transparent text-white border-white hover:bg-white/20"
+                    )}
+                  >
+                    {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Follow"}
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-1.5 drop-shadow-md">
+                <h3 className="text-white font-bold text-sm leading-tight line-clamp-1">{reel.product.title}</h3>
+                <p className="text-white/95 text-xs line-clamp-2 leading-relaxed font-medium">
+                  {reel.product.description}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 mt-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                  className={cn(
+                    "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto hover:shadow-xl",
+                    isProductInCart
+                      ? "bg-green-500 text-white hover:bg-green-600"
+                      : "bg-white text-black hover:bg-zinc-100"
+                  )}
+                >
+                  {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
+                  <span className="text-[13px] font-bold">
+                    {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
+                  </span>
+                </button>
+                
+                {/* Narx (alohida qator, mukammal dizayn) */}
+                <div className="animate-fade-in">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 hover:bg-white/15 hover:border-white/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/10">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-white/70 text-xs font-medium">Narxi:</span>
+                        <span className="text-white font-black text-xl tracking-tight">
+                          {formatPriceNumber(reel.product.price)}
+                        </span>
+                        <span className="text-white/90 font-bold text-base">
+                          {formatCurrencySymbol(reel.product.currency || "UZS")}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 overflow-hidden bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit max-w-full">
+                <Music2 className="h-3 w-3 text-white flex-shrink-0" />
+                <div className="text-[11px] text-white font-semibold whitespace-nowrap overflow-hidden relative">
+                  <div className="animate-reel-music inline-block">
+                    {reel.author?.fullName || "House Mobile"} • Original Audio
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Content Section - Right Side */}
+      {!isMobile && (
+        <div className="flex-1 h-full flex flex-col justify-center px-6 py-8 bg-black text-white overflow-y-auto">
+          <div className="max-w-md mx-auto w-full flex flex-col gap-6">
+            {/* 1. Avatar + Username + Follow */}
             <div className="flex items-center gap-3">
               <div
-                className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-80"
+                className="flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
                 onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
               >
-                <Avatar className="h-9 w-9 border-2 border-white/20">
+                <Avatar size="lg" borderColor="white">
                   <AvatarImage src={reel.author?.avatarUrl} />
-                  <AvatarFallback className="text-[10px] bg-zinc-800 text-white font-bold">{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
+                  <AvatarFallback>{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
                 </Avatar>
-                <div className="flex items-center gap-1 text-shadow-sm">
-                  <span className="text-white font-bold text-sm tracking-tight">
+                <div className="flex items-center gap-2">
+                  <span className="text-white font-bold text-base tracking-tight">
                     {reel.author?.fullName || "House Mobile"}
                   </span>
                   {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
-                    <VerifiedBadge size={14} />
+                    <VerifiedBadge size={16} />
                   )}
                 </div>
               </div>
@@ -551,9 +659,9 @@ export function ReelCard({
                   disabled={isFollowLoading}
                   onClick={handleFollow}
                   className={cn(
-                    "h-7 px-3 text-[11px] font-bold border rounded-lg transition-all active:scale-95",
+                    "h-8 px-4 text-xs font-bold border rounded-lg transition-all",
                     isFollowing
-                      ? "bg-white/10 text-white border-white/20"
+                      ? "bg-white/10 text-white border-white/20 hover:bg-white/20"
                       : "bg-transparent text-white border-white hover:bg-white/20"
                   )}
                 >
@@ -562,38 +670,126 @@ export function ReelCard({
               )}
             </div>
 
-            <div className="space-y-1.5 drop-shadow-md">
-              <h3 className="text-white font-bold text-sm leading-tight line-clamp-1">{reel.product.title}</h3>
-              <p className="text-white/95 text-xs line-clamp-2 leading-relaxed font-medium">
-                {reel.product.description}
-              </p>
+            {/* 2. Title */}
+            <div>
+              <h3 className="text-white font-bold text-xl leading-tight">{reel.product.title}</h3>
             </div>
 
-            <div className="flex flex-col gap-2 mt-1">
+            {/* 3. Description */}
+            <div>
+              <BioDisplay 
+                bio={reel.product.description || ""} 
+                maxLines={4} 
+                className="text-white/90 text-sm leading-relaxed [&_a]:text-white/80 [&_a]:hover:text-white [&_button]:text-white/70 [&_button]:hover:text-white" 
+              />
+            </div>
+
+            {/* 4. Savatga qo'shish tugmasi */}
+            <div>
               <button
                 onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
                 className={cn(
-                  "w-full py-3 px-4 rounded-xl flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto",
+                  "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]",
                   isProductInCart
-                    ? "bg-green-500 text-white"
+                    ? "bg-green-500 text-white hover:bg-green-600"
                     : "bg-white text-black hover:bg-zinc-100"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
-                  <span className="text-[13px] font-bold">
-                    {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
-                  </span>
-                </div>
-                <span className="text-[13px] font-black tracking-tight">
-                  {new Intl.NumberFormat("uz-UZ").format(reel.product.price)} UZS
+                {isProductInCart ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+                <span className="text-sm font-bold">
+                  {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
                 </span>
               </button>
             </div>
 
-            <div className="flex items-center gap-2 overflow-hidden bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit max-w-full">
-              <Music2 className="h-3 w-3 text-white flex-shrink-0" />
-              <div className="text-[11px] text-white font-semibold whitespace-nowrap overflow-hidden relative">
+            {/* 5. Narx (alohida qator, mukammal dizayn) */}
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div className="relative group">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl px-6 py-4 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02]">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-white/60 text-sm font-medium">Narxi:</span>
+                    <span className="text-white font-black text-2xl tracking-tight">
+                      {formatPriceNumber(reel.product.price)}
+                    </span>
+                    <span className="text-white/90 font-bold text-lg">
+                      {formatCurrencySymbol(reel.product.currency || "UZS")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Like/Comment/Share iconlar (gorizontal qator) */}
+            <div className="flex items-center gap-6">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                className="flex items-center gap-2 transition-transform active:scale-95"
+              >
+                <Heart className={cn("h-6 w-6 transition-colors", isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-white fill-none")} strokeWidth={2.5} />
+                <span className="text-white font-bold text-sm">{formatCount(likesCount)}</span>
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
+                className="flex items-center gap-2 transition-transform active:scale-95"
+              >
+                <MessageCircle className="h-6 w-6 text-white" strokeWidth={2.5} />
+                <CommentCount productId={reel.product.id} />
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="flex items-center gap-2 transition-transform active:scale-95"
+              >
+                <Share2 className="h-6 w-6 text-white" strokeWidth={2.5} />
+              </button>
+
+              <button
+                onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
+                className="flex items-center gap-2 transition-transform active:scale-95"
+              >
+                <Bookmark className={cn("h-6 w-6 transition-colors", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} strokeWidth={2.5} />
+              </button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 rounded-full hover:bg-white/10 transition-all"
+                  >
+                    <MoreVertical className="h-5 w-5 text-white" strokeWidth={2.5} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-white/10 text-white">
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                    <Clock className="h-4 w-4 mr-2" />
+                    Keyinroq ko'rish
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                    <Download className="h-4 w-4 mr-2" />
+                    Yuklab olish
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                    <Flag className="h-4 w-4 mr-2" />
+                    Shikoyat qilish
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+                    className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
+                  >
+                    <UserX className="h-4 w-4 mr-2" />
+                    Foydalanuvchini bloklash
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* 6. Audio info */}
+            <div className="flex items-center gap-2 overflow-hidden bg-black/20 backdrop-blur-sm px-3 py-2 rounded-full w-fit">
+              <Music2 className="h-4 w-4 text-white flex-shrink-0" />
+              <div className="text-xs text-white font-semibold whitespace-nowrap overflow-hidden relative">
                 <div className="animate-reel-music inline-block">
                   {reel.author?.fullName || "House Mobile"} • Original Audio
                 </div>
@@ -601,7 +797,7 @@ export function ReelCard({
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <CommentsDrawer
         isOpen={isCommentsOpen}

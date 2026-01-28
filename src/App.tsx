@@ -6,43 +6,74 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Reels from "./pages/Reels";
-import Products from "./pages/Products";
-import SearchIconPage from "./pages/Search";
-import ProductDetail from "./pages/ProductDetail";
-import PostDetail from "./pages/PostDetail";
-import Favorites from "./pages/Favorites";
-import Cart from "./pages/Cart";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import StoreProfile from "./pages/StoreProfile";
-import UploadProduct from "./pages/UploadProduct";
-import EditProfile from "./pages/EditProfile";
-import Onboarding from "./pages/Onboarding";
-import NotFound from "./pages/NotFound";
-import History from "./pages/History";
-import MyVideos from "./pages/MyVideos";
-import WatchLater from "./pages/WatchLater";
+import { lazy, Suspense } from "react";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
-import Blocked from "./pages/Blocked";
-import Dashboard from "./pages/admin/Dashboard";
-import UsersList from "./pages/admin/UsersList";
-import ProductsList from "./pages/admin/ProductsList";
-import ReelsList from "./pages/admin/ReelsList";
-import Analytics from "./pages/admin/Analytics";
-import NotificationsAdmin from "./pages/admin/NotificationsAdmin";
-import AdminUserProfile from "./pages/admin/AdminUserProfile";
-import SupportAdmin from "./pages/admin/SupportAdmin";
-import AdminNews from "./pages/admin/AdminNews";
+import { Loader2 } from "lucide-react";
+
+// Lazy load pages for code splitting
+const Home = lazy(() => import("./pages/Home"));
+const Reels = lazy(() => import("./pages/Reels"));
+const Products = lazy(() => import("./pages/Products"));
+const SearchIconPage = lazy(() => import("./pages/Search"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const PostDetail = lazy(() => import("./pages/PostDetail"));
+const Favorites = lazy(() => import("./pages/Favorites"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Profile = lazy(() => import("./pages/Profile"));
+const StoreProfile = lazy(() => import("./pages/StoreProfile"));
+const UploadProduct = lazy(() => import("./pages/UploadProduct"));
+const EditProfile = lazy(() => import("./pages/EditProfile"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const History = lazy(() => import("./pages/History"));
+const MyVideos = lazy(() => import("./pages/MyVideos"));
+const WatchLater = lazy(() => import("./pages/WatchLater"));
+const Blocked = lazy(() => import("./pages/Blocked"));
+const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
+const UsersList = lazy(() => import("./pages/admin/UsersList"));
+const ProductsList = lazy(() => import("./pages/admin/ProductsList"));
+const ReelsList = lazy(() => import("./pages/admin/ReelsList"));
+const Analytics = lazy(() => import("./pages/admin/Analytics"));
+const NotificationsAdmin = lazy(() => import("./pages/admin/NotificationsAdmin"));
+const AdminUserProfile = lazy(() => import("./pages/admin/AdminUserProfile"));
+const SupportAdmin = lazy(() => import("./pages/admin/SupportAdmin"));
+const AdminNews = lazy(() => import("./pages/admin/AdminNews"));
+
+// Loading fallback component
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-muted-foreground">Yuklanmoqda...</p>
+    </div>
+  </div>
+);
 import { useAuthStore } from "@/store/authStore";
 import { authApi } from "@/services/api/auth";
 import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 1, // 1 minute - data is fresh for 1 minute (faster updates)
+      gcTime: 1000 * 60 * 15, // 15 minutes - cache for 15 minutes (optimized memory)
+      refetchOnWindowFocus: true, // Refetch on window focus for fresh data
+      refetchOnMount: true, // Refetch on mount if data is stale (ensures fresh data)
+      refetchOnReconnect: true, // Refetch on reconnect
+      refetchInterval: 1000 * 60 * 2, // Refetch every 2 minutes in background (for real-time feel)
+      retry: 1, // Only retry once on failure
+      retryDelay: 1000, // 1 second delay between retries
+    },
+    mutations: {
+      retry: 0, // Don't retry mutations
+    },
+  },
+});
 
 const AppContent = () => {
   const { checkAuth } = useAuthStore();
@@ -51,12 +82,12 @@ const AppContent = () => {
     checkAuth();
 
     // Listen to Supabase auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
         const user = session?.user;
         if (user) {
           // Use authApi to get full profile (syncs with profiles table)
-          authApi.getProfile().then(userData => {
+          authApi.getProfile().then(async (userData) => {
             // Check if user is blocked
             if (userData.isBlocked) {
               // Logout immediately
@@ -65,15 +96,26 @@ const AppContent = () => {
             }
 
             if (session.access_token) {
-              localStorage.setItem("auth_token", session.access_token);
-              localStorage.setItem("user", JSON.stringify(userData));
-              useAuthStore.getState().setUser(userData as any);
+              // Save minimal data to sessionStorage
+              const { sessionStorage: sessionStorageUtil } = await import('@/lib/sessionStorage');
+              sessionStorageUtil.saveUser(userData.id, userData.role);
+              // Store minimal non-sensitive data in localStorage for backward compatibility
+              const minimalUser = { id: userData.id, role: userData.role };
+              localStorage.setItem("user", JSON.stringify(minimalUser));
+              useAuthStore.getState().setUser(userData);
               useCartStore.getState().fetchCart();
               useFavoritesStore.getState().fetchFavorites();
             }
-          }).catch(console.error);
+          }).catch(async (error) => {
+            const { handleError } = await import('@/lib/errorHandler');
+            handleError(error, 'App.authStateChange');
+          });
         }
       } else if (event === 'SIGNED_OUT') {
+        // Clear sessionStorage
+        const { sessionStorage: sessionStorageUtil } = await import('@/lib/sessionStorage');
+        sessionStorageUtil.clear();
+        // Clear legacy localStorage
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
         useAuthStore.getState().setUser(null);
@@ -87,65 +129,69 @@ const AppContent = () => {
 
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/reels" element={<Reels />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/post/:id" element={<PostDetail />} />
-          <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
-          <Route path="/search" element={<SearchIconPage />} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-          <Route path="/profile/:id" element={<StoreProfile />} />
-          <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
-          <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
-          <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
-          <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
-          <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
-        </Route>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/reels" element={<Reels />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/post/:id" element={<PostDetail />} />
+            <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+            <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+            <Route path="/search" element={<SearchIconPage />} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+            <Route path="/profile/:id" element={<StoreProfile />} />
+            <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+            <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
+            <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+            <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
+            <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
+          </Route>
 
-        {/* Admin Routes */}
-        <Route path="/admin" element={
-          <ProtectedRoute role="super_admin">
-            <AdminLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="users" element={<UsersList />} />
-          <Route path="users/:id" element={<AdminUserProfile />} />
-          <Route path="news" element={<AdminNews />} />
-          <Route path="products" element={<ProductsList />} />
-          <Route path="reels" element={<ReelsList />} />
-          <Route path="analytics" element={<Analytics />} />
-          <Route path="notifications" element={<NotificationsAdmin />} />
-          <Route path="messages" element={<SupportAdmin type="messages" />} />
-          <Route path="email" element={<SupportAdmin type="email" />} />
-          <Route path="support" element={<SupportAdmin type="support" />} />
-          <Route path="settings" element={<SupportAdmin type="settings" />} />
-        </Route>
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProtectedRoute role="super_admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<Dashboard />} />
+            <Route path="users" element={<UsersList />} />
+            <Route path="users/:id" element={<AdminUserProfile />} />
+            <Route path="news" element={<AdminNews />} />
+            <Route path="products" element={<ProductsList />} />
+            <Route path="reels" element={<ReelsList />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="notifications" element={<NotificationsAdmin />} />
+            <Route path="messages" element={<SupportAdmin type="messages" />} />
+            <Route path="email" element={<SupportAdmin type="email" />} />
+            <Route path="support" element={<SupportAdmin type="support" />} />
+            <Route path="settings" element={<SupportAdmin type="settings" />} />
+          </Route>
 
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/blocked" element={<Blocked />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/blocked" element={<Blocked />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-center" />
-        <AppContent />
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ThemeProvider>
+  <ErrorBoundary>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner position="top-center" />
+          <AppContent />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </ErrorBoundary>
 );
 
 export default App;

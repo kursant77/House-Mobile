@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
+import { SupabasePublicPostWithAuthor, SupabaseCommentWithUser } from "@/types/api";
 
 export interface PublicPost {
     id: string;
@@ -38,20 +40,20 @@ export const postService = {
 
         if (error) throw error;
 
-        return data.map((p: any) => ({
+        return (data as SupabasePublicPostWithAuthor[]).map((p) => ({
             ...p,
             authorId: p.author_id,
-            mediaUrl: p.media_url,
-            mediaType: p.media_type,
+            mediaUrl: p.media_url ?? undefined,
+            mediaType: p.media_type ?? undefined,
             author: p.profiles ? {
                 id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
+                fullName: p.profiles.full_name ?? '',
+                avatarUrl: p.profiles.avatar_url ?? undefined,
                 role: p.profiles.role,
-                telegram: p.profiles.telegram,
-                instagram: p.profiles.instagram,
-                facebook: p.profiles.facebook,
-                youtube: p.profiles.youtube
+                telegram: p.profiles.telegram ?? undefined,
+                instagram: p.profiles.instagram ?? undefined,
+                facebook: p.profiles.facebook ?? undefined,
+                youtube: p.profiles.youtube ?? undefined
             } : undefined
         }));
     },
@@ -68,7 +70,7 @@ export const postService = {
 
         if (error) throw error;
 
-        return data.map((p: any) => ({
+        return data.map((p: SupabasePublicPostWithAuthor) => ({
             ...p,
             authorId: p.author_id,
             mediaUrl: p.media_url,
@@ -96,6 +98,9 @@ export const postService = {
         const { data: userData } = await supabase.auth.getUser();
         if (!userData.user) throw new Error("Auth required");
 
+        // Rate limiting for post creation
+        checkRateLimit(`create-post:${userData.user.id}`, RATE_LIMITS.FORM_SUBMIT);
+
         const { data, error } = await supabase
             .from('public_posts')
             .insert([{
@@ -117,7 +122,7 @@ export const postService = {
         const { data: { user } } = await supabase.auth.getUser();
         await supabase.rpc('increment_post_view_unique', {
             p_post_id: postId,
-            p_user_id: user?.id || null
+            p_user_id: user?.id ?? null
         });
     },
 
@@ -137,23 +142,23 @@ export const postService = {
             .eq('user_id', user.id);
 
         if (error) {
-            console.error("Error fetching saved posts:", error);
+            // Return empty array on error
             return [];
         }
 
         return (data || [])
-            .filter(item => item.public_posts)
+            .filter((item): item is { post_id: string; public_posts: SupabasePublicPostWithAuthor } => !!item.public_posts)
             .map(item => {
-                const p = item.public_posts as any;
+                const p = item.public_posts;
                 return {
                     ...p,
                     authorId: p.author_id,
-                    mediaUrl: p.media_url,
-                    mediaType: p.media_type,
+                    mediaUrl: p.media_url ?? undefined,
+                    mediaType: p.media_type ?? undefined,
                     author: p.profiles ? {
                         id: p.profiles.id,
-                        fullName: p.profiles.full_name,
-                        avatarUrl: p.profiles.avatar_url,
+                        fullName: p.profiles.full_name ?? '',
+                        avatarUrl: p.profiles.avatar_url ?? undefined,
                         role: p.profiles.role
                     } : undefined
                 };
@@ -161,8 +166,12 @@ export const postService = {
     },
 
     updatePost: async (postId: string, updates: Partial<PublicPost>) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:168',message:'updatePost service called',data:{postId,hasTitle:!!updates.title,hasContent:!!updates.content},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        // Use 'posts' table directly instead of 'public_posts' view for updates
         const { data, error } = await supabase
-            .from('public_posts')
+            .from('posts')
             .update({
                 title: updates.title,
                 content: updates.content,
@@ -173,17 +182,25 @@ export const postService = {
             .eq('id', postId)
             .select()
             .single();
-
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:182',message:'updatePost result',data:{error:error?.message,errorCode:error?.code,hasData:!!data,postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         if (error) throw error;
         return data;
     },
 
     deletePost: async (postId: string) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:186',message:'deletePost service called',data:{postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        // Use 'posts' table directly instead of 'public_posts' view for deletes
         const { error } = await supabase
-            .from('public_posts')
+            .from('posts')
             .delete()
             .eq('id', postId);
-
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:192',message:'deletePost result',data:{error:error?.message,errorCode:error?.code,postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         if (error) throw error;
     },
 
@@ -205,27 +222,47 @@ export const postService = {
                 .order('created_at', { ascending: false });
 
             if (fallbackError) throw fallbackError;
-            return fallbackData.map((c: any) => ({
-                ...c,
-                author: c.profiles ? {
-                    id: c.profiles.id,
-                    fullName: c.profiles.full_name,
-                    avatarUrl: c.profiles.avatar_url,
-                    role: c.profiles.role
-                } : undefined,
+            return fallbackData.map((c: SupabaseCommentWithUser) => ({
+                id: c.id,
+                post_id: c.post_id ?? undefined,
+                content: c.content,
+                created_at: c.created_at,
+                parent_id: c.parent_id ?? undefined,
                 likes_count: 0,
                 has_liked: false,
+                author: c.profiles ? {
+                    id: c.profiles.id,
+                    fullName: c.profiles.full_name ?? '',
+                    avatarUrl: c.profiles.avatar_url ?? undefined,
+                    role: c.profiles.role
+                } : undefined,
                 children: []
             }));
         }
 
         // Return formatted data structure
-        return data.map((c: any) => ({
+        interface CommentWithStats {
+            id: string;
+            post_id: string;
+            content: string;
+            created_at: string;
+            parent_id: string | null;
+            author_json: {
+                id: string;
+                full_name: string;
+                avatar_url: string | null;
+                role: string;
+            };
+            likes_count: number;
+            has_liked: boolean;
+        }
+
+        return (data as CommentWithStats[]).map((c) => ({
             id: c.id,
             post_id: c.post_id,
             content: c.content,
             created_at: c.created_at,
-            parent_id: c.parent_id,
+            parent_id: c.parent_id ?? undefined,
             likes_count: c.likes_count,
             has_liked: c.has_liked,
             author: c.author_json,
@@ -236,6 +273,9 @@ export const postService = {
     addComment: async (postId: string, content: string, parentId?: string) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Auth required");
+
+        // Rate limiting for comments
+        checkRateLimit(`comment:${user.id}`, RATE_LIMITS.COMMENT);
 
         const { data, error } = await supabase
             .from('public_post_comments')
@@ -252,13 +292,14 @@ export const postService = {
             .single();
 
         if (error) throw error;
+        const commentData = data as SupabaseCommentWithUser;
         return {
-            ...data,
-            author: data.profiles ? {
-                id: data.profiles.id,
-                fullName: data.profiles.full_name,
-                avatarUrl: data.profiles.avatar_url,
-                role: data.profiles.role
+            ...commentData,
+            author: commentData.profiles ? {
+                id: commentData.profiles.id,
+                fullName: commentData.profiles.full_name ?? '',
+                avatarUrl: commentData.profiles.avatar_url ?? undefined,
+                role: commentData.profiles.role
             } : undefined
         };
     },
@@ -310,7 +351,7 @@ export const postService = {
             .rpc('get_post_stats', { p_post_id: postId });
 
         if (error) {
-            console.error("Error fetching post stats:", error);
+            // Return default stats on error
             return { likes_count: 0, has_liked: false, has_disliked: false, has_saved: false };
         }
         return data as { likes_count: number; has_liked: boolean; has_disliked: boolean; has_saved: boolean };
@@ -319,6 +360,9 @@ export const postService = {
     togglePostLike: async (postId: string) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Auth required");
+
+        // Rate limiting for likes
+        checkRateLimit(`like:${user.id}`, RATE_LIMITS.LIKE);
 
         // First, remove dislike if exists (YouTube behavior)
         await supabase.from('public_post_dislikes').delete().eq('user_id', user.id).eq('post_id', postId);

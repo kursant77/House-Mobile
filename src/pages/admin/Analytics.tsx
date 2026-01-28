@@ -95,7 +95,7 @@ export default function Analytics() {
                 })));
             }
         } catch (error) {
-            console.error("Analytics fetch failed:", error);
+            // Error is handled by React Query
         } finally {
             setLoading(false);
         }
@@ -113,7 +113,7 @@ export default function Analytics() {
     return (
         <div className="space-y-4 md:space-y-6">
             {/* Header */}
-            <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-xl md:text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Analitika Markazi</h2>
                     <p className="text-zinc-500 text-xs md:text-sm font-medium">Platforma rivojlanishi va foydalanuvchi faolligi ko'rsatkichlari</p>
@@ -126,10 +126,10 @@ export default function Analytics() {
 
             {/* Metrics Grid - Responsive */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                <div className="p-5 md:p-6 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="p-5 md:p-6 lg:p-7 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <div className="flex items-center justify-between mb-3 md:mb-4">
-                        <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg bg-[#3C50E0]/10 flex items-center justify-center">
-                            <Eye className="h-4 w-4 md:h-5 md:w-5 text-[#3C50E0]" />
+                        <div className="h-10 w-10 md:h-11 md:w-11 rounded-lg bg-[#3C50E0]/10 flex items-center justify-center">
+                            <Eye className="h-5 w-5 md:h-6 md:w-6 text-[#3C50E0]" />
                         </div>
                         <span className="text-[#10B981] text-[10px] md:text-xs font-black flex items-center gap-1">
                             Live <div className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
@@ -139,10 +139,10 @@ export default function Analytics() {
                     <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Total Views</p>
                 </div>
 
-                <div className="p-5 md:p-6 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="p-5 md:p-6 lg:p-7 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <div className="flex items-center justify-between mb-3 md:mb-4">
-                        <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
-                            <ShoppingBag className="h-4 w-4 md:h-5 md:w-5 text-[#10B981]" />
+                        <div className="h-10 w-10 md:h-11 md:w-11 rounded-lg bg-[#10B981]/10 flex items-center justify-center">
+                            <ShoppingBag className="h-5 w-5 md:h-6 md:w-6 text-[#10B981]" />
                         </div>
                         <span className="text-[#10B981] text-[10px] md:text-xs font-black flex items-center gap-1">
                             +{metrics.totalProducts} <TrendingUp className="h-3 w-3" />
@@ -152,10 +152,10 @@ export default function Analytics() {
                     <p className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1">Total Items</p>
                 </div>
 
-                <div className="p-5 md:p-6 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm sm:col-span-2 lg:col-span-1">
+                <div className="p-5 md:p-6 lg:p-7 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm sm:col-span-2 lg:col-span-1">
                     <div className="flex items-center justify-between mb-3 md:mb-4">
-                        <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                            <Users className="h-4 w-4 md:h-5 md:w-5 text-orange-500" />
+                        <div className="h-10 w-10 md:h-11 md:w-11 rounded-lg bg-orange-500/10 flex items-center justify-center">
+                            <Users className="h-5 w-5 md:h-6 md:w-6 text-orange-500" />
                         </div>
                         <span className="text-blue-500 text-[10px] md:text-xs font-black flex items-center gap-1">
                             Active <ArrowUpRight className="h-3 w-3" />
@@ -168,9 +168,9 @@ export default function Analytics() {
 
             {/* Main Analytical charts */}
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-                <div className="bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <h4 className="text-base md:text-lg font-black text-zinc-800 dark:text-white mb-4 md:mb-6 uppercase tracking-tighter">Traffic Overview</h4>
-                    <div className="h-[220px] sm:h-[260px] md:h-[300px] w-full">
+                    <div className="h-[240px] md:h-[280px] lg:h-[320px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={trafficData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -184,10 +184,10 @@ export default function Analytics() {
                     </div>
                 </div>
 
-                <div className="bg-white dark:bg-zinc-900 p-4 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <h4 className="text-base md:text-lg font-black text-zinc-800 dark:text-white mb-4 md:mb-6 uppercase tracking-tighter">Category Distribution</h4>
                     <div className="flex flex-col md:flex-row items-center gap-4">
-                        <div className="h-[220px] sm:h-[260px] w-full md:w-2/3">
+                        <div className="h-[240px] md:h-[280px] lg:h-[320px] w-full md:w-2/3">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie

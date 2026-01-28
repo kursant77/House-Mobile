@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { SupabaseProductMedia } from "@/types/api";
 
 export type ContentType = 'reel' | 'post' | 'product';
 
@@ -84,7 +85,7 @@ class HistoryService {
                     try {
                         return await this.fetchItemDetails(item);
                     } catch (err) {
-                        console.error(`Error fetching details for ${item.content_type}:${item.content_id}`, err);
+                        // Skip failed fetches - return null
                         return null;
                     }
                 })
@@ -117,15 +118,15 @@ class HistoryService {
                     .single();
 
                 if (error) {
-                    console.error(`HistoryService: Error fetching ${content_type} ${content_id}:`, error);
+                    // Return null on error
                     return null;
                 }
                 if (!product) return null;
 
                 // Map media logic exactly as in productService
                 const media = product.product_media || [];
-                const images = media.filter((m: any) => m.type === 'image').map((m: any) => m.url);
-                const videoMedia = media.find((m: any) => m.type === 'video');
+                const images = media.filter(m => m.type === 'image').map(m => m.url);
+                const videoMedia = media.find(m => m.type === 'video');
 
                 const thumbnail = content_type === 'reel'
                     ? (videoMedia?.thumbnail_url || (images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=128&q=75'))
@@ -187,7 +188,7 @@ class HistoryService {
 
             return null;
         } catch (error) {
-            console.error('HistoryService: Unexpected error in fetchItemDetails:', error);
+            // Return null on unexpected error
             return null;
         }
     }
@@ -224,7 +225,7 @@ class HistoryService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Error removing from history:', error);
+            // Silently ignore remove history errors
             throw error;
         }
     }

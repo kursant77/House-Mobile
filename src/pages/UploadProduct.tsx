@@ -1,22 +1,24 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, X, Upload, Film, Image as LucideImage, Loader2, ArrowLeft, Save } from "lucide-react";
+import { Upload, Loader2, ArrowLeft, Save, Send, Film, X } from "lucide-react";
 import { productService } from "@/services/api/products";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
-import { categories } from "@/data/mockProducts";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { postService } from "@/services/api/posts";
-import { Send, ImageIcon } from "lucide-react";
+import { handleError } from "@/lib/errorHandler";
+import { postSchema, productSchema } from "@/lib/validation";
+import { useProductUpload } from "@/hooks/useProductUpload";
+import { ProductMediaUpload } from "@/components/products/ProductMediaUpload";
+import { ProductForm } from "@/components/products/ProductForm";
 
 interface MediaFile {
     file?: File;
@@ -32,17 +34,28 @@ export default function UploadProduct() {
     const { user } = useAuthStore();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(false);
-    const [images, setImages] = useState<MediaFile[]>([]);
-    const [video, setVideo] = useState<MediaFile | null>(null);
-    const [uploadProgress, setUploadProgress] = useState(0);
-    const imageInputRef = useRef<HTMLInputElement>(null);
-    const videoInputRef = useRef<HTMLInputElement>(null);
+    
+    const {
+        images,
+        video,
+        uploadProgress,
+        setUploadProgress,
+        imageInputRef,
+        videoInputRef,
+        handleImageSelect,
+        handleVideoSelect,
+        removeImage,
+        removeVideo,
+        setImages,
+        setVideo,
+    } = useProductUpload();
 
     const [formData, setFormData] = useState({
         title: "",
         description: "",
         price: "",
         category: "",
+        currency: "UZS",
     });
 
     // News form state
@@ -64,6 +77,7 @@ export default function UploadProduct() {
                             description: product.description,
                             price: product.price.toString(),
                             category: product.category,
+                            currency: product.currency || "UZS",
                         });
 
                         const existingImages: MediaFile[] = [];
@@ -86,66 +100,6 @@ export default function UploadProduct() {
         }
     }, [editId]);
 
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = Array.from(e.target.files || []);
-        const MAX_SIZE = 10 * 1024 * 1024; // 10MB for images
-
-        const newImages: MediaFile[] = files
-            .filter(file => {
-                if (file.size > MAX_SIZE) {
-                    toast.error(`${file.name} juda katta. Maksimal hajm: 10MB`);
-                    return false;
-                }
-                return file.type.startsWith('image/');
-            })
-            .map(file => ({
-                file,
-                preview: URL.createObjectURL(file),
-                type: 'image',
-            }));
-
-        setImages(prev => [...prev, ...newImages]);
-        if (imageInputRef.current) imageInputRef.current.value = "";
-    };
-
-    const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        const MAX_SIZE = 500 * 1024 * 1024; // 500MB for video
-        if (file.size > MAX_SIZE) {
-            toast.error("Video hajmi 500MB dan oshmasligi kerak");
-            return;
-        }
-
-        if (!file.type.startsWith('video/')) {
-            toast.error("Iltimos, video fayl yuklang");
-            return;
-        }
-
-        setVideo({
-            file,
-            preview: URL.createObjectURL(file),
-            type: 'video'
-        });
-
-        if (videoInputRef.current) videoInputRef.current.value = "";
-    };
-
-    const removeImage = (index: number) => {
-        setImages(prev => {
-            const updated = [...prev];
-            if (updated[index].file) URL.revokeObjectURL(updated[index].preview);
-            updated.splice(index, 1);
-            return updated;
-        });
-    };
-
-    const removeVideo = () => {
-        if (video?.file) URL.revokeObjectURL(video.preview);
-        setVideo(null);
-    };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -155,23 +109,75 @@ export default function UploadProduct() {
         }
 
         if (editId) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:109',message:'Product edit submit',data:{editId,hasNewImages:images.some(img=>img.file),hasNewVideo:video?.file,imageCount:images.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+            // #endregion
             try {
                 setIsSubmitting(true);
-                await productService.updateProduct(editId, {
-                    title: formData.title,
-                    description: formData.description,
-                    price: parseFloat(formData.price),
-                    category: formData.category,
-                    currency: "so'm",
-                    inStock: true,
-                });
+                setUploadProgress(0);
+                
+                // Prepare media files (only new files, not existing URLs)
+                const mediaUploads = [
+                    ...images.filter(img => img.file).map(img => ({ file: img.file as File, type: 'image' as const })),
+                    ...(video?.file ? [{ file: video.file, type: 'video' as const }] : [])
+                ];
+
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:112',message:'Calling updateProduct',data:{editId,title:formData.title,mediaCount:mediaUploads.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:129',message:'Before updateProduct call',data:{editId,formData:{title:formData.title,price:formData.price,currency:formData.currency},mediaCount:mediaUploads.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                await productService.updateProduct(
+                    editId,
+                    {
+                        title: formData.title,
+                        description: formData.description,
+                        price: parseFloat(formData.price),
+                        category: formData.category,
+                        currency: formData.currency,
+                        inStock: true,
+                    },
+                    mediaUploads.length > 0 ? mediaUploads : undefined,
+                    (progress) => setUploadProgress(progress)
+                );
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:142',message:'After updateProduct call',data:{editId,success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                // #endregion
+                
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:120',message:'updateProduct succeeded',data:{editId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
                 toast.success("Mahsulot muvaffaqiyatli yangilandi");
                 navigate("/profile");
-            } catch (error) {
-                toast.error("Xatolik yuz berdi");
+            } catch (error: unknown) {
+                // #region agent log
+                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:123',message:'updateProduct error',data:{error:String(error),editId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+                // #endregion
+                const appError = handleError(error, 'UpdateProduct');
+                toast.error(appError.message);
             } finally {
                 setIsSubmitting(false);
             }
+            return;
+        }
+
+        // Validate product data
+        const productData = {
+            title: formData.title.trim(),
+            description: formData.description.trim(),
+            price: parseFloat(formData.price),
+            category: formData.category,
+            currency: formData.currency,
+            inStock: true,
+        };
+
+        const productValidation = productSchema.safeParse(productData);
+        if (!productValidation.success) {
+            productValidation.error.errors.forEach(err => {
+                toast.error(err.message);
+            });
             return;
         }
 
@@ -196,12 +202,7 @@ export default function UploadProduct() {
 
             await productService.createProduct(
                 {
-                    title: formData.title,
-                    description: formData.description,
-                    price: parseFloat(formData.price),
-                    category: formData.category,
-                    currency: "so'm",
-                    inStock: true,
+                    ...productValidation.data,
                     sellerId: user.id
                 },
                 mediaUploads,
@@ -210,9 +211,14 @@ export default function UploadProduct() {
 
             toast.success("Mahsulot muvaffaqiyatli yuklandi!");
             navigate("/profile");
-        } catch (error) {
-            console.error("Upload error:", error);
-            toast.error("Mahsulotni yuklashda xatolik yuz berdi");
+        } catch (error: unknown) {
+            const appError = handleError(error, 'CreateProduct');
+            toast.error(appError.message, {
+                action: {
+                    label: 'Qayta urinish',
+                    onClick: () => handleSubmit(e as React.FormEvent<HTMLFormElement>)
+                }
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -222,11 +228,16 @@ export default function UploadProduct() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        const type = file.type.startsWith('video/') ? 'video' : 'image';
+        // Only validate file type, not size (no limit for news videos)
+        if (!file.type.startsWith('video/')) {
+            toast.error("Iltimos, video fayl yuklang");
+            return;
+        }
+
         setNewsMedia({
-            file,
+            file: file,
             preview: URL.createObjectURL(file),
-            type: type as any
+            type: 'video' as const
         });
     };
 
@@ -242,7 +253,9 @@ export default function UploadProduct() {
         try {
             let mediaUrl = "";
             if (newsMedia) {
-                mediaUrl = await productService.uploadMedia(newsMedia.file, 'product-media', (progress) => setUploadProgress(progress));
+                // Note: Supabase storage limit (50MB) still applies even for news videos
+                // skipSizeValidation only skips client-side validation, not server limit
+                mediaUrl = await productService.uploadMedia(newsMedia.file, 'product-media', (progress) => setUploadProgress(progress), true);
             }
 
             await postService.createPost({
@@ -257,8 +270,9 @@ export default function UploadProduct() {
             setNewsContent("");
             setNewsMedia(null);
             navigate("/");
-        } catch (error: any) {
-            toast.error("Xatolik: " + error.message);
+        } catch (error: unknown) {
+            const appError = handleError(error, 'CreatePost');
+            toast.error(appError.message);
         } finally {
             setIsNewsSubmitting(false);
         }
@@ -273,20 +287,27 @@ export default function UploadProduct() {
     }
 
     return (
-        <div className="min-h-screen bg-background pb-20 md:pb-0">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 pb-20 md:pb-0">
             <Header />
             <Sidebar />
             <BottomNav />
 
             <div className="md:pl-64 pt-16">
-                <main className="max-w-4xl mx-auto p-4 md:p-8">
-                    <div className="flex items-center gap-4 mb-8">
-                        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+                <main className="max-w-6xl mx-auto p-4 md:p-6 lg:p-8">
+                    <div className="flex items-center gap-4 mb-6 md:mb-10">
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => navigate(-1)}
+                            className="hover:bg-muted transition-colors rounded-xl"
+                        >
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
-                        <div>
-                            <h1 className="text-3xl font-bold">{editId ? "Tahrirlash" : "Yangi e'lon"}</h1>
-                            <p className="text-muted-foreground">
+                        <div className="space-y-1">
+                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+                                {editId ? "Tahrirlash" : "Yangi e'lon"}
+                            </h1>
+                            <p className="text-sm md:text-base text-muted-foreground">
                                 {editId ? "Mahsulot ma'lumotlarini o'zgartirish" : "Yangi mahsulot yoki yangilik ulashing"}
                             </p>
                         </div>
@@ -308,178 +329,49 @@ export default function UploadProduct() {
                             <form onSubmit={handleSubmit} className="space-y-8">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-6">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-2">
-                                                    Mahsulot Rasmlari <span className="text-destructive">*</span>
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    Mahsulotning yuqori sifatli rasmlarini yuklang
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div className="grid grid-cols-3 gap-4">
-                                                    {images.map((img, index) => (
-                                                        <div key={index} className="relative aspect-square rounded-xl overflow-hidden group border border-border">
-                                                            <img src={img.preview} className="h-full w-full object-cover" alt="preview" />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => removeImage(index)}
-                                                                className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 rounded-full text-white"
-                                                            >
-                                                                <X className="h-3 w-3" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => imageInputRef.current?.click()}
-                                                        className="aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
-                                                    >
-                                                        <Plus className="h-6 w-6" />
-                                                        <span className="text-[10px]">Rasm</span>
-                                                    </button>
-                                                </div>
-                                                <input
-                                                    type="file"
-                                                    ref={imageInputRef}
-                                                    onChange={handleImageSelect}
-                                                    className="hidden"
-                                                    multiple
-                                                    accept="image/*"
-                                                />
-                                            </CardContent>
-                                        </Card>
-
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle className="flex items-center gap-2">
-                                                    Reel Video <span className="text-destructive">*</span>
-                                                </CardTitle>
-                                                <CardDescription>
-                                                    Qisqa video sharh (Reels uchun)
-                                                </CardDescription>
-                                            </CardHeader>
-                                            <CardContent>
-                                                {video ? (
-                                                    <div className="relative aspect-[9/16] w-full max-w-[200px] rounded-xl overflow-hidden border border-border bg-black">
-                                                        <video src={video.preview} className="h-full w-full object-cover" controls />
-                                                        <button
-                                                            type="button"
-                                                            onClick={removeVideo}
-                                                            className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white"
-                                                        >
-                                                            <X className="h-4 w-4" />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => videoInputRef.current?.click()}
-                                                        className="w-full h-32 rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
-                                                    >
-                                                        <Film className="h-8 w-8" />
-                                                        <span className="text-sm font-medium">Video Yuklash</span>
-                                                        <span className="text-xs text-muted-foreground">MP4, max 500MB</span>
-                                                    </button>
-                                                )}
-                                                <input
-                                                    type="file"
-                                                    ref={videoInputRef}
-                                                    onChange={handleVideoSelect}
-                                                    className="hidden"
-                                                    accept="video/*"
-                                                />
-                                            </CardContent>
-                                        </Card>
+                                        <ProductMediaUpload
+                                            images={images}
+                                            video={video}
+                                            imageInputRef={imageInputRef}
+                                            videoInputRef={videoInputRef}
+                                            onImageSelect={handleImageSelect}
+                                            onVideoSelect={handleVideoSelect}
+                                            onRemoveImage={removeImage}
+                                            onRemoveVideo={removeVideo}
+                                        />
                                     </div>
 
                                     <div className="space-y-6">
-                                        <Card>
-                                            <CardHeader>
-                                                <CardTitle>Ma'lumotlar</CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="title">Nomi <span className="text-destructive">*</span></Label>
-                                                    <Input
-                                                        id="title"
-                                                        placeholder="Masalan: iPhone 15 Pro Max"
-                                                        value={formData.title}
-                                                        onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
+                                        <ProductForm
+                                            formData={formData}
+                                            onFormDataChange={(field, value) => setFormData({ ...formData, [field]: value })}
+                                        />
 
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="price">Narxi ($ yoki so'm) <span className="text-destructive">*</span></Label>
-                                                    <Input
-                                                        id="price"
-                                                        type="number"
-                                                        placeholder="Narxi"
-                                                        value={formData.price}
-                                                        onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="category">Kategoriya <span className="text-destructive">*</span></Label>
-                                                    <Select
-                                                        value={formData.category}
-                                                        onValueChange={val => setFormData({ ...formData, category: val })}
-                                                    >
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Kategoriyani tanlang" />
-                                                        </SelectTrigger>
-                                                        <SelectContent>
-                                                            {categories.map(cat => (
-                                                                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                                                            ))}
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="description">Tavsif <span className="text-destructive">*</span></Label>
-                                                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg text-xs text-yellow-600 dark:text-yellow-400 mb-2">
-                                                        <strong>Maslahat:</strong> Bioga qurilmaning barcha texnik xususiyatlarini (xotira, kamera, protsessor va h.k.) to'liq kiritishni unutmang. Bu xaridorlarga tanlashda yordam beradi.
-                                                    </div>
-                                                    <Textarea
-                                                        id="description"
-                                                        placeholder="Mahsulot haqida batafsil ma'lumot bering..."
-                                                        className="min-h-[120px]"
-                                                        value={formData.description}
-                                                        onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                                        required
-                                                    />
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-
-                                        <div className="flex gap-4">
+                                        <div className="flex flex-col sm:flex-row gap-3 md:gap-4 pt-4 border-t border-border/50">
                                             <Button
                                                 type="button"
                                                 variant="outline"
-                                                className="flex-1"
+                                                className="flex-1 h-12 rounded-xl font-semibold hover:bg-muted transition-all duration-200"
                                                 onClick={() => navigate(-1)}
                                             >
                                                 Bekor qilish
                                             </Button>
                                             <Button
                                                 type="submit"
-                                                className="flex-1 gap-2"
+                                                className="flex-1 h-12 rounded-xl font-semibold gap-2 bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                                                 disabled={isSubmitting}
                                             >
                                                 {isSubmitting ? (
-                                                    <div className="flex flex-col items-center gap-1">
+                                                    <div className="flex items-center gap-2">
                                                         <Loader2 className="h-4 w-4 animate-spin" />
-                                                        <span className="text-[10px]">{uploadProgress}%</span>
+                                                        <span className="text-sm">{uploadProgress}%</span>
                                                     </div>
                                                 ) : (
-                                                    editId ? <Save className="h-4 w-4" /> : <Upload className="h-4 w-4" />
+                                                    <>
+                                                        {editId ? <Save className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
+                                                        <span>{editId ? "Saqlash" : "Yuklash"}</span>
+                                                    </>
                                                 )}
-                                                {isSubmitting ? "Yuklanmoqda..." : (editId ? "Saqlash" : "Yuklash")}
                                             </Button>
                                         </div>
                                     </div>
@@ -488,18 +380,20 @@ export default function UploadProduct() {
                         </TabsContent>
 
                         <TabsContent value="news" className="mt-0">
-                            <Card className="max-w-2xl border-none shadow-none md:shadow-md md:border">
-                                <CardHeader>
-                                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                                        <Send className="h-5 w-5 text-primary" />
+                            <Card className="max-w-2xl mx-auto border border-border/50 shadow-lg md:shadow-xl bg-card/50 backdrop-blur-sm hover:shadow-2xl transition-all duration-300">
+                                <CardHeader className="pb-4">
+                                    <CardTitle className="text-xl md:text-2xl font-bold flex items-center gap-3">
+                                        <div className="p-2 rounded-xl bg-primary/10">
+                                            <Send className="h-5 w-5 text-primary" />
+                                        </div>
                                         Asosiy sahifaga post joylash
                                     </CardTitle>
-                                    <CardDescription>
+                                    <CardDescription className="text-sm md:text-base mt-2">
                                         Obunachilaringiz uchun yangilik yoki qiziqarli ma'lumot ulashing
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <form onSubmit={handleNewsSubmit} className="space-y-4">
+                                    <form onSubmit={handleNewsSubmit} className="space-y-5 md:space-y-6">
                                         <div className="space-y-2">
                                             <Label htmlFor="newsTitle" className="text-sm font-bold opacity-70">
                                                 Sarlavha
@@ -536,16 +430,18 @@ export default function UploadProduct() {
                                                             newsFileInputRef.current.click();
                                                         }
                                                     }}
-                                                    className="w-full h-40 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 transition-all text-muted-foreground hover:text-primary"
+                                                    className="w-full h-48 md:h-56 rounded-2xl border-2 border-dashed border-border/50 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-primary/5 hover:bg-gradient-to-br hover:from-primary/5 hover:to-transparent transition-all duration-300 text-muted-foreground hover:text-primary group"
                                                 >
-                                                    <Film className="h-10 w-10" />
-                                                    <div className="text-center">
-                                                        <p className="text-sm font-bold">Video yuklash <span className="text-destructive">*</span></p>
-                                                        <p className="text-xs opacity-60">MP4 formatda, max 500MB</p>
+                                                    <div className="p-4 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                                                        <Film className="h-8 w-8 md:h-10 md:w-10" />
+                                                    </div>
+                                                    <div className="text-center space-y-1">
+                                                        <p className="text-sm md:text-base font-bold">Video yuklash <span className="text-destructive">*</span></p>
+                                                        <p className="text-xs md:text-sm opacity-60">MP4 formatda</p>
                                                     </div>
                                                 </button>
                                             ) : (
-                                                <div className="relative rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 aspect-video group">
+                                                <div className="relative rounded-2xl overflow-hidden border-2 border-border/50 bg-muted/30 aspect-video group shadow-lg hover:shadow-xl transition-all duration-300">
                                                     {newsMedia.type === 'image' ? (
                                                         <img src={newsMedia.preview} className="w-full h-full object-cover" alt="preview" />
                                                     ) : (
@@ -554,38 +450,35 @@ export default function UploadProduct() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setNewsMedia(null)}
-                                                        className="absolute top-3 right-3 p-1.5 bg-black/60 rounded-full text-white hover:bg-black/80 transition-colors opacity-0 group-hover:opacity-100"
+                                                        className="absolute top-3 right-3 p-2 bg-black/70 backdrop-blur-sm rounded-full text-white hover:bg-black/90 transition-all duration-200 opacity-0 group-hover:opacity-100 hover:scale-110"
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </button>
                                                 </div>
                                             )}
 
-                                            <div className="flex items-center justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="file"
-                                                        ref={newsFileInputRef}
-                                                        className="hidden"
-                                                        onChange={handleNewsFileSelect}
-                                                        accept="video/*"
-                                                    />
-                                                </div>
-
+                                            <div className="flex flex-col gap-4 pt-4 border-t border-border/50">
+                                                <input
+                                                    type="file"
+                                                    ref={newsFileInputRef}
+                                                    className="hidden"
+                                                    onChange={handleNewsFileSelect}
+                                                    accept="video/*"
+                                                />
                                                 <Button
                                                     type="submit"
                                                     disabled={isNewsSubmitting || !newsTitle.trim() || !newsContent.trim() || !newsMedia || newsMedia.type !== 'video'}
-                                                    className="w-full h-12 rounded-2xl font-bold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
+                                                    className="w-full h-12 md:h-14 rounded-xl font-bold bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl shadow-primary/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
                                                 >
                                                     {isNewsSubmitting ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                                            <span>Yuklanmoqda {uploadProgress}%</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <Loader2 className="h-5 w-5 animate-spin" />
+                                                            <span className="text-sm md:text-base">Yuklanmoqda {uploadProgress}%</span>
                                                         </div>
                                                     ) : (
                                                         <>
-                                                            <Send className="h-4 w-4 mr-2" />
-                                                            Yangilikni ulashish
+                                                            <Send className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                                                            <span className="text-sm md:text-base">Yangilikni ulashish</span>
                                                         </>
                                                     )}
                                                 </Button>

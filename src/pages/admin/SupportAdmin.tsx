@@ -113,7 +113,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                             { icon: Clock, label: "Kutayotgan", value: stats?.pending || 0, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-900/20" },
                             { icon: CheckCircle, label: "Javob Berilgan", value: stats?.replied || 0, color: "text-green-500", bg: "bg-green-50 dark:bg-green-900/20" },
                         ].map((stat, i) => (
-                            <div key={i} className={cn("p-4 rounded-lg border border-zinc-100 dark:border-zinc-800", stat.bg)}>
+                            <div key={i} className={cn("p-4 md:p-5 rounded-lg border border-zinc-100 dark:border-zinc-800", stat.bg)}>
                                 <div className="flex items-center gap-3">
                                     <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center", stat.bg)}>
                                         <stat.icon className={cn("h-5 w-5", stat.color)} />
@@ -136,7 +136,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                         ) : (
                             messages.map((msg, i) => (
                                 <div key={msg.id} className={cn(
-                                    "p-4 rounded-lg border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/20 cursor-pointer transition-colors",
+                                    "p-4 md:p-5 rounded-lg border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/20 cursor-pointer transition-colors",
                                     msg.status === 'unread' && "bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/20"
                                 )}>
                                     <div className="flex items-center justify-between gap-4">
@@ -206,7 +206,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                             </div>
                                         ) : (
                                             <div className="divide-y">
-                                                {allUsers.map((u: any) => (
+                                                {allUsers.map((u: { id: string; full_name: string | null; username: string | null }) => (
                                                     <button
                                                         key={u.id}
                                                         onClick={() => setSelectedUserId(u.id)}

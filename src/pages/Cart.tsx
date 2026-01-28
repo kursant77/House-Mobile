@@ -4,7 +4,7 @@ import { useCartStore, CartItem } from "@/store/cartStore";
 import { ShoppingBag, Trash2, Minus, Plus, ArrowRight, Package, Truck, Shield, CreditCard, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
@@ -12,13 +12,6 @@ import { Separator } from "@/components/ui/separator";
 
 function CartItemCard({ item }: { item: CartItem }) {
   const { removeFromCart, incrementQuantity, decrementQuantity } = useCartStore();
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("uz-UZ", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   const itemTotal = item.product.price * item.quantity;
 
@@ -55,11 +48,11 @@ function CartItemCard({ item }: { item: CartItem }) {
             </Link>
             <div className="flex items-center gap-2 mt-1">
               <p className="text-base md:text-lg font-bold text-primary">
-                {formatPrice(item.product.price)} {item.product.currency}
+                {formatPriceNumber(item.product.price)} {formatCurrencySymbol(item.product.currency || "UZS")}
               </p>
               {item.quantity > 1 && (
                 <span className="text-xs text-muted-foreground">
-                  ({formatPrice(item.product.price)} x {item.quantity})
+                  ({formatPriceNumber(item.product.price)} x {item.quantity})
                 </span>
               )}
             </div>
@@ -93,7 +86,7 @@ function CartItemCard({ item }: { item: CartItem }) {
               <div className="text-right hidden sm:block">
                 <p className="text-sm text-muted-foreground">Jami</p>
                 <p className="text-base md:text-lg font-bold text-foreground">
-                  {formatPrice(itemTotal)} {item.product.currency}
+                  {formatPriceNumber(itemTotal)} {formatCurrencySymbol(item.product.currency || "UZS")}
                 </p>
               </div>
               <button
@@ -110,7 +103,7 @@ function CartItemCard({ item }: { item: CartItem }) {
           <div className="flex justify-between items-center mt-2 sm:hidden pt-2 border-t border-border">
             <span className="text-sm text-muted-foreground">Jami:</span>
             <span className="text-base font-bold text-foreground">
-              {formatPrice(itemTotal)} {item.product.currency}
+              {formatPriceNumber(itemTotal)} {formatCurrencySymbol(item.product.currency || "UZS")}
             </span>
           </div>
         </div>
@@ -123,10 +116,6 @@ export default function Cart() {
   const { items, getTotal, getItemCount, clearCart } = useCartStore();
   const [showCheckout, setShowCheckout] = useState(false);
   const isMobile = useIsMobile();
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("uz-UZ").format(price);
-  };
 
   const itemCount = getItemCount();
   const total = getTotal();
@@ -238,7 +227,7 @@ export default function Cart() {
                     onClick={() => setShowCheckout(true)}
                     className="w-full md:w-auto gap-2 px-10 h-14 rounded-2xl text-lg font-black order-1 md:order-2 shadow-xl hover:shadow-2xl transition-all bg-primary hover:scale-[1.02] active:scale-95"
                   >
-                    Buyurtma berish — {formatPrice(total)} UZS
+                    Buyurtma berish — {formatPriceNumber(total)} {formatCurrencySymbol(items[0]?.product.currency || "UZS")}
                     <ArrowRight className="h-5 w-5" />
                   </Button>
                 )}
@@ -275,7 +264,7 @@ export default function Cart() {
             <div>
               <p className="text-xs text-muted-foreground">Jami</p>
               <p className="text-xl font-bold text-primary">
-                {formatPrice(total)} UZS
+                {formatPriceNumber(total)} {formatCurrencySymbol(items[0]?.product.currency || "UZS")}
               </p>
             </div>
             <Button

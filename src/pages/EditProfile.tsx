@@ -73,7 +73,12 @@ export default function EditProfile() {
 
             const updatedUser = { ...user, name, bio, avatarUrl, telegram, instagram, facebook, youtube };
             setUser(updatedUser);
-            localStorage.setItem("user", JSON.stringify(updatedUser));
+            try {
+              const minimalUser = { id: updatedUser.id, role: updatedUser.role };
+              localStorage.setItem("user", JSON.stringify(minimalUser));
+            } catch (error) {
+              // Silently ignore localStorage errors
+            }
 
             toast.success("Profil yangilandi");
             navigate("/profile");

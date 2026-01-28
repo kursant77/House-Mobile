@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { ShoppingBag, Trash2, Edit, Search, Filter, MoreVertical, ExternalLink, Package, Save, X, Loader2, ArrowRight, Tag, Boxes } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatCurrencySymbol } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -117,7 +117,7 @@ export default function ProductsList() {
     return (
         <div className="space-y-6">
             {/* Header Card */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Mahsulotlar Ombori</h2>
                     <p className="text-zinc-500 text-sm font-medium">Platformadagi barcha e'lonlar va mahsulotlar boshqaruvi</p>
@@ -136,7 +136,7 @@ export default function ProductsList() {
             </div>
 
             {/* Products Grid / Table */}
-            <div className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
+            <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
                 <div className="max-w-full overflow-x-auto">
                     <table className="w-full table-auto">
                         <thead>
@@ -177,13 +177,13 @@ export default function ProductsList() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-5 px-6">
+                                        <td className="py-4 md:py-5 px-4 md:px-6">
                                             <div className="flex flex-col gap-1.5">
                                                 <span className="text-xs font-black text-[#3C50E0] dark:text-[#80CAEE] uppercase tracking-tighter flex items-center gap-1.5">
                                                     <Tag className="h-3 w-3" /> {p.category}
                                                 </span>
                                                 <span className="text-sm font-black text-zinc-800 dark:text-white">
-                                                    {p.price?.toLocaleString()} {p.currency || "UZS"}
+                                                    {p.price?.toLocaleString()} {formatCurrencySymbol(p.currency || "UZS")}
                                                 </span>
                                             </div>
                                         </td>
@@ -201,13 +201,13 @@ export default function ProductsList() {
                                                 {p.in_stock ? "Sotuvda" : "Tugagan"}
                                             </button>
                                         </td>
-                                        <td className="py-5 px-6 text-right">
+                                        <td className="py-4 md:py-5 px-4 md:px-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button
                                                     onClick={() => handleEdit(p)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 text-zinc-400 hover:text-[#3C50E0] hover:bg-[#3C50E0]/10 rounded-lg transition-colors"
+                                                    className="h-9 w-9 md:h-10 md:w-10 text-zinc-400 hover:text-[#3C50E0] hover:bg-[#3C50E0]/10 rounded-lg transition-colors"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
@@ -215,7 +215,7 @@ export default function ProductsList() {
                                                     onClick={() => handleDelete(p.id)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    className="h-9 w-9 md:h-10 md:w-10 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -236,13 +236,13 @@ export default function ProductsList() {
                         <DialogTitle className="text-xl font-black text-zinc-800 dark:text-white uppercase tracking-tighter">Mahsulotni tahrirlash</DialogTitle>
                     </DialogHeader>
                     {editingProduct && (
-                        <div className="grid gap-6 py-6 font-medium">
+                        <div className="grid gap-5 md:gap-6 py-6 font-medium">
                             <div className="grid gap-2">
                                 <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Mahsulot nomi</label>
                                 <Input
                                     value={editingProduct.title}
                                     onChange={(e) => setEditingProduct({ ...editingProduct, title: e.target.value })}
-                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -252,7 +252,7 @@ export default function ProductsList() {
                                         type="number"
                                         value={editingProduct.price}
                                         onChange={(e) => setEditingProduct({ ...editingProduct, price: Number(e.target.value) })}
-                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                     />
                                 </div>
                                 <div className="grid gap-2">
@@ -260,7 +260,7 @@ export default function ProductsList() {
                                     <Input
                                         value={editingProduct.category}
                                         onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                     />
                                 </div>
                             </div>

@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { Product } from "@/types/product";
+import { SupabaseCartItem, SupabaseFavoriteItem } from "@/types/cart";
+import { mapSupabaseProductToProduct } from "@/lib/productMapper";
+import { SupabaseProductWithRelations } from "@/types/api";
 
 export const userDataService = {
     // --- Favorites ---
@@ -20,21 +23,9 @@ export const userDataService = {
 
         if (error) throw error;
 
-        return (data as any[]).map(item => ({
-            id: item.products.id,
-            title: item.products.title,
-            description: item.products.description,
-            price: item.products.price,
-            currency: item.products.currency,
-            category: item.products.category,
-            inStock: item.products.in_stock,
-            rating: item.products.rating,
-            reviewCount: item.products.review_count,
-            sellerId: item.products.seller_id,
-            views: item.products.views,
-            images: item.products.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-            videoUrl: item.products.product_media.find((m: any) => m.type === 'video')?.url,
-        }));
+        return (data as SupabaseFavoriteItem[]).map(item => 
+            mapSupabaseProductToProduct(item.products as SupabaseProductWithRelations)
+        );
     },
 
     addFavorite: async (productId: string) => {
@@ -69,23 +60,9 @@ export const userDataService = {
 
         if (error) throw error;
 
-        return (data as any[]).map(item => ({
+        return (data as SupabaseCartItem[]).map(item => ({
             quantity: item.quantity,
-            product: {
-                id: item.products.id,
-                title: item.products.title,
-                description: item.products.description,
-                price: item.products.price,
-                currency: item.products.currency,
-                category: item.products.category,
-                inStock: item.products.in_stock,
-                rating: item.products.rating,
-                reviewCount: item.products.review_count,
-                sellerId: item.products.seller_id,
-                views: item.products.views,
-                images: item.products.product_media.filter((m: any) => m.type === 'image').map((m: any) => m.url),
-                videoUrl: item.products.product_media.find((m: any) => m.type === 'video')?.url,
-            }
+            product: mapSupabaseProductToProduct(item.products as SupabaseProductWithRelations)
         }));
     },
 

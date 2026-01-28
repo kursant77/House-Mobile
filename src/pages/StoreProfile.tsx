@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogT
 import { Textarea } from "@/components/ui/textarea";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { cn } from "@/lib/utils";
+import { BioDisplay } from "@/components/shared/BioDisplay";
 
 export default function StoreProfile() {
     const { id } = useParams<{ id: string }>();
@@ -167,7 +168,7 @@ export default function StoreProfile() {
                             )}
                         </div>
                         <p className="font-semibold text-sm text-muted-foreground">{profile.fullName}</p>
-                        <div className="text-sm/snug whitespace-pre-wrap break-words">{profile.bio || "Bio ma'lumotlari hozircha kiritilmagan"}</div>
+                        <BioDisplay bio={profile.bio || ""} maxLines={3} className="text-sm/snug" />
                         {profile.address && (
                             <p className="text-sm text-blue-900 dark:text-blue-100/90 font-medium flex items-center gap-0.5 mt-1">
                                 <MapPin className="h-3 w-3" /> {profile.address}
@@ -297,7 +298,7 @@ export default function StoreProfile() {
 
                         <div className="space-y-1">
                             <p className="font-semibold">{profile.fullName}</p>
-                            <p className="text-sm leading-relaxed whitespace-pre-wrap max-w-md">{profile.bio}</p>
+                            <BioDisplay bio={profile.bio || ""} maxLines={3} className="text-sm leading-relaxed max-w-md" />
                             {profile.address && (
                                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                                     <MapPin className="h-3 w-3" /> {profile.address}

@@ -12,6 +12,9 @@ import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { useAuthStore } from "@/store/authStore";
 import { historyService } from "@/services/api/history";
+import { handleError } from "@/lib/errorHandler";
+import { ERROR_MESSAGES as ERROR_MSGS } from "@/lib/errorMessages";
+import { formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +29,12 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (product?.id) {
-      productService.incrementViews(product.id).catch(console.error);
+      productService.incrementViews(product.id).catch((error) => {
+        // Silently ignore view increment errors
+        if (import.meta.env.DEV) {
+          console.warn('Failed to increment views:', error);
+        }
+      });
 
       // Track view history after 3 seconds of viewing
       if (isAuthenticated) {
@@ -69,22 +77,27 @@ export default function ProductDetail() {
   const isProductFavorite = isFavorite(product.id);
   const isProductInCart = isInCart(product.id);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("uz-UZ").format(price);
-  };
-
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
-      toast.error("Iltimos, avval tizimga kiring");
-      navigate("/auth");
+      toast.error(ERROR_MSGS.AUTH_REQUIRED, {
+        action: {
+          label: 'Kirish',
+          onClick: () => navigate("/auth")
+        }
+      });
       return;
     }
-    addToCart(product, quantity);
-    toast.success(`${quantity} ta mahsulot savatchaga qo'shildi`);
+    try {
+      addToCart(product, quantity);
+      toast.success(`${quantity} ta mahsulot savatchaga qo'shildi`);
+    } catch (error: unknown) {
+      const appError = handleError(error, 'AddToCart');
+      toast.error(appError.message);
+    }
   };
 
   const handleFavorite = () => {
@@ -147,8 +160,10 @@ export default function ProductDetail() {
               <div className="relative aspect-square bg-muted rounded-2xl overflow-hidden">
                 <img
                   src={product.images[currentImage]}
-                  alt={product.title}
+                  alt={`${product.title} - ${currentImage + 1}`}
                   className="h-full w-full object-cover"
+                  loading={currentImage === 0 ? "eager" : "lazy"}
+                  decoding="async"
                 />
 
                 {/* Discount badge */}
@@ -195,8 +210,10 @@ export default function ProductDetail() {
                     >
                       <img
                         src={image}
-                        alt={`${product.title} ${index + 1}`}
+                        alt={`${product.title} - ${index + 1}`}
                         className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}
@@ -256,11 +273,11 @@ export default function ProductDetail() {
               {/* Price */}
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-bold">
-                  {formatPrice(product.price)}
+                  {formatPriceNumber(product.price)}
                 </span>
                 {product.originalPrice && (
                   <span className="text-xl text-muted-foreground line-through">
-                    {formatPrice(product.originalPrice)}
+                    {formatPriceNumber(product.originalPrice)}
                   </span>
                 )}
                 <span className="text-muted-foreground">{product.currency}</span>
@@ -426,11 +443,11 @@ export default function ProductDetail() {
             {/* Price */}
             <div className="flex items-baseline gap-3">
               <span className="text-3xl font-bold text-foreground">
-                {formatPrice(product.price)}
+                {formatPriceNumber(product.price)}
               </span>
               {product.originalPrice && (
                 <span className="text-lg text-muted-foreground line-through">
-                  {formatPrice(product.originalPrice)}
+                  {formatPriceNumber(product.originalPrice)}
                 </span>
               )}
               <span className="text-muted-foreground">{product.currency}</span>
@@ -471,7 +488,7 @@ export default function ProductDetail() {
               <div className="flex-1">
                 <p className="text-xs text-muted-foreground">Jami</p>
                 <p className="text-xl font-bold">
-                  {formatPrice(product.price * quantity)} {product.currency}
+                  {formatPriceNumber(product.price * quantity)} {formatCurrencySymbol(product.currency || "UZS")}
                 </p>
               </div>
               <Button

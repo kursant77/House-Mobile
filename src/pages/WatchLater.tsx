@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Clock, Film, ShoppingBag, X, Bookmark, Eye, Heart } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -37,9 +37,7 @@ const WatchLater = () => {
         return num.toString();
     };
 
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat("uz-UZ").format(price);
-    };
+    // Using shared utility function from utils
 
     return (
         <div className="min-h-screen bg-background pb-20 md:pb-8">
@@ -145,7 +143,7 @@ const WatchLater = () => {
                                     </h3>
                                     <div className="flex items-center justify-between mb-3">
                                         <span className="text-sm font-bold text-primary">
-                                            {formatPrice(item.price)} {item.currency}
+                                            {formatPriceNumber(item.price)} {formatCurrencySymbol(item.currency || "UZS")}
                                         </span>
                                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                                             <div className="flex items-center gap-1">

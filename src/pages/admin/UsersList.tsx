@@ -48,8 +48,9 @@ export default function UsersList() {
 
             if (error) throw error;
             setUsers(data || []);
-        } catch (error: any) {
-            toast.error("Foydalanuvchilarni yuklashda xatolik: " + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Noma'lum xatolik";
+            toast.error("Foydalanuvchilarni yuklashda xatolik: " + message);
         } finally {
             setLoading(false);
         }
@@ -66,8 +67,9 @@ export default function UsersList() {
             }
 
             fetchUsers();
-        } catch (error: any) {
-            toast.error("Bloklashda xatolik: " + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Noma'lum xatolik";
+            toast.error("Bloklashda xatolik: " + message);
         }
     };
 
@@ -92,8 +94,9 @@ export default function UsersList() {
             setDeleteDialogOpen(false);
             setUserToDelete(null);
             fetchUsers();
-        } catch (error: any) {
-            toast.error("O'chirishda xatolik: " + error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Noma'lum xatolik";
+            toast.error("O'chirishda xatolik: " + message);
         } finally {
             setIsDeleting(false);
         }
@@ -112,7 +115,7 @@ export default function UsersList() {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Foydalanuvchilar Paneli</h2>
                     <p className="text-zinc-500 text-sm font-medium">Platforma foydalanuvchilarini to'liq boshqarish va kuzatish</p>
@@ -161,9 +164,9 @@ export default function UsersList() {
                             ) : (
                                 filteredUsers.map((u) => (
                                     <tr key={u.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 transition-colors group">
-                                        <td className="py-5 px-6">
+                                        <td className="py-4 md:py-5 px-4 md:px-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 rounded-xl bg-[#f1f5f9] dark:bg-zinc-800 border-2 border-transparent group-hover:border-[#3C50E0]/30 transition-all flex items-center justify-center shrink-0 overflow-hidden">
+                                                <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-[#f1f5f9] dark:bg-zinc-800 border-2 border-transparent group-hover:border-[#3C50E0]/30 transition-all flex items-center justify-center shrink-0 overflow-hidden">
                                                     {u.avatar_url ? (
                                                         <img src={u.avatar_url} alt="" className="h-full w-full object-cover" />
                                                     ) : (
@@ -201,7 +204,7 @@ export default function UsersList() {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="py-5 px-6">
+                                        <td className="py-4 md:py-5 px-4 md:px-6">
                                             <div className="flex items-center gap-2 text-zinc-500">
                                                 <Calendar className="h-3.5 w-3.5" />
                                                 <span className="text-xs font-bold">
@@ -222,7 +225,7 @@ export default function UsersList() {
                                                             <MoreVertical className="h-4 w-4" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end" className="w-52 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl p-1.5">
+                                                    <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-xl p-1.5 rounded-xl">
                                                         <DropdownMenuItem asChild>
                                                             <Link to={`/admin/users/${u.id}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-900 rounded-lg cursor-pointer px-4 py-2.5 text-sm font-bold flex items-center gap-3">
                                                                 <UserPlus className="h-4 w-4 text-[#3C50E0]" /> Profilni ko'rish

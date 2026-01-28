@@ -13,7 +13,7 @@ export const Layout = () => {
     const location = useLocation();
     const isMobile = useIsMobile();
     const isReelsPage = location.pathname === "/reels";
-    const { isCollapsed, setOpen } = useSidebarStore();
+    const { isCollapsed, setOpen, toggleCollapsed } = useSidebarStore();
 
     // YouTube-style Adaptive Sidebar
     useEffect(() => {
@@ -24,7 +24,9 @@ export const Layout = () => {
             if (width < 1312) {
                 if (!sidebarStore.isCollapsed) sidebarStore.toggleCollapsed();
             } else {
-                if (sidebarStore.isCollapsed) sidebarStore.toggleCollapsed();
+                if (sidebarStore.isCollapsed) {
+                    sidebarStore.toggleCollapsed();
+                }
             }
 
             // Always close overlay on resize to desktop

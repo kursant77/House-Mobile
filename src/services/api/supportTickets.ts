@@ -66,7 +66,7 @@ export const supportTicketsApi = {
 
     // Update ticket status
     async updateStatus(ticketId: string, status: SupportTicket['status']) {
-        const updates: any = { status };
+        const updates: { status: SupportTicket['status']; resolved_at?: string } = { status };
 
         if (status === 'resolved' || status === 'closed') {
             updates.resolved_at = new Date().toISOString();

@@ -114,7 +114,7 @@ export default function Dashboard() {
                 setRecentActivity(latestProducts || []);
 
             } catch (error) {
-                console.error("Dashboard data fetch failed:", error);
+                // Error is handled by React Query
                 setStats(prev => ({ ...prev, loading: false }));
             }
         };
@@ -144,17 +144,17 @@ export default function Dashboard() {
                     { label: 'Total Users', value: stats.users, icon: Users, color: '#FFB81C', trend: '2.59%', up: true },
                     { label: 'Total Reels', value: stats.reels, icon: Clapperboard, color: '#E11D48', trend: '0.95%', up: false },
                 ].map((card, i) => (
-                    <div key={i} className="rounded-lg border border-zinc-200 bg-white py-5 px-5 md:py-6 md:px-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-transform hover:scale-[1.02] duration-300">
-                        <div className="flex h-10 w-10 md:h-11.5 md:w-11.5 items-center justify-center rounded-full bg-[#f1f5f9] dark:bg-zinc-800">
+                    <div key={i} className="rounded-xl border border-zinc-200 bg-white py-5 px-5 md:py-6 md:px-6 lg:px-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-transform hover:scale-[1.02] hover:shadow-md duration-300">
+                        <div className="flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full bg-[#f1f5f9] dark:bg-zinc-800">
                             <card.icon className="h-5 w-5 md:h-6 md:w-6" style={{ color: card.color }} />
                         </div>
 
                         <div className="mt-3 md:mt-4 flex items-end justify-between">
                             <div>
-                                <h4 className="text-xl md:text-2xl font-black text-zinc-800 dark:text-white">
+                                <h4 className="text-xl md:text-2xl font-black text-zinc-800 dark:text-white leading-none">
                                     {card.value >= 1000 ? `${(card.value / 1000).toFixed(1)}K` : card.value}
                                 </h4>
-                                <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest">{card.label}</span>
+                                <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1 block">{card.label}</span>
                             </div>
 
                             <span className={cn(
@@ -172,7 +172,7 @@ export default function Dashboard() {
             {/* Charts Section */}
             <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12 2xl:gap-7.5">
                 {/* Revenue/Views Chart */}
-                <div className="col-span-12 rounded-lg border border-zinc-200 bg-white px-5 pt-7.5 pb-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 xl:col-span-8">
+                <div className="col-span-12 rounded-xl border border-zinc-200 bg-white px-5 md:px-6 pt-6 md:pt-7.5 pb-5 md:pb-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 xl:col-span-8">
                     <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
                         <div className="flex w-full flex-wrap gap-3 sm:gap-5">
                             <div className="flex min-w-47.5">
@@ -257,7 +257,7 @@ export default function Dashboard() {
             </div>
 
             {/* Recent Products Table */}
-            <div className="rounded-lg border border-zinc-200 bg-white p-4 md:p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="rounded-xl border border-zinc-200 bg-white p-5 md:p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
                     <h4 className="text-lg md:text-xl font-black text-black dark:text-white uppercase tracking-tighter">Recent Activities</h4>
                     <Link to="/admin/products">
@@ -271,18 +271,18 @@ export default function Dashboard() {
                     <table className="w-full">
                         <thead>
                             <tr className="bg-[#f7f9fc] dark:bg-zinc-800/50">
-                                <th className="py-4 px-4 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-l-lg">User</th>
-                                <th className="py-4 px-4 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Action</th>
-                                <th className="py-4 px-4 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Date</th>
-                                <th className="py-4 px-4 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-r-lg">Status</th>
+                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-l-lg">User</th>
+                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Action</th>
+                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Date</th>
+                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-r-lg">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {recentActivity.map((item) => (
                                 <tr key={item.id} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                                    <td className="py-4 px-4">
+                                    <td className="py-4 px-4 md:px-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full border border-zinc-200 dark:border-zinc-700 p-0.5 overflow-hidden">
+                                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-zinc-200 dark:border-zinc-700 p-0.5 overflow-hidden">
                                                 {item.profiles?.avatar_url ? (
                                                     <img src={item.profiles.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
                                                 ) : (
@@ -297,13 +297,13 @@ export default function Dashboard() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="py-4 px-4 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                    <td className="py-4 px-4 md:px-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
                                         Uploaded new product: <span className="font-black text-[#3C50E0]">"{item.title}"</span>
                                     </td>
-                                    <td className="py-4 px-4 text-xs font-bold text-zinc-500">
+                                    <td className="py-4 px-4 md:px-6 text-xs font-bold text-zinc-500">
                                         {new Date(item.created_at || Date.now()).toLocaleDateString()}
                                     </td>
-                                    <td className="py-4 px-4">
+                                    <td className="py-4 px-4 md:px-6">
                                         <span className="inline-block px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[10px] font-black uppercase tracking-widest">Success</span>
                                     </td>
                                 </tr>

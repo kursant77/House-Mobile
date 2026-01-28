@@ -22,8 +22,8 @@ export const useWatchLaterStore = create<WatchLaterState>((set, get) => ({
             const items = await watchLaterService.getWatchLaterItems();
             set({ items, isLoading: false });
         } catch (error) {
-            console.error("Failed to fetch watch later items", error);
-            set({ isLoading: false });
+            // Return empty array on error
+            set({ items: [], isLoading: false });
         }
     },
 
@@ -44,7 +44,7 @@ export const useWatchLaterStore = create<WatchLaterState>((set, get) => ({
             await watchLaterService.removeFromWatchLater(productId);
             set({ items: get().items.filter(item => item.id !== productId) });
         } catch (error) {
-            console.error("Failed to remove from watch later", error);
+            // Silently ignore remove errors
         }
     },
 

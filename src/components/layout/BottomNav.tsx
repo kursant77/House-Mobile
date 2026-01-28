@@ -1,5 +1,5 @@
-import { Home, Search, Heart, ShoppingBag, Film, User, PlusSquare, Repeat } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Home, Search, Heart, ShoppingBag, Film, User, Repeat } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,7 +14,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Home, label: "Asosiy", path: "/" },
   { icon: ShoppingBag, label: "Mahsulotlar", path: "/products" },
-  { icon: PlusSquare, label: "E'lon", path: "/upload" },
   { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
@@ -27,6 +26,7 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
   const { getItemCount } = useCartStore();
   const cartCount = getItemCount();
   const isMobile = useIsMobile();
+  const location = useLocation();
 
   // Desktopda ko'rinmasin (Sidebar bor)
   if (!isMobile) {
@@ -44,15 +44,20 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
           ? "bg-black border-transparent text-white"
           : "bg-background/95 border-border text-foreground backdrop-blur-lg"
       )}
+      aria-label="Asosiy navigatsiya"
+      role="navigation"
     >
       {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
+          aria-label={item.label}
+          aria-current={location.pathname === item.path ? "page" : undefined}
           className={({ isActive }) =>
             cn(
               "relative flex flex-col items-center justify-center gap-1 px-2 py-1 flex-1",
               "transition-colors duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md",
               isActive
                 ? (isReelsPage ? "text-white" : "text-primary")
                 : (isReelsPage ? "text-white/40 hover:text-white" : "text-muted-foreground hover:text-foreground")

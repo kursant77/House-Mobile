@@ -39,12 +39,23 @@ export default function AdminNews() {
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Rostdan ham ushbu yangilikni o'chirmoqchimisiz?")) return;
-
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:40',message:'handleDelete called',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
         try {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:44',message:'Calling deletePost',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             await postService.deletePost(id);
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:45',message:'deletePost succeeded',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             toast.success("Yangilik o'chirildi");
             fetchPosts();
         } catch (error: any) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:48',message:'deletePost error',data:{error:error?.message,errorCode:error?.code,postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+            // #endregion
             toast.error("O'chirishda xatolik: " + error.message);
         }
     };
@@ -57,7 +68,13 @@ export default function AdminNews() {
     const handleSaveEdit = async () => {
         if (!editingPost) return;
         setIsSaving(true);
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:57',message:'handleSaveEdit called',data:{postId:editingPost.id,updates:{title:editingPost.title,content:editingPost.content?.substring(0,50)}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
         try {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:61',message:'Calling updatePost',data:{postId:editingPost.id}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             await postService.updatePost(editingPost.id, {
                 title: editingPost.title,
                 content: editingPost.content,
@@ -65,10 +82,16 @@ export default function AdminNews() {
                 mediaType: editingPost.mediaType,
                 category: editingPost.category
             });
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:68',message:'updatePost succeeded',data:{postId:editingPost.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             toast.success("Yangilik yangilandi");
             setIsEditDialogOpen(false);
             fetchPosts();
         } catch (error: any) {
+            // #region agent log
+            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:72',message:'updatePost error',data:{error:error?.message,errorCode:error?.code,postId:editingPost.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+            // #endregion
             toast.error("Yangilashda xatolik: " + error.message);
         } finally {
             setIsSaving(false);
@@ -84,7 +107,7 @@ export default function AdminNews() {
     return (
         <div className="space-y-6">
             {/* Header Card */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Yangiliklar Boshqaruvi</h2>
                     <p className="text-zinc-500 text-sm font-medium">Barcha postlar va yangiliklarni tahrirlash yoki o'chirish</p>
@@ -103,7 +126,7 @@ export default function AdminNews() {
             </div>
 
             {/* Posts Grid / Table */}
-            <div className="rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
+            <div className="rounded-xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900 overflow-hidden">
                 <div className="max-w-full overflow-x-auto">
                     <table className="w-full table-auto">
                         <thead>
@@ -158,9 +181,9 @@ export default function AdminNews() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-5 px-6">
+                                        <td className="py-4 md:py-5 px-4 md:px-6">
                                             <div className="flex items-center gap-2">
-                                                <div className="h-8 w-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
+                                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden">
                                                     {p.author?.avatarUrl ? (
                                                         <img src={p.author.avatarUrl} className="h-full w-full object-cover" alt="" />
                                                     ) : (
@@ -170,7 +193,7 @@ export default function AdminNews() {
                                                 <span className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-tight">{p.author?.fullName}</span>
                                             </div>
                                         </td>
-                                        <td className="py-5 px-6">
+                                        <td className="py-4 md:py-5 px-4 md:px-6">
                                             <div className="flex items-center gap-3 text-zinc-500">
                                                 <div className="flex items-center gap-1">
                                                     <Eye className="h-3 w-3" />
@@ -178,13 +201,13 @@ export default function AdminNews() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-5 px-6 text-right">
+                                        <td className="py-4 md:py-5 px-4 md:px-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <Button
                                                     onClick={() => handleEdit(p)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 text-zinc-400 hover:text-[#3C50E0] hover:bg-[#3C50E0]/10 rounded-lg transition-colors"
+                                                    className="h-9 w-9 md:h-10 md:w-10 text-zinc-400 hover:text-[#3C50E0] hover:bg-[#3C50E0]/10 rounded-lg transition-colors"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
@@ -192,7 +215,7 @@ export default function AdminNews() {
                                                     onClick={() => handleDelete(p.id)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="h-9 w-9 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    className="h-9 w-9 md:h-10 md:w-10 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -213,20 +236,20 @@ export default function AdminNews() {
                         <DialogTitle className="text-xl font-black text-zinc-800 dark:text-white uppercase tracking-tighter">Yangilikni tahrirlash</DialogTitle>
                     </DialogHeader>
                     {editingPost && (
-                        <div className="grid gap-6 py-6 font-medium max-h-[70vh] overflow-y-auto pr-2">
+                        <div className="grid gap-5 md:gap-6 py-6 font-medium max-h-[70vh] overflow-y-auto pr-2">
                             <div className="grid gap-2">
                                 <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Sarlavha</label>
                                 <Input
                                     value={editingPost.title || ""}
                                     onChange={(e) => setEditingPost({ ...editingPost, title: e.target.value })}
-                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                     placeholder="Post sarlavhasi"
                                 />
                             </div>
                             <div className="grid gap-2">
                                 <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Post mazmuni</label>
                                 <textarea
-                                    className="flex min-h-[150px] w-full rounded-lg border border-zinc-200 bg-[#f7f9fc] px-4 py-3 text-sm font-bold dark:bg-zinc-900 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#3C50E0]/20"
+                                    className="flex min-h-[140px] md:min-h-[160px] w-full rounded-lg border border-zinc-200 bg-[#f7f9fc] px-4 py-3 text-sm font-bold dark:bg-zinc-900 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-[#3C50E0]/20"
                                     value={editingPost.content}
                                     onChange={(e) => setEditingPost({ ...editingPost, content: e.target.value })}
                                 />
@@ -236,7 +259,7 @@ export default function AdminNews() {
                                 <Input
                                     value={editingPost.mediaUrl || ""}
                                     onChange={(e) => setEditingPost({ ...editingPost, mediaUrl: e.target.value })}
-                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                    className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                     placeholder="https://example.com/image.jpg"
                                 />
                             </div>
@@ -257,7 +280,7 @@ export default function AdminNews() {
                                     <Input
                                         value={editingPost.category || ""}
                                         onChange={(e) => setEditingPost({ ...editingPost, category: e.target.value })}
-                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 rounded-lg font-bold"
+                                        className="bg-[#f7f9fc] dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 h-11 md:h-12 rounded-lg font-bold"
                                         placeholder="masalan: xabar, yangilik"
                                     />
                                 </div>

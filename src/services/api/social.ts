@@ -1,5 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { Profile } from "@/types/product";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
+import { SupabaseCommentWithUser, SupabaseProfile, SupabaseFollow } from "@/types/api";
 
 export const socialService = {
     getProfile: async (userId: string): Promise<Profile | null> => {
@@ -11,7 +13,7 @@ export const socialService = {
                 .single();
 
             if (error) {
-                console.error("Profile fetch error:", error);
+                // Return null on error - error is handled by caller
                 return null;
             }
 
@@ -29,7 +31,7 @@ export const socialService = {
                 username: data.username,
             };
         } catch (e) {
-            console.error("getProfile unexpected error:", e);
+            // Return null on error - error is handled by caller
             return null;
         }
     },
@@ -105,6 +107,9 @@ export const socialService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Auth required");
 
+        // Rate limiting for likes
+        checkRateLimit(`like:${user.id}`, RATE_LIMITS.LIKE);
+
         const isLiked = await socialService.isLiked(productId);
 
         if (isLiked) {
@@ -156,8 +161,8 @@ export const socialService = {
         if (error) throw error;
 
         // Har bir comment uchun replies sonini olish (bitta query bilan)
-        const commentIds = data.map((c: any) => c.id);
-        let repliesCounts: Record<string, number> = {};
+        const commentIds = (data as SupabaseCommentWithUser[]).map((c) => c.id);
+        const repliesCounts: Record<string, number> = {};
 
         if (commentIds.length > 0) {
             const { data: repliesData } = await supabase
@@ -166,24 +171,25 @@ export const socialService = {
                 .in('parent_comment_id', commentIds);
 
             if (repliesData) {
-                repliesData.forEach((r: any) => {
-                    repliesCounts[r.parent_comment_id] = (repliesCounts[r.parent_comment_id] || 0) + 1;
+                repliesData.forEach((r) => {
+                    const parentId = r.parent_comment_id as string;
+                    repliesCounts[parentId] = (repliesCounts[parentId] || 0) + 1;
                 });
             }
         }
 
-        return data.map((c: any) => ({
+        return (data as SupabaseCommentWithUser[]).map((c) => ({
             id: c.id,
             userId: c.user_id,
-            text: c.text,
+            text: c.text || c.content,
             createdAt: c.created_at,
             repliesCount: repliesCounts[c.id] || 0,
             user: {
-                id: c.profiles.id,
-                fullName: c.profiles.full_name,
-                username: c.profiles.username,
-                avatarUrl: c.profiles.avatar_url,
-                role: c.profiles.role,
+                id: c.profiles?.id || '',
+                fullName: c.profiles?.full_name || '',
+                username: c.profiles?.username || undefined,
+                avatarUrl: c.profiles?.avatar_url || undefined,
+                role: c.profiles?.role || 'user',
             }
         }));
     },
@@ -201,7 +207,7 @@ export const socialService = {
 
         if (error) throw error;
 
-        return data.map((c: any) => ({
+        return data.map((c: SupabaseCommentWithUser) => ({
             id: c.id,
             userId: c.user_id,
             text: c.text,
@@ -265,6 +271,9 @@ export const socialService = {
     addComment: async (productId: string, text: string, parentCommentId?: string) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("Auth required");
+
+        // Rate limiting for comments
+        checkRateLimit(`comment:${user.id}`, RATE_LIMITS.COMMENT);
 
         const { data, error } = await supabase
             .from('product_comments')
@@ -381,6 +390,11 @@ export const socialService = {
     searchUsers: async (query: string) => {
         if (!query.trim()) return [];
 
+        // Rate limiting for search
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || 'anonymous';
+        checkRateLimit(`search:${userId}`, RATE_LIMITS.SEARCH);
+
         const { data, error } = await supabase
             .from('profiles')
             .select('id, full_name, username, avatar_url, role')
@@ -389,12 +403,12 @@ export const socialService = {
 
         if (error) throw error;
 
-        return data.map((p: any) => ({
+        return data.map((p: SupabaseProfile) => ({
             id: p.id,
-            fullName: p.full_name,
-            username: p.username,
-            avatarUrl: p.avatar_url,
-            role: p.role,
+            fullName: p.full_name ?? undefined,
+            username: p.username ?? undefined,
+            avatarUrl: p.avatar_url ?? undefined,
+            role: p.role === 'admin' ? 'super_admin' : (p.role === 'user' || p.role === 'blogger' || p.role === 'super_admin' ? p.role : undefined),
         }));
     },
 
@@ -432,18 +446,18 @@ export const socialService = {
             .eq('follower_id', user.id);
 
         if (error) {
-            console.error("Error fetching followed profiles:", error);
+            // Return empty array on error
             return [];
         }
 
         return data
-            .map((f: any) => ({
+            .map((f: { profiles: SupabaseProfile }) => ({
                 id: f.profiles.id,
-                fullName: f.profiles.full_name,
-                username: f.profiles.username,
-                avatarUrl: f.profiles.avatar_url,
-                role: f.profiles.role,
+                fullName: f.profiles.full_name ?? undefined,
+                username: f.profiles.username ?? undefined,
+                avatarUrl: f.profiles.avatar_url ?? undefined,
+                role: f.profiles.role === 'admin' ? 'super_admin' : (f.profiles.role === 'user' || f.profiles.role === 'blogger' || f.profiles.role === 'super_admin' ? f.profiles.role : undefined),
             }))
-            .filter((p: Profile) => p.id !== null);
+            .filter((p: Profile) => p.id !== undefined);
     }
 };

@@ -6,9 +6,10 @@ import { cn } from "@/lib/utils";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { SkeletonProductCard } from "@/components/products/SkeletonProductCard";
+import { supabase } from "@/lib/supabase";
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,11 +37,38 @@ export default function Products() {
     setSearchParams(params, { replace: true });
   };
 
+  const queryClient = useQueryClient();
+  
   const { data: allProducts = [], isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: productService.getProducts,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 1, // 1 minute cache (aligned with global config)
   });
+
+  // Real-time subscription for products
+  useEffect(() => {
+    if (!isLoading) {
+      const channel = supabase
+        .channel('products-realtime')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'products'
+          },
+          () => {
+            // Invalidate and refetch products when changes occur
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isLoading, queryClient]);
 
   const dynamicCategories = useMemo(() => categories.map(cat => ({
     ...cat,

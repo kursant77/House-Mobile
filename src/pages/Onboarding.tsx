@@ -109,7 +109,12 @@ export default function Onboarding() {
       };
 
       setUser(updatedUser);
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      try {
+        const minimalUser = { id: updatedUser.id, role: updatedUser.role };
+        localStorage.setItem("user", JSON.stringify(minimalUser));
+      } catch (error) {
+        // Silently ignore localStorage errors
+      }
       localStorage.setItem("onboarding_complete", "true");
 
       toast.success("Profil muvaffaqiyatli yangilandi!");

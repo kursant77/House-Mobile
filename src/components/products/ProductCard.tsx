@@ -3,7 +3,7 @@ import { Product } from "@/types/product";
 import { Heart, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
@@ -33,6 +33,7 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) {
       toast.error("Iltimos, avval tizimga kiring");
       navigate("/auth");
@@ -44,6 +45,7 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!isAuthenticated) {
       toast.error("Iltimos, avval tizimga kiring");
       navigate("/auth");
@@ -65,8 +67,9 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
         <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-zinc-100 dark:bg-zinc-900 border border-border/50">
           <img
             src={product.images[0]}
-            alt={product.title}
+            alt={`${product.title} - ${product.description || 'Mahsulot rasmi'}`}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
           />
 
           {/* Play Icon Overlay */}
@@ -92,9 +95,9 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
             onClick={(e) => e.stopPropagation()}
             className="z-10"
           >
-            <Avatar className="h-9 w-9 border border-border/50">
+            <Avatar size="md">
               <AvatarImage src={product.author?.avatarUrl} />
-              <AvatarFallback className="bg-muted text-[10px] font-bold">
+              <AvatarFallback>
                 {product.author?.fullName?.charAt(0)}
               </AvatarFallback>
             </Avatar>
@@ -134,12 +137,21 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
     <div
       onClick={() => navigate(`/product/${product.id}`)}
       className="group flex flex-col gap-3 cursor-pointer"
+      role="button"
+      tabIndex={0}
+      aria-label={`${product.title} mahsulotini ko'rish`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          navigate(`/product/${product.id}`);
+        }
+      }}
     >
       {/* Image Container */}
       <div className={cn("relative w-full rounded-2xl bg-zinc-100 dark:bg-zinc-900 overflow-hidden isolate", aspectClass)}>
         <img
           src={product.images[0]}
-          alt={product.title}
+          alt={`${product.title} - ${product.description || 'Mahsulot rasmi'}`}
           className="h-full w-full object-cover transition-transform duration-500 will-change-transform group-hover:scale-110"
           loading="lazy"
           decoding="async"
@@ -147,6 +159,7 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
 
         {/* Favorite Button (Top Right) */}
         <button
+          aria-label={isProductFavorite ? "Sevimlilardan olib tashlash" : "Sevimlilarga qo'shish"}
           onClick={handleFavoriteClick}
           className="absolute top-2.5 right-2.5 z-10 p-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 active:scale-90 transition-all"
         >
@@ -168,7 +181,8 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/40 active:scale-95 transition-all hover:shadow-blue-500/60 hover:scale-105"
+          aria-label="Savatchaga qo'shish"
+          className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-3 py-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl shadow-blue-500/40 active:scale-95 transition-all hover:shadow-blue-500/60 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <ShoppingCart className="h-4 w-4" />
           <span className="text-xs font-semibold">Add to Cart</span>
@@ -188,10 +202,10 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
         </div>
 
         <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="text-sm md:text-base font-bold text-foreground tracking-tight">{formatPrice(product.price)} UZS</span>
+          <span className="text-sm md:text-base font-bold text-foreground tracking-tight">{formatPriceNumber(product.price)} {formatCurrencySymbol(product.currency || "UZS")}</span>
           {product.originalPrice && (
             <span className="text-[10px] md:text-xs text-muted-foreground/70 line-through decoration-zinc-400/50">
-              {formatPrice(product.originalPrice)}
+              {formatPriceNumber(product.originalPrice)}
             </span>
           )}
         </div>

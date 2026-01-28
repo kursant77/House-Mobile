@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { productService } from "@/services/api/products";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import { Film, Eye, Heart, MoreVertical, Trash2, Edit, Download, Share2, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,70 +32,96 @@ import { uz } from "date-fns/locale";
 
 interface Video {
     id: string;
-    type: "reel" | "post";
+    type: "reel";
     thumbnail: string;
-    title?: string;
-    description?: string;
+    title: string;
+    description: string;
     views: number;
     likes: number;
     duration: string;
     createdAt: Date;
 }
 
-// Mock data - replace with actual API call
-const mockVideos: Video[] = [
-    {
-        id: "1",
-        type: "reel",
-        thumbnail: "https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=400",
-        description: "Amazing sunset timelapse",
-        views: 1234,
-        likes: 89,
-        duration: "0:45",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2),
-    },
-    {
-        id: "2",
-        type: "post",
-        thumbnail: "https://images.unsplash.com/photo-1682687221038-404cb8830901?w=400",
-        title: "Travel vlog day 1",
-        views: 5678,
-        likes: 234,
-        duration: "2:30",
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
-    },
-];
-
 const MyVideos = () => {
     const navigate = useNavigate();
     const { user } = useAuthStore();
+    const queryClient = useQueryClient();
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
-    // TODO: Replace with actual API call
-    const { data: videos = mockVideos, isLoading } = useQuery({
+    const { data: videos = [], isLoading } = useQuery({
         queryKey: ["my-videos", user?.id],
         queryFn: async () => {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return mockVideos;
+            if (!user?.id) return [];
+            const products = await productService.getProductsByUserId(user.id);
+            // Filter only products with videos
+            const videoProducts = products.filter(p => p.videoUrl);
+            
+            // Batch fetch likes counts
+            const productIds = videoProducts.map(p => p.id);
+            const { data: likesData } = await supabase
+                .from('product_likes')
+                .select('product_id')
+                .in('product_id', productIds);
+            
+            const likesCounts = new Map<string, number>();
+            likesData?.forEach(like => {
+                likesCounts.set(like.product_id, (likesCounts.get(like.product_id) || 0) + 1);
+            });
+            
+            return videoProducts.map(p => ({
+                id: p.id,
+                type: "reel" as const,
+                thumbnail: p.videoUrl || (Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : "") || "",
+                title: p.title || "",
+                description: p.description || "",
+                views: p.views || 0,
+                likes: likesCounts.get(p.id) || 0,
+                duration: "0:00", // Video duration not stored
+                createdAt: new Date(p.createdAt || Date.now()),
+            }));
         },
-        enabled: !!user,
+        enabled: !!user?.id,
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: async (productId: string) => {
+            await productService.deleteProduct(productId);
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["my-videos", user?.id] });
+            toast.success("Video muvaffaqiyatli o'chirildi");
+            setDeleteId(null);
+        },
+        onError: (error: Error) => {
+            toast.error(error.message || "Video o'chirishda xatolik");
+        },
     });
 
     const handleDelete = (id: string) => {
-        // TODO: Implement delete API call
-        console.log("Delete video:", id);
-        setDeleteId(null);
+        deleteMutation.mutate(id);
     };
 
     const handleEdit = (id: string) => {
-        // TODO: Navigate to edit page
-        console.log("Edit video:", id);
+        navigate(`/upload?edit=${id}`);
     };
 
-    const handleShare = (id: string) => {
-        // TODO: Implement share functionality
-        console.log("Share video:", id);
+    const handleShare = async (id: string) => {
+        try {
+            const product = await productService.getProductById(id);
+            if (product?.videoUrl) {
+                await navigator.share({
+                    title: product.title,
+                    text: product.description,
+                    url: `${window.location.origin}/product/${id}`,
+                });
+                toast.success("Video muvaffaqiyatli ulashildi");
+            }
+        } catch (error) {
+            // User cancelled or share failed
+            if (error instanceof Error && error.name !== 'AbortError') {
+                toast.error("Ulashishda xatolik");
+            }
+        }
     };
 
     const formatNumber = (num: number): string => {
@@ -162,8 +191,17 @@ const MyVideos = () => {
                         {videos.map((video) => (
                             <div key={video.id} className="group relative">
                                 <Card
-                                    onClick={() => navigate(video.type === "reel" ? `/reels?id=${video.id}` : `/post/${video.id}`)}
+                                    onClick={() => navigate(`/product/${video.id}`)}
                                     className="overflow-hidden cursor-pointer border-0 shadow-none"
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`${video.title} videoni ko'rish`}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            navigate(`/product/${video.id}`);
+                                        }
+                                    }}
                                 >
                                     <div className="relative aspect-[9/16] overflow-hidden bg-muted">
                                         <img

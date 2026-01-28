@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { PublicPost } from "@/services/api/posts";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +37,9 @@ const VideoPreview = ({ src }: { src: string }) => {
 
     useEffect(() => {
         if (isPlaying && videoRef.current) {
-            videoRef.current.play().catch(() => { });
+            videoRef.current.play().catch(() => {
+              // Silently ignore autoplay errors (browser policy)
+            });
         }
     }, [isPlaying]);
 
@@ -72,7 +74,11 @@ export const PostCard = ({ post }: PostCardProps) => {
         <Card className="overflow-hidden border-none bg-transparent shadow-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 transition-colors p-2 rounded-2xl group">
             <CardContent className="p-0 flex flex-col gap-3">
                 {/* Media Content on Top */}
-                <Link to={`/post/${post.id}`} className="block">
+                <Link 
+                    to={`/post/${post.id}`} 
+                    className="block"
+                    aria-label={`${post.title || 'Post'} ni ko'rish`}
+                >
                     <div className="relative aspect-video bg-zinc-100 dark:bg-zinc-950 overflow-hidden rounded-xl border border-zinc-100 dark:border-zinc-800">
                         {post.mediaUrl ? (
                             post.mediaType === 'video' ? (
@@ -81,7 +87,9 @@ export const PostCard = ({ post }: PostCardProps) => {
                                 <img
                                     src={post.mediaUrl}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    alt="post media"
+                                    alt={post.title || post.content || "Post media"}
+                                    loading="lazy"
+                                    decoding="async"
                                 />
                             )
                         ) : (
@@ -101,9 +109,9 @@ export const PostCard = ({ post }: PostCardProps) => {
                 <div className="flex gap-3 px-1">
                     {/* Author Avatar */}
                     <Link to={`/profile/${post.author?.id}`}>
-                        <Avatar className="h-9 w-9 border border-zinc-100 dark:border-zinc-800">
+                        <Avatar size="md">
                             <AvatarImage src={post.author?.avatarUrl} />
-                            <AvatarFallback className="bg-primary/5 text-primary text-[10px] font-bold uppercase">
+                            <AvatarFallback>
                                 {post.author?.fullName?.charAt(0)}
                             </AvatarFallback>
                         </Avatar>
@@ -139,3 +147,5 @@ export const PostCard = ({ post }: PostCardProps) => {
         </Card>
     );
 };
+
+PostCard.displayName = "PostCard";
