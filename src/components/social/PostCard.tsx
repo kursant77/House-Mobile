@@ -121,7 +121,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                     <div className="flex flex-col flex-1 min-w-0">
                         <Link to={`/post/${post.id}`}>
                             <h3 className="text-sm font-bold text-zinc-900 dark:text-white leading-snug line-clamp-2 mb-1 transition-colors group-hover:text-primary">
-                                {post.title || post.content.split('\n')[0] || "Yangi post"}
+                                {post.title || post.content?.split('\n')[0] || "Yangi post"}
                             </h3>
                         </Link>
 

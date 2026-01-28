@@ -13,16 +13,16 @@ interface ProductFormProps {
         category: string;
         currency: string;
     };
-    onFormDataChange: (field: keyof typeof formData, value: string) => void;
+    onFormDataChange: (field: keyof ProductFormProps["formData"], value: string) => void;
 }
 
 export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
     return (
-        <Card className="border border-border/50 shadow-md hover:shadow-xl transition-all duration-300 bg-card backdrop-blur-sm rounded-2xl h-full">
-            <CardHeader className="pb-4 md:pb-5">
-                <CardTitle className="text-lg sm:text-xl md:text-2xl font-bold">Ma'lumotlar</CardTitle>
+        <Card className="w-full border border-border/50 shadow-md hover:shadow-lg transition-all duration-300 bg-card/95 dark:bg-card/90 backdrop-blur-sm rounded-2xl overflow-hidden">
+            <CardHeader className="pb-3 sm:pb-4 md:pb-5 px-4 sm:px-5 md:px-6 pt-4 sm:pt-5 md:pt-6">
+                <CardTitle className="text-base sm:text-lg md:text-xl font-bold">Ma'lumotlar</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5 md:space-y-6 lg:space-y-8 pb-6">
+            <CardContent className="space-y-4 sm:space-y-5 md:space-y-6 pb-5 sm:pb-6 px-4 sm:px-5 md:px-6">
                 <div className="space-y-2.5">
                     <Label htmlFor="title" className="text-sm md:text-base font-semibold text-foreground/80">
                         Nomi <span className="text-destructive">*</span>
@@ -51,12 +51,12 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                             onChange={e => onFormDataChange("price", e.target.value)}
                             required
                             aria-required="true"
-                            className="h-11 md:h-12 rounded-xl border-border/50 bg-muted/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all duration-200 hover:border-border"
+                            className="h-10 sm:h-11 md:h-12 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 transition-all"
                         />
                     </div>
 
-                    <div className="space-y-2.5">
-                        <Label htmlFor="currency" className="text-sm font-semibold text-foreground/80">
+                    <div className="space-y-2">
+                        <Label htmlFor="currency" className="text-xs sm:text-sm font-semibold text-foreground/80">
                             Valyuta <span className="text-destructive">*</span>
                         </Label>
                         <Select
@@ -65,7 +65,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         >
                             <SelectTrigger 
                                 aria-required="true"
-                                className="h-11 md:h-12 rounded-xl border-border/50 bg-muted/50 focus:ring-2 focus:ring-primary"
+                                className="h-10 sm:h-11 md:h-12 rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus:ring-2 focus:ring-primary/50"
                             >
                                 <SelectValue placeholder="Valyutani tanlang" />
                             </SelectTrigger>
@@ -99,17 +99,17 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     </Select>
                 </div>
 
-                <div className="space-y-2.5">
-                    <Label htmlFor="description" className="text-sm md:text-base font-semibold text-foreground/80">
+                <div className="space-y-2">
+                    <Label htmlFor="description" className="text-xs sm:text-sm font-semibold text-foreground/80">
                         Tavsif <span className="text-destructive">*</span>
                     </Label>
-                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-3 md:p-4 rounded-xl text-xs md:text-sm text-yellow-600 dark:text-yellow-400 mb-2">
-                        <strong>Maslahat:</strong> Bioga qurilmaning barcha texnik xususiyatlarini (xotira, kamera, protsessor va h.k.) to'liq kiritishni unutmang. Bu xaridorlarga tanlashda yordam beradi.
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 p-2.5 sm:p-3 rounded-xl text-[11px] sm:text-xs text-yellow-600 dark:text-yellow-400">
+                        <strong>Maslahat:</strong> Qurilmaning texnik xususiyatlarini (xotira, kamera va h.k.) to'liq kiriting.
                     </div>
                     <Textarea
                         id="description"
                         placeholder="Mahsulot haqida batafsil ma'lumot bering..."
-                        className="min-h-[140px] md:min-h-[160px] lg:min-h-[180px] resize-none rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary transition-all duration-200 hover:border-border"
+                        className="min-h-[120px] sm:min-h-[140px] md:min-h-[160px] resize-none rounded-xl border-border/50 bg-muted/30 dark:bg-muted/20 focus-visible:ring-2 focus-visible:ring-primary/50 transition-all text-sm sm:text-base"
                         value={formData.description}
                         onChange={e => onFormDataChange("description", e.target.value)}
                         required

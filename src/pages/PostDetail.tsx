@@ -391,7 +391,7 @@ export default function PostDetail() {
                         {/* YouTube Style Title & Info Bar */}
                         <div className="px-4 md:px-0 space-y-4 mt-6">
                             <h1 className="text-xl md:text-2xl font-bold leading-tight text-foreground">
-                                {post.title || post.content.split('\n')[0] || "Yangilik"}
+                                {post.title || post.content?.split('\n')[0] || "Yangilik"}
                             </h1>
 
                             <div className="flex flex-wrap items-center justify-between gap-y-4 gap-x-6">
