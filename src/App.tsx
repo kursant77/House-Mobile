@@ -157,12 +157,12 @@ const AppContent = () => {
             <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
             <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/seller/dashboard" element={<ProtectedRoute role={['blogger', 'super_admin']}><SellerDashboard /></ProtectedRoute>} />
+            <Route path="/seller/dashboard" element={<ProtectedRoute role={['blogger', 'seller', 'admin', 'super_admin']}><SellerDashboard /></ProtectedRoute>} />
           </Route>
 
           {/* Admin Routes */}
           <Route path="/admin" element={
-            <ProtectedRoute role="super_admin">
+            <ProtectedRoute role={['admin', 'super_admin']}>
               <AdminLayout />
             </ProtectedRoute>
           }>

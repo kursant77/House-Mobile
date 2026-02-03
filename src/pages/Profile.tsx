@@ -150,10 +150,10 @@ export default function Profile() {
           <div className="px-4 mb-4 space-y-1">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-bold text-base">{user.username || user.name?.split(' ')[0]}</p>
-              {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
+              {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
                 <VerifiedBadge size={16} />
               )}
-              {user.role === 'super_admin' && (
+              {(user.role === 'super_admin' || user.role === 'admin') && (
                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Admin</span>
               )}
               {user.role === 'blogger' && (
@@ -215,9 +215,9 @@ export default function Profile() {
               </Button>
             )}
 
-            {user.role === 'super_admin' && (
+            {(user.role === 'super_admin' || user.role === 'admin') && (
               <Button
-                className="w-full h-9 text-[13px] font-bold bg-primary hover:bg-primary/90 text-white rounded-lg gap-2"
+                className="w-full h-9 text-[13px] font-bold bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg gap-2"
                 onClick={() => navigate("/admin")}
               >
                 <LayoutDashboard className="h-4 w-4" />
@@ -255,7 +255,7 @@ export default function Profile() {
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
-                {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
+                {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
                   <VerifiedBadge size={20} className="mt-1" />
                 )}
               </div>
@@ -280,10 +280,10 @@ export default function Profile() {
                   </Button>
                 )}
 
-                {user.role === 'super_admin' && (
+                {(user.role === 'super_admin' || user.role === 'admin') && (
                   <Button
                     size="sm"
-                    className="flex-1 sm:flex-none h-9 font-bold px-4 bg-primary hover:bg-primary/90 text-white gap-2"
+                    className="flex-1 sm:flex-none h-9 font-bold px-4 bg-primary hover:bg-primary/90 text-primary-foreground gap-2"
                     onClick={() => navigate("/admin")}
                   >
                     <LayoutDashboard className="h-4 w-4" />

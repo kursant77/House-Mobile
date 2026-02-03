@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    role?: 'user' | 'super_admin' | 'blogger' | ('user' | 'super_admin' | 'blogger')[];
+    role?: 'user' | 'super_admin' | 'blogger' | 'seller' | 'admin' | ('user' | 'super_admin' | 'blogger' | 'seller' | 'admin')[];
 }
 
 export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
