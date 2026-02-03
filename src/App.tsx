@@ -31,6 +31,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const History = lazy(() => import("./pages/History"));
 const MyVideos = lazy(() => import("./pages/MyVideos"));
 const WatchLater = lazy(() => import("./pages/WatchLater"));
+const Settings = lazy(() => import("./pages/Settings"));
 const Blocked = lazy(() => import("./pages/Blocked"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UsersList = lazy(() => import("./pages/admin/UsersList"));
@@ -154,6 +155,7 @@ const AppContent = () => {
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
             <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           </Route>
 
           {/* Admin Routes */}

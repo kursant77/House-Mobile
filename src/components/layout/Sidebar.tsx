@@ -10,7 +10,8 @@ import {
     PlaySquare,
     Clock,
     ThumbsUp,
-    ChevronRight
+    ChevronRight,
+    Settings
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const libraryItems = [
     { icon: Clock, label: "Keyinroq ko'rish", path: "/watch-later" },
     { icon: Heart, label: "Sevimlilar", path: "/favorites" },
     { icon: ShoppingCart, label: "Savat", path: "/cart" },
+    { icon: Settings, label: "Sozlamalar", path: "/settings" },
 ];
 
 
