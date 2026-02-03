@@ -31,7 +31,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const History = lazy(() => import("./pages/History"));
 const MyVideos = lazy(() => import("./pages/MyVideos"));
 const WatchLater = lazy(() => import("./pages/WatchLater"));
-const Settings = lazy(() => import("./pages/Settings"));
+const Settings = lazy(() => import("@/pages/Settings"));
 const Blocked = lazy(() => import("./pages/Blocked"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UsersList = lazy(() => import("./pages/admin/UsersList"));
@@ -42,6 +42,7 @@ const NotificationsAdmin = lazy(() => import("./pages/admin/NotificationsAdmin")
 const AdminUserProfile = lazy(() => import("./pages/admin/AdminUserProfile"));
 const SupportAdmin = lazy(() => import("./pages/admin/SupportAdmin"));
 const AdminNews = lazy(() => import("./pages/admin/AdminNews"));
+const SellerDashboard = lazy(() => import("./pages/admin/SellerDashboard"));
 
 // Loading fallback component
 
@@ -156,6 +157,7 @@ const AppContent = () => {
             <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
             <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/seller/dashboard" element={<ProtectedRoute role={['blogger', 'super_admin']}><SellerDashboard /></ProtectedRoute>} />
           </Route>
 
           {/* Admin Routes */}

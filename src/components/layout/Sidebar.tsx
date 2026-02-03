@@ -2,22 +2,22 @@ import {
     Home,
     ShoppingBag,
     Heart,
-    User,
     ShoppingCart,
     Film,
     X,
     History,
     PlaySquare,
     Clock,
-    ThumbsUp,
     ChevronRight,
-    Settings
+    Settings,
+    LayoutDashboard
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/cartStore";
 import { useSidebarStore } from "@/store/sidebarStore";
+import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
@@ -45,8 +45,13 @@ export const Sidebar = () => {
     const location = useLocation();
     const { getItemCount } = useCartStore();
     const { isOpen, isCollapsed, setOpen } = useSidebarStore();
-    const isMobile = useIsMobile();
+    const { user } = useAuthStore();
     const itemCount = getItemCount();
+
+    const isSeller = user?.role === 'blogger' || user?.role === 'super_admin' || user?.role === 'seller';
+    const sellerItems = isSeller ? [
+        { icon: LayoutDashboard, label: "Sotuvchi kabineti", path: "/seller/dashboard" }
+    ] : [];
 
     // Fetch followed profiles for "Obunalar" section
     const { data: following = [] } = useQuery({
@@ -103,6 +108,15 @@ export const Sidebar = () => {
             <div className="px-3 space-y-1">
                 {mainItems.map(item => <NavItem key={item.path} item={item} collapsed={false} />)}
             </div>
+
+            {isSeller && (
+                <>
+                    <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-3 mx-3" />
+                    <div className="px-3 space-y-1">
+                        {sellerItems.map(item => <NavItem key={item.path} item={item} collapsed={false} />)}
+                    </div>
+                </>
+            )}
 
             <div className="h-px bg-zinc-200 dark:bg-zinc-800 my-3 mx-3" />
 
@@ -163,6 +177,7 @@ export const Sidebar = () => {
     const renderMiniContent = () => (
         <div className="px-1 py-2 space-y-0">
             {mainItems.map(item => <NavItem key={item.path} item={item} collapsed={true} />)}
+            {isSeller && sellerItems.map(item => <NavItem key={item.path} item={item} collapsed={true} />)}
             <NavItem item={{ icon: PlaySquare, label: "Siz", path: "/library" }} collapsed={true} />
             <NavItem item={{ icon: ShoppingCart, label: "Savat", path: "/cart" }} collapsed={true} />
         </div>

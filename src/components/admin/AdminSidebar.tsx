@@ -1,4 +1,5 @@
-import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, ChevronLeft, ChevronRight, BarChart3, Bell, ShieldCheck, PieChart, Table, Box, Mail, MessageSquare, HelpCircle, X, Menu, Newspaper } from "lucide-react";
+import { useState } from "react";
+import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, BarChart3, Bell, ShieldCheck, Mail, MessageSquare, HelpCircle, X, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ interface SidebarProps {
 export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
     const location = useLocation();
     const { logout, user } = useAuthStore();
+    const [usersMenuOpen, setUsersMenuOpen] = useState(false);
 
     return (
         <>
@@ -91,6 +93,63 @@ export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
                                 <ul className="space-y-1">
                                     {group.items.map((item) => {
                                         const isActive = location.pathname === item.path;
+                                        const isUsersMenu = item.label === "Foydalanuvchilar";
+
+                                        if (isUsersMenu) {
+                                            return (
+                                                <li key={item.path}>
+                                                    <div>
+                                                        <button
+                                                            onClick={() => setUsersMenuOpen(!usersMenuOpen)}
+                                                            className={cn(
+                                                                "w-full group relative flex items-center gap-4 rounded-lg px-4 py-3 font-medium transition-all duration-200",
+                                                                isActive || usersMenuOpen
+                                                                    ? "bg-blue-50 dark:bg-[#333a48] text-[#3C50E0] dark:text-white"
+                                                                    : "text-zinc-600 dark:text-[#dee4ee] hover:bg-zinc-100 dark:hover:bg-[#333a48] hover:text-zinc-900 dark:hover:text-white"
+                                                            )}
+                                                        >
+                                                            <item.icon className={cn("h-5 w-5 shrink-0 opacity-70 group-hover:opacity-100", (isActive || usersMenuOpen) && "text-[#3C50E0] opacity-100")} />
+                                                            <span className="flex-1 text-left">{item.label}</span>
+                                                            {usersMenuOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                                        </button>
+
+                                                        <div className={cn(
+                                                            "overflow-hidden transition-all duration-300 ease-in-out pl-9 space-y-1",
+                                                            usersMenuOpen ? "max-h-40 mt-1 opacity-100" : "max-h-0 opacity-0"
+                                                        )}>
+                                                            <Link
+                                                                to="/admin/users"
+                                                                className={cn(
+                                                                    "block py-2 px-4 text-sm rounded-lg transition-colors",
+                                                                    location.pathname === "/admin/users" ? "text-[#3C50E0] font-black" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                                                                )}
+                                                            >
+                                                                Barcha
+                                                            </Link>
+                                                            <Link
+                                                                to="/admin/users?role=blogger"
+                                                                className={cn(
+                                                                    "block py-2 px-4 text-sm rounded-lg transition-colors",
+                                                                    location.search === "?role=blogger" ? "text-amber-600 font-black" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                                                                )}
+                                                            >
+                                                                Bloggerlar
+                                                            </Link>
+                                                            <Link
+                                                                to="/admin/users?role=seller"
+                                                                className={cn(
+                                                                    "block py-2 px-4 text-sm rounded-lg transition-colors",
+                                                                    location.search === "?role=seller" ? "text-blue-600 font-black" : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                                                                )}
+                                                            >
+                                                                Sotuvchilar
+                                                            </Link>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            );
+                                        }
+
                                         return (
                                             <li key={item.path}>
                                                 <Link

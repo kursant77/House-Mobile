@@ -25,6 +25,7 @@ import {
   Send as SendIcon,
   Newspaper,
   Film,
+  LayoutDashboard,
 } from "lucide-react";
 import { postService } from "@/services/api/posts";
 import { useNavigate, Link } from "react-router-dom";
@@ -149,7 +150,7 @@ export default function Profile() {
           <div className="px-4 mb-4 space-y-1">
             <div className="flex items-center gap-2 mb-1">
               <p className="font-bold text-base">{user.username || user.name?.split(' ')[0]}</p>
-              {(user.role === 'super_admin' || user.role === 'blogger') && (
+              {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
                 <VerifiedBadge size={16} />
               )}
               {user.role === 'super_admin' && (
@@ -157,6 +158,9 @@ export default function Profile() {
               )}
               {user.role === 'blogger' && (
                 <span className="text-[10px] bg-amber-500/10 text-amber-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider text-golden">Blogger</span>
+              )}
+              {user.role === 'seller' && (
+                <span className="text-[10px] bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Rasmiy sotuvchi</span>
               )}
             </div>
             <p className="font-semibold text-sm text-muted-foreground">{user.name}</p>
@@ -180,24 +184,46 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="flex gap-1.5 mb-6 px-4">
-            <Button
-              variant="secondary"
-              className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
-              onClick={() => navigate("/profile/edit")}
-            >
-              Profilni tahrirlash
-            </Button>
-            <Button
-              variant="secondary"
-              className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                toast.success("Profil havolasi nusxalandi");
-              }}
-            >
-              Profilni ulashish
-            </Button>
+          <div className="flex flex-col gap-2 mb-6 px-4">
+            <div className="flex gap-1.5 ">
+              <Button
+                variant="secondary"
+                className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
+                onClick={() => navigate("/profile/edit")}
+              >
+                Profilni tahrirlash
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 h-8 text-[13px] font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg"
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast.success("Profil havolasi nusxalandi");
+                }}
+              >
+                Profilni ulashish
+              </Button>
+            </div>
+
+            {user.role === 'seller' && (
+              <Button
+                className="w-full h-9 text-[13px] font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-2"
+                onClick={() => navigate("/seller/dashboard")}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Sotuvchi paneli
+              </Button>
+            )}
+
+            {user.role === 'super_admin' && (
+              <Button
+                className="w-full h-9 text-[13px] font-bold bg-primary hover:bg-primary/90 text-white rounded-lg gap-2"
+                onClick={() => navigate("/admin")}
+              >
+                <LayoutDashboard className="h-4 w-4" />
+                Admin paneli
+              </Button>
+            )}
           </div>
         </div>
 
@@ -229,7 +255,7 @@ export default function Profile() {
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
-                {(user.role === 'super_admin' || user.role === 'blogger') && (
+                {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
                   <VerifiedBadge size={20} className="mt-1" />
                 )}
               </div>
@@ -242,6 +268,29 @@ export default function Profile() {
                 >
                   Profilni tahrirlash
                 </Button>
+
+                {user.role === 'seller' && (
+                  <Button
+                    size="sm"
+                    className="flex-1 sm:flex-none h-9 font-bold px-4 bg-blue-600 hover:bg-blue-700 text-white gap-2"
+                    onClick={() => navigate("/seller/dashboard")}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Sotuvchi kabineti
+                  </Button>
+                )}
+
+                {user.role === 'super_admin' && (
+                  <Button
+                    size="sm"
+                    className="flex-1 sm:flex-none h-9 font-bold px-4 bg-primary hover:bg-primary/90 text-white gap-2"
+                    onClick={() => navigate("/admin")}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    Admin paneli
+                  </Button>
+                )}
+
                 <Button
                   variant="ghost"
                   size="icon"

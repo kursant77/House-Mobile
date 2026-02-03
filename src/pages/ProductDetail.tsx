@@ -15,6 +15,7 @@ import { historyService } from "@/services/api/history";
 import { handleError } from "@/lib/errorHandler";
 import { ERROR_MESSAGES as ERROR_MSGS } from "@/lib/errorMessages";
 import { formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
+import { Helmet } from "react-helmet-async";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -121,6 +122,10 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0 md:pt-16">
+      <Helmet>
+        <title>{product?.title ? `${product.title} - House Mobile` : "Mahsulot - House Mobile"}</title>
+        <meta name="description" content={product?.description || "House Mobile mahsuloti haqida batafsil"} />
+      </Helmet>
       <BottomNav />
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur-xl md:hidden">

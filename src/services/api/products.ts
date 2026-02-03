@@ -198,11 +198,11 @@ export const productService = {
                 const media = Array.isArray(p.product_media) ? p.product_media : (p.product_media ? [p.product_media] : []);
                 const videoMedia = media.find((m: SupabaseProductMedia) => m.type === 'video');
                 if (!videoMedia) return null;
-                
+
                 const images = media
                     .filter((m: SupabaseProductMedia) => m.type === 'image')
                     .map((m: SupabaseProductMedia) => m.url);
-                
+
                 const author: ReelItem['author'] = p.profiles ? {
                     id: p.profiles.id,
                     fullName: p.profiles.full_name ?? undefined,
@@ -262,7 +262,7 @@ export const productService = {
         // Validate file type and size
         const isImage = file.type.startsWith('image/');
         const isVideo = file.type.startsWith('video/');
-        
+
         if (isImage) {
             const imageValidation = imageFileSchema.safeParse(file);
             if (!imageValidation.success) {
@@ -278,7 +278,7 @@ export const productService = {
                     `Iltimos, videoni siqish yoki kichikroq fayl tanlang.`
                 );
             }
-            
+
             // Skip size validation if requested (for news uploads, but still check Supabase limit)
             if (!skipSizeValidation) {
                 const videoValidation = videoFileSchema.safeParse(file);
@@ -425,20 +425,16 @@ export const productService = {
      * Update an existing product
      */
     updateProduct: async (
-        productId: string, 
+        productId: string,
         updates: Partial<Product>,
         media?: { file: File, type: 'image' | 'video' }[],
         onProgress?: (percent: number) => void
     ): Promise<void> => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:408',message:'updateProduct service called',data:{productId,updates:{title:updates.title,price:updates.price,currency:updates.currency},hasMedia:!!media,mediaCount:media?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
-        
+
+
         // 1. Update product basic info
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:421',message:'Before supabase update',data:{productId,updateData:{title:updates.title,price:updates.price,currency:updates.currency}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        const { data: updatedData, error } = await supabase
+
+        const { error } = await supabase
             .from('products')
             .update({
                 title: updates.title,
@@ -448,24 +444,17 @@ export const productService = {
                 currency: updates.currency,
                 in_stock: updates.inStock,
             })
-            .eq('id', productId)
-            .select();
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:433',message:'After supabase update',data:{error:error?.message,errorCode:error?.code,errorDetails:error?.details,hasData:!!updatedData,productId,updatedTitle:updatedData?.[0]?.title},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
+            .eq('id', productId);
+
         if (error) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:436',message:'updateProduct error thrown',data:{error:error.message,errorCode:error.code,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
+
             const appError = handleError(error, 'updateProduct');
             throw new Error(appError.message);
         }
 
         // 2. Handle media updates if provided
         if (media && media.length > 0) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:440',message:'Starting media update',data:{productId,mediaCount:media.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
+
             // Get existing media
             const { data: existingMedia } = await supabase
                 .from('product_media')
@@ -474,18 +463,14 @@ export const productService = {
 
             // Delete all existing media
             if (existingMedia && existingMedia.length > 0) {
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:449',message:'Deleting existing media',data:{productId,existingMediaCount:existingMedia.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
+
                 const { error: deleteError } = await supabase
                     .from('product_media')
                     .delete()
                     .eq('product_id', productId);
-                
+
                 if (deleteError) {
-                    // #region agent log
-                    fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:454',message:'Delete media error',data:{error:deleteError.message,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                    // #endregion
+
                     const appError = handleError(deleteError, 'updateProduct.deleteMedia');
                     throw new Error(appError.message);
                 }
@@ -517,19 +502,13 @@ export const productService = {
                 .insert(mediaInserts);
 
             if (mediaError) {
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:486',message:'Insert media error',data:{error:mediaError.message,productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
+
                 const appError = handleError(mediaError, 'updateProduct.insertMedia');
                 throw new Error(appError.message);
             }
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:489',message:'Media update completed',data:{productId,mediaCount:mediaInserts.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
+
         }
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'products.ts:492',message:'updateProduct completed successfully',data:{productId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
+
     },
 
     /**
@@ -774,7 +753,7 @@ export const productService = {
      */
     updateProductRating: async (productId: string): Promise<void> => {
         const stats = await productService.getReviewStats(productId);
-        
+
         await supabase
             .from('products')
             .update({

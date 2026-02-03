@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { authApi } from "@/services/api/auth";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Search, Filter, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,15 @@ export default function UsersList() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<string | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [filterTab, setFilterTab] = useState<'all' | 'bloggers' | 'sellers'>('all');
+    const [searchParams] = useSearchParams();
+
+    useEffect(() => {
+        const role = searchParams.get('role');
+        if (role === 'blogger') setFilterTab('bloggers');
+        else if (role === 'seller') setFilterTab('sellers');
+        else setFilterTab('all');
+    }, [searchParams]);
 
     useEffect(() => {
         fetchUsers();
@@ -107,29 +116,63 @@ export default function UsersList() {
         setDeleteDialogOpen(true);
     };
 
-    const filteredUsers = users.filter(u =>
-        u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredUsers = users.filter(u => {
+        const matchesSearch = u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            u.email?.toLowerCase().includes(searchQuery.toLowerCase());
+
+        if (filterTab === 'bloggers') return matchesSearch && u.role === 'blogger';
+        if (filterTab === 'sellers') return matchesSearch && u.role === 'seller';
+        return matchesSearch;
+    });
 
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                <div>
-                    <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Foydalanuvchilar Paneli</h2>
-                    <p className="text-zinc-500 text-sm font-medium">Platforma foydalanuvchilarini to'liq boshqarish va kuzatish</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                        <Input
-                            placeholder="Search users..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-[#f7f9fc] dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 pl-10 h-11 w-64 rounded-lg focus-visible:ring-[#3C50E0]/20"
-                        />
+            <div className="flex flex-col gap-4 bg-white dark:bg-zinc-900 p-5 md:p-6 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black text-zinc-800 dark:text-white tracking-tight">Foydalanuvchilar Paneli</h2>
+                        <p className="text-zinc-500 text-sm font-medium">Platforma foydalanuvchilarini to'liq boshqarish va kuzatish</p>
                     </div>
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                            <Input
+                                placeholder="Search users..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="bg-[#f7f9fc] dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 pl-10 h-11 w-64 rounded-lg focus-visible:ring-[#3C50E0]/20"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Role Tabs */}
+                <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit mt-2">
+                    <Button
+                        variant={filterTab === 'all' ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setFilterTab('all')}
+                        className={cn("h-8 px-4 font-bold text-xs uppercase tracking-wider", filterTab === 'all' && "bg-[#3C50E0] hover:bg-[#3C50E0]/90")}
+                    >
+                        Barcha
+                    </Button>
+                    <Button
+                        variant={filterTab === 'bloggers' ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setFilterTab('bloggers')}
+                        className={cn("h-8 px-4 font-bold text-xs uppercase tracking-wider", filterTab === 'bloggers' && "bg-amber-500 hover:bg-amber-600")}
+                    >
+                        Bloggerlar
+                    </Button>
+                    <Button
+                        variant={filterTab === 'sellers' ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setFilterTab('sellers')}
+                        className={cn("h-8 px-4 font-bold text-xs uppercase tracking-wider", filterTab === 'sellers' && "bg-blue-600 hover:bg-blue-700")}
+                    >
+                        Sotuvchilar
+                    </Button>
                 </div>
             </div>
 
@@ -190,9 +233,11 @@ export default function UsersList() {
                                                             ? "bg-[#3C50E0]/10 text-[#3C50E0] border-[#3C50E0]/20"
                                                             : u.role === 'blogger'
                                                                 ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                                                : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
+                                                                : u.role === 'seller'
+                                                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                                                    : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-400"
                                                     )}>
-                                                        {u.role === 'blogger' ? 'Blogger 🌟' : u.role}
+                                                        {u.role === 'blogger' ? 'Blogger 🌟' : u.role === 'seller' ? 'Sotuvchi 🏪' : u.role}
                                                     </span>
                                                 </div>
                                                 <span className={cn(
@@ -249,11 +294,22 @@ export default function UsersList() {
                                                                     onClick={() => handleUpdateRole(u.id, u.role === 'blogger' ? 'user' : 'blogger')}
                                                                     className={cn(
                                                                         "rounded-lg cursor-pointer px-4 py-2.5 text-sm font-black flex items-center gap-3",
-                                                                        u.role === 'blogger' ? "text-zinc-600" : "text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20"
+                                                                        u.role === 'blogger' ? "text-red-600 hover:bg-red-50" : "text-amber-600 hover:bg-amber-50"
                                                                     )}
                                                                 >
                                                                     <Shield className="h-4 w-4" />
                                                                     {u.role === 'blogger' ? "Bloggerlikdan olish" : "Blogger qilish"}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+                                                                <DropdownMenuItem
+                                                                    onClick={() => handleUpdateRole(u.id, u.role === 'seller' ? 'user' : 'seller')}
+                                                                    className={cn(
+                                                                        "rounded-lg cursor-pointer px-4 py-2.5 text-sm font-black flex items-center gap-3",
+                                                                        u.role === 'seller' ? "text-red-600 hover:bg-red-50" : "text-blue-600 hover:bg-blue-50"
+                                                                    )}
+                                                                >
+                                                                    <ShieldCheck className="h-4 w-4" />
+                                                                    {u.role === 'seller' ? "Sotuvchilikdan olish" : "Rasmiy sotuvchi qilish"}
                                                                 </DropdownMenuItem>
                                                             </>
                                                         )}

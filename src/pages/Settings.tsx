@@ -2,12 +2,12 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "next-themes";
+import { useQueryClient } from "@tanstack/react-query";
 import {
     User,
     Lock,
     Bell,
     Moon,
-    Globe,
     Database,
     Shield,
     HelpCircle,
@@ -15,17 +15,13 @@ import {
     ChevronRight,
     Smartphone,
     Languages,
-    Key,
     UserMinus,
     Trash2,
-    Check,
-    CreditCard,
     ExternalLink,
     Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
@@ -51,9 +47,22 @@ export default function Settings() {
     const [biometrics, setBiometrics] = useState(false);
     const [language, setLanguage] = useState("uz");
 
+    const queryClient = useQueryClient();
+
     const handleClearCache = () => {
         toast.promise(
-            new Promise((resolve) => setTimeout(resolve, 1500)),
+            async () => {
+                await new Promise((resolve) => setTimeout(resolve, 1500));
+                // Clear React Query cache
+                queryClient.clear();
+                // Clear local storage (except auth which we might want to keep, but for "clear cache" we can be more aggressive or specific)
+                const authSession = localStorage.getItem('sb-yymfscqmjnshytunrvms-auth-token');
+                localStorage.clear();
+                if (authSession) {
+                    localStorage.setItem('sb-yymfscqmjnshytunrvms-auth-token', authSession);
+                }
+                sessionStorage.clear();
+            },
             {
                 loading: 'Kesh tozalanmoqda...',
                 success: 'Kesh muvaffaqiyatli tozalandi',

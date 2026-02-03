@@ -3,7 +3,7 @@ import { useAuthStore } from "@/store/authStore";
 
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    role?: 'user' | 'super_admin';
+    role?: 'user' | 'super_admin' | 'blogger' | ('user' | 'super_admin' | 'blogger')[];
 }
 
 export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
@@ -21,9 +21,11 @@ export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
         return <Navigate to="/auth" state={{ from: location }} replace />;
     }
 
-    if (role && user?.role !== role) {
-        // If user doesn't have the required role, redirect to home
-        return <Navigate to="/" replace />;
+    if (role) {
+        const roles = Array.isArray(role) ? role : [role];
+        if (user && !roles.includes(user.role as any)) {
+            return <Navigate to="/" replace />;
+        }
     }
 
     // Check for mandatory fields (Name, Bio, Address)

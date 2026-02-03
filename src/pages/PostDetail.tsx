@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Play, Share2, Eye, Clock, MessageSquare, Loader2, ThumbsUp, ThumbsDown, Bookmark, Download, MoreHorizontal, Send, Instagram, Youtube, Facebook } from "lucide-react";
+import { ArrowLeft, Play, Share2, Loader2, ThumbsUp, ThumbsDown, Bookmark, Download, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
@@ -14,12 +14,12 @@ import { historyService } from "@/services/api/history";
 import {
     Drawer,
     DrawerContent,
-    DrawerDescription,
     DrawerHeader,
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { Helmet } from "react-helmet-async";
 
 const RecommendedPosts = ({ otherPosts }: { otherPosts: PublicPost[] }) => (
     <div className="grid grid-cols-1 gap-4">
@@ -345,6 +345,10 @@ export default function PostDetail() {
 
     return (
         <div className="bg-background">
+            <Helmet>
+                <title>{post?.title ? `${post.title} - House Mobile` : post?.content ? `${post.content.substring(0, 30)}... - House Mobile` : "Yangilik - House Mobile"}</title>
+                <meta name="description" content={post?.content?.substring(0, 160) || "House Mobile yangiliklari"} />
+            </Helmet>
             {/* Mobile Secondary Header (Below Main Header) */}
             <header className="flex items-center justify-between px-4 py-3 bg-background border-b border-zinc-100 dark:border-zinc-800 md:hidden sticky top-16 z-40">
                 <button

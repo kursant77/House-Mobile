@@ -8,7 +8,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'blogger' | 'super_admin';
+  role: 'user' | 'blogger' | 'super_admin' | 'seller';
   avatarUrl?: string;
   bio?: string;
   username?: string;
@@ -80,7 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (isAuthenticated) {
       // If authenticated, try to get saved user for initial state (fast UI)
       const savedUser = authApi.getSavedUser();
-      
+
       // Set initial state with saved user immediately for fast UI
       if (savedUser) {
         set({ user: savedUser as User, isAuthenticated: true, isLoading: false });
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
           // Update state with fresh user data
           set({ user: freshUser as User, isAuthenticated: true, isLoading: false });
-          
+
           // Save minimal user data for next time
           try {
             const minimalUser = { id: freshUser.id, role: freshUser.role };
