@@ -37,7 +37,7 @@ const VideoPreview = ({ src }: { src: string }) => {
     useEffect(() => {
         if (isPlaying && videoRef.current) {
             videoRef.current.play().catch(() => {
-              // Silently ignore autoplay errors (browser policy)
+                // Silently ignore autoplay errors (browser policy)
             });
         }
     }, [isPlaying]);
@@ -73,8 +73,8 @@ export const PostCard = ({ post }: PostCardProps) => {
         <Card className="overflow-hidden border-none bg-transparent shadow-none hover:bg-zinc-100/50 dark:hover:bg-zinc-900/50 transition-colors p-2 rounded-2xl group">
             <CardContent className="p-0 flex flex-col gap-3">
                 {/* Media Content on Top */}
-                <Link 
-                    to={`/post/${post.id}`} 
+                <Link
+                    to={`/post/${post.id}`}
                     className="block"
                     aria-label={`${post.title || 'Post'} ni ko'rish`}
                 >
@@ -125,12 +125,12 @@ export const PostCard = ({ post }: PostCardProps) => {
                         </Link>
 
                         <div className="flex flex-col">
-                            <div className="flex items-center gap-1">
-                                <span className="text-xs text-zinc-500 font-medium hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
+                            <div className="flex items-center flex-nowrap gap-1">
+                                <span className="text-xs text-zinc-500 font-medium hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors truncate">
                                     {post.author?.fullName}
                                 </span>
-                                {(post.author?.role === 'super_admin' || post.author?.role === 'blogger') && (
-                                    <VerifiedBadge size={10} />
+                                {(post.author?.role === 'super_admin' || post.author?.role === 'admin' || post.author?.role === 'blogger' || post.author?.role === 'seller') && (
+                                    <VerifiedBadge size={12} />
                                 )}
                             </div>
 

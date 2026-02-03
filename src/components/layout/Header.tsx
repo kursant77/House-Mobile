@@ -344,9 +344,9 @@ export const Header = () => {
                     {isAuthenticated && (
                         <DropdownMenu open={notificationOpen} onOpenChange={setNotificationOpen}>
                             <DropdownMenuTrigger asChild>
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     className="relative rounded-full hover:bg-muted transition-all hover:scale-105"
                                 >
                                     <Bell className={cn(
@@ -360,8 +360,8 @@ export const Header = () => {
                                     )}
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent 
-                                align="end" 
+                            <DropdownMenuContent
+                                align="end"
                                 className="w-80 md:w-96 max-h-[500px] overflow-y-auto p-0 bg-background border shadow-xl rounded-xl"
                             >
                                 <div className="sticky top-0 bg-background border-b p-4 z-10 backdrop-blur-sm">
@@ -384,7 +384,7 @@ export const Header = () => {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div className="divide-y divide-border">
                                     {notificationsLoading ? (
                                         <div className="p-8 flex flex-col items-center gap-3">
@@ -499,9 +499,9 @@ export const Header = () => {
                                             )}
                                         </div>
                                         <div className="flex flex-col items-start">
-                                            <div className="flex items-center gap-1">
-                                                <span className="hidden md:inline">{user?.name}</span>
-                                                {(user?.role === 'super_admin' || user?.role === 'blogger') && (
+                                            <div className="flex items-center flex-nowrap gap-1">
+                                                <span className="hidden md:inline truncate max-w-[120px]">{user?.name}</span>
+                                                {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'blogger' || user?.role === 'seller') && (
                                                     <VerifiedBadge size={14} />
                                                 )}
                                             </div>

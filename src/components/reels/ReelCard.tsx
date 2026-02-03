@@ -548,7 +548,7 @@ export function ReelCard({
                       <UserIcon className="h-5 w-5 text-white/50" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex items-center gap-1 text-shadow-sm">
+                  <div className="flex items-center flex-nowrap gap-1 text-shadow-sm">
                     <span className="text-white font-bold text-sm tracking-tight">
                       {reel.author?.fullName || "House Mobile"}
                     </span>
@@ -647,7 +647,7 @@ export function ReelCard({
                     <UserIcon className="h-8 w-8 text-white/50" />
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center flex-nowrap gap-2">
                   <span className="text-white font-bold text-base tracking-tight">
                     {reel.author?.fullName || "House Mobile"}
                   </span>

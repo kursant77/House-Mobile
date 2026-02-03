@@ -148,7 +148,7 @@ export default function Profile() {
           </div>
 
           <div className="px-4 mb-4 space-y-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center flex-nowrap gap-2 mb-1">
               <p className="font-bold text-base">{user.username || user.name?.split(' ')[0]}</p>
               {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
                 <VerifiedBadge size={16} />
@@ -251,12 +251,12 @@ export default function Profile() {
           <div className="flex-1 w-full md:w-auto space-y-4">
             {/* Username and Actions */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 flex items-center flex-nowrap gap-2">
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
                 {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
-                  <VerifiedBadge size={20} className="mt-1" />
+                  <VerifiedBadge size={22} className="mt-1" />
                 )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">

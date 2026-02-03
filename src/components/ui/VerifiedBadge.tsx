@@ -26,15 +26,13 @@ export const VerifiedBadge = ({ className, size = 16, showAnimation = true }: Ve
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                     className={cn(
-                        "w-full h-full text-[#3897f0]",
-                        showAnimation && "animate-[spin_10s_linear_infinite]"
+                        "w-full h-full text-[#3897f0]"
                     )}
                 >
                     <path
-                        d="M12 2L14.47 5.07L18.06 4.33L19.29 7.72L22.79 8.59L21.92 12.09L22.79 15.59L19.29 16.46L18.06 19.85L14.47 19.11L12 22.18L9.53 19.11L5.94 19.85L4.71 16.46L1.21 15.59L2.08 12.09L1.21 8.59L4.71 7.72L5.94 4.33L9.53 5.07L12 2Z"
+                        d="M12 2L14.47 4.81L17.7 4.14L18.8 7.37L22 8.47L21.33 11.7L22.14 14.93L18.91 16.03L17.81 19.26L14.58 18.59L12 21.4L9.42 18.59L6.19 19.26L5.09 16.03L1.86 14.93L2.67 11.7L2 8.47L5.23 7.37L6.33 4.14L9.56 4.81L12 2Z"
                         fill="currentColor"
-                        stroke="currentColor"
-                        strokeWidth="1"
+                        className="text-[#3897f0]"
                     />
                 </svg>
 
