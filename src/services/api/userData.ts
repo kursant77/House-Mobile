@@ -3,6 +3,7 @@ import { Product } from "@/types/product";
 import { SupabaseCartItem, SupabaseFavoriteItem } from "@/types/cart";
 import { mapSupabaseProductToProduct } from "@/lib/productMapper";
 import { SupabaseProductWithRelations } from "@/types/api";
+import { logger } from "@/lib/logger";
 
 export const userDataService = {
     // --- Favorites ---
@@ -29,17 +30,39 @@ export const userDataService = {
     },
 
     addFavorite: async (productId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        await supabase.from('favorites').insert([{ user_id: user.id, product_id: productId }]);
+            const { error } = await supabase
+                .from('favorites')
+                .insert([{ user_id: user.id, product_id: productId }]);
+
+            if (error) throw error;
+        } catch (error) {
+            logger.error('Sevimligalrga qo\'shishda xato:', error);
+            throw error;
+        }
     },
 
     removeFavorite: async (productId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        await supabase.from('favorites').delete().eq('user_id', user.id).eq('product_id', productId);
+            const { error } = await supabase
+                .from('favorites')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('product_id', productId);
+
+            if (error) throw error;
+        } catch (error) {
+            logger.error('Sevimlilardan o\'chirishda xato:', error);
+            throw error;
+        }
     },
 
     // --- Cart ---
@@ -67,55 +90,106 @@ export const userDataService = {
     },
 
     addToCart: async (productId: string, quantity: number = 1) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        const { data: existing } = await supabase
-            .from('cart')
-            .select('quantity')
-            .eq('user_id', user.id)
-            .eq('product_id', productId)
-            .single();
-
-        if (existing) {
-            await supabase
+            const { data: existing, error: selectError } = await supabase
                 .from('cart')
-                .update({ quantity: existing.quantity + quantity })
+                .select('quantity')
                 .eq('user_id', user.id)
-                .eq('product_id', productId);
-        } else {
-            await supabase
-                .from('cart')
-                .insert([{ user_id: user.id, product_id: productId, quantity }]);
+                .eq('product_id', productId)
+                .single();
+
+            if (selectError && selectError.code !== 'PGRST116') {
+                throw selectError;
+            }
+
+            if (existing) {
+                const { error } = await supabase
+                    .from('cart')
+                    .update({ quantity: existing.quantity + quantity })
+                    .eq('user_id', user.id)
+                    .eq('product_id', productId);
+
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('cart')
+                    .insert([{ user_id: user.id, product_id: productId, quantity }]);
+
+                if (error) throw error;
+            }
+        } catch (error) {
+            logger.error('Savatga qo\'shishda xato:', error);
+            throw error;
         }
     },
 
     updateCartQuantity: async (productId: string, quantity: number) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        if (quantity <= 0) {
-            await supabase.from('cart').delete().eq('user_id', user.id).eq('product_id', productId);
-        } else {
-            await supabase
-                .from('cart')
-                .update({ quantity })
-                .eq('user_id', user.id)
-                .eq('product_id', productId);
+            if (quantity <= 0) {
+                const { error } = await supabase
+                    .from('cart')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('product_id', productId);
+
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('cart')
+                    .update({ quantity })
+                    .eq('user_id', user.id)
+                    .eq('product_id', productId);
+
+                if (error) throw error;
+            }
+        } catch (error) {
+            logger.error('Savat miqdorini yangilashda xato:', error);
+            throw error;
         }
     },
 
     removeFromCart: async (productId: string) => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        await supabase.from('cart').delete().eq('user_id', user.id).eq('product_id', productId);
+            const { error } = await supabase
+                .from('cart')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('product_id', productId);
+
+            if (error) throw error;
+        } catch (error) {
+            logger.error('Savatdan o\'chirishda xato:', error);
+            throw error;
+        }
     },
 
     clearCart: async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        try {
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError) throw authError;
+            if (!user) throw new Error('Foydalanuvchi topilmadi');
 
-        await supabase.from('cart').delete().eq('user_id', user.id);
+            const { error } = await supabase
+                .from('cart')
+                .delete()
+                .eq('user_id', user.id);
+
+            if (error) throw error;
+        } catch (error) {
+            logger.error('Savatni tozalashda xato:', error);
+            throw error;
+        }
     }
 };

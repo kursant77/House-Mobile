@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { Product } from "@/types/product";
 import { userDataService } from "@/services/api/userData";
+import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 export interface CartItem {
   product: Product;
@@ -35,45 +37,78 @@ export const useCartStore = create<CartState>((set, get) => ({
       const items = await userDataService.getCart();
       set({ items, isLoading: false });
     } catch (error) {
-      // Return empty array on error
+      logger.error('Savatni yuklashda xato:', error);
       set({ items: [], isLoading: false });
+      toast.error('Savat ma\'lumotlarini yuklashda xatolik');
     }
   },
 
   addToCart: async (product, quantity = 1) => {
-    const { items } = get();
-    const existingItem = items.find((item) => item.product.id === product.id);
+    try {
+      const { items } = get();
+      const existingItem = items.find((item) => item.product.id === product.id);
 
-    if (existingItem) {
-      set({
-        items: items.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        ),
-      });
-    } else {
-      set({ items: [...items, { product, quantity }] });
+      // Optimistic update
+      if (existingItem) {
+        set({
+          items: items.map((item) =>
+            item.product.id === product.id
+              ? { ...item, quantity: item.quantity + quantity }
+              : item
+          ),
+        });
+      } else {
+        set({ items: [...items, { product, quantity }] });
+      }
+
+      await userDataService.addToCart(product.id, quantity);
+    } catch (error) {
+      logger.error('Savatga qo\'shishda xato:', error);
+      toast.error('Mahsulotni savatga qo\'shib bo\'lmadi');
+      // Revert on error
+      await get().fetchCart();
+      throw error;
     }
-    await userDataService.addToCart(product.id, quantity);
   },
 
   removeFromCart: async (productId) => {
-    set({ items: get().items.filter((item) => item.product.id !== productId) });
-    await userDataService.removeFromCart(productId);
+    try {
+      const previousItems = get().items;
+      // Optimistic update
+      set({ items: get().items.filter((item) => item.product.id !== productId) });
+
+      await userDataService.removeFromCart(productId);
+    } catch (error) {
+      logger.error('Savatdan o\'chirishda xato:', error);
+      toast.error('Mahsulotni o\'chirib bo\'lmadi');
+      // Revert on error
+      await get().fetchCart();
+      throw error;
+    }
   },
 
   updateQuantity: async (productId, quantity) => {
-    if (quantity <= 0) {
-      await get().removeFromCart(productId);
-      return;
+    try {
+      if (quantity <= 0) {
+        await get().removeFromCart(productId);
+        return;
+      }
+
+      // Optimistic update
+      set({
+        items: get().items.map((item) =>
+          item.product.id === productId ? { ...item, quantity } : item
+        ),
+      });
+
+      await userDataService.updateCartQuantity(productId, quantity);
+    } catch (error) {
+      logger.error('Miqdorni yangilashda xato:', error);
+      toast.error('Miqdorni yangilab bo\'lmadi');
+      // Revert on error
+      await get().fetchCart();
+      throw error;
     }
-    set({
-      items: get().items.map((item) =>
-        item.product.id === productId ? { ...item, quantity } : item
-      ),
-    });
-    await userDataService.updateCartQuantity(productId, quantity);
   },
 
   incrementQuantity: async (productId) => {
@@ -91,8 +126,19 @@ export const useCartStore = create<CartState>((set, get) => ({
   },
 
   clearCart: async () => {
-    set({ items: [] });
-    await userDataService.clearCart();
+    try {
+      const previousItems = get().items;
+      // Optimistic update
+      set({ items: [] });
+
+      await userDataService.clearCart();
+    } catch (error) {
+      logger.error('Savatni tozalashda xato:', error);
+      toast.error('Savatni tozalab bo\'lmadi');
+      // Revert on error
+      await get().fetchCart();
+      throw error;
+    }
   },
 
   resetCart: () => {

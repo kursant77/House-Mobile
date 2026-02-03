@@ -3,6 +3,8 @@
  * Provides user-friendly error messages and error logging
  */
 
+import * as Sentry from '@sentry/react';
+
 export interface AppError {
   message: string;
   code?: string;
@@ -115,10 +117,22 @@ export const logError = (error: unknown, context?: string): void => {
     });
   }
 
-  // In production, send to error tracking service (e.g., Sentry)
+  // In production, send to Sentry
   if (import.meta.env.PROD) {
-    // Error tracking service integration can be added here
-    // Example: Sentry.captureException(error, { tags: { context } });
+    if (error instanceof Error) {
+      Sentry.captureException(error, {
+        tags: { context: context || 'unknown' },
+        extra: {
+          errorMessage,
+          errorStack,
+        },
+      });
+    } else {
+      Sentry.captureMessage(`Non-Error thrown: ${errorMessage}`, {
+        level: 'error',
+        tags: { context: context || 'unknown' },
+      });
+    }
   }
 };
 

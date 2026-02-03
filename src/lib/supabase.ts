@@ -1,15 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
+import { env } from './env';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    if (import.meta.env.DEV) {
-        console.warn('Supabase credentials are missing. Check your .env file.');
-    }
-}
-
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+/**
+ * Supabase client instance
+ * Environment variables are validated at import time
+ */
+export const supabase = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,

@@ -1,9 +1,11 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 
+type UserRole = 'user' | 'super_admin' | 'blogger' | 'seller' | 'admin';
+
 interface ProtectedRouteProps {
     children: React.ReactNode;
-    role?: 'user' | 'super_admin' | 'blogger' | 'seller' | 'admin' | ('user' | 'super_admin' | 'blogger' | 'seller' | 'admin')[];
+    role?: UserRole | UserRole[];
 }
 
 export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
@@ -21,9 +23,12 @@ export const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
         return <Navigate to="/auth" state={{ from: location }} replace />;
     }
 
-    if (role) {
+    if (role && user) {
         const roles = Array.isArray(role) ? role : [role];
-        if (user && !roles.includes(user.role as any)) {
+        const userRole = user.role as string;
+
+        // Check if user's role is in the allowed roles
+        if (!roles.includes(userRole as UserRole)) {
             return <Navigate to="/" replace />;
         }
     }

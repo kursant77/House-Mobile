@@ -12,6 +12,7 @@ import { authApi } from "@/services/api/auth";
 import { handleError } from "@/lib/errorHandler";
 import { loginSchema, registerSchema } from "@/lib/validation";
 import { sanitizeEmail, sanitizePhone, sanitizeUsername } from "@/lib/sanitize";
+import { logger } from "@/lib/logger";
 
 type AuthMode = "login" | "register" | "forgot-password" | "reset-password";
 
@@ -69,7 +70,8 @@ export default function Auth() {
   const checkUsernameAvailability = async (username: string): Promise<boolean> => {
     try {
       return await authApi.checkUsernameAvailability(username);
-    } catch {
+    } catch (error) {
+      logger.error('Username tekshirishda xato:', error);
       return false;
     }
   };
@@ -137,7 +139,8 @@ export default function Auth() {
           isValid = false;
         }
       }
-    } catch {
+    } catch (error) {
+      logger.error('Validatsiyada xato:', error);
       isValid = false;
     }
 

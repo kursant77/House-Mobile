@@ -16,6 +16,7 @@ import { handleError } from "@/lib/errorHandler";
 import { ERROR_MESSAGES as ERROR_MSGS } from "@/lib/errorMessages";
 import { formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
 import { Helmet } from "react-helmet-async";
+import { logger } from "@/lib/logger";
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -32,9 +33,7 @@ export default function ProductDetail() {
     if (product?.id) {
       productService.incrementViews(product.id).catch((error) => {
         // Silently ignore view increment errors
-        if (import.meta.env.DEV) {
-          console.warn('Failed to increment views:', error);
-        }
+        logger.warn('Failed to increment views:', error);
       });
 
       // Track view history after 3 seconds of viewing
