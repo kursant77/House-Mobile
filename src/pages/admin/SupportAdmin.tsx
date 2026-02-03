@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { MessageSquare, Mail, HelpCircle, Settings as SettingsIcon, Send as SendIcon, Inbox, Clock, CheckCircle, User, Plus, Search, Trash2, Edit, Eye, ToggleLeft, ToggleRight, Loader2, AlertCircle, X, Check, Info } from "lucide-react";
+import { Settings as SettingsIcon, Send as SendIcon, Inbox, Clock, CheckCircle, User, Plus, Search, Trash2, Edit, ToggleLeft, ToggleRight, Loader2, AlertCircle, X, Check, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -134,7 +134,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                 <p className="font-bold uppercase tracking-widest text-xs text-zinc-500">Xabarlar topilmadi</p>
                             </div>
                         ) : (
-                            messages.map((msg, i) => (
+                            messages.map((msg) => (
                                 <div key={msg.id} className={cn(
                                     "p-4 md:p-5 rounded-lg border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/20 cursor-pointer transition-colors",
                                     msg.status === 'unread' && "bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/20"
@@ -206,7 +206,7 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                             </div>
                                         ) : (
                                             <div className="divide-y">
-                                                {allUsers.map((u: { id: string; full_name: string | null; username: string | null }) => (
+                                                {allUsers.map((u: { id: string; full_name: string | null; username: string | null; email?: string | null; avatar_url?: string | null }) => (
                                                     <button
                                                         key={u.id}
                                                         onClick={() => setSelectedUserId(u.id)}
@@ -216,14 +216,14 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
                                                         )}
                                                     >
                                                         <Avatar className="h-10 w-10">
-                                                            <AvatarImage src={u.avatar_url} />
+                                                            <AvatarImage src={u.avatar_url || undefined} />
                                                             <AvatarFallback>
                                                                 {u.full_name?.charAt(0) || u.username?.charAt(0) || "U"}
                                                             </AvatarFallback>
                                                         </Avatar>
                                                         <div className="flex-1 text-left">
                                                             <p className="font-semibold text-sm">{u.username || u.full_name}</p>
-                                                            <p className="text-xs text-muted-foreground">{u.email}</p>
+                                                            <p className="text-xs text-muted-foreground">{u.email || ''}</p>
                                                         </div>
                                                         {selectedUserId === u.id && (
                                                             <Check className="h-5 w-5 text-[#3C50E0]" />

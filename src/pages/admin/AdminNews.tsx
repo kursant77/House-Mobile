@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import type { FC } from "react";
 import { postService, PublicPost } from "@/services/api/posts";
-import { Newspaper, Trash2, Edit, Search, Save, X, Loader2, Clock, Eye, MessageSquare } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Newspaper, Trash2, Edit, Search, Save, Loader2, Clock, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -69,13 +68,7 @@ const AdminNews: FC = () => {
     const handleSaveEdit = async () => {
         if (!editingPost) return;
         setIsSaving(true);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:57',message:'handleSaveEdit called',data:{postId:editingPost.id,updates:{title:editingPost.title,content:editingPost.content?.substring(0,50)}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         try {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:61',message:'Calling updatePost',data:{postId:editingPost.id}},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             await postService.updatePost(editingPost.id, {
                 title: editingPost.title,
                 content: editingPost.content,
@@ -83,16 +76,10 @@ const AdminNews: FC = () => {
                 mediaType: editingPost.mediaType,
                 category: editingPost.category
             });
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:68',message:'updatePost succeeded',data:{postId:editingPost.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             toast.success("Yangilik yangilandi");
             setIsEditDialogOpen(false);
             fetchPosts();
         } catch (error: any) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:72',message:'updatePost error',data:{error:error?.message,errorCode:error?.code,postId:editingPost.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-            // #endregion
             toast.error("Yangilashda xatolik: " + error.message);
         } finally {
             setIsSaving(false);

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { Bell, Search, Filter, Send as SendIcon, Trash2, Mail, Info, AlertTriangle, CheckCircle, MoreHorizontal, User, Smartphone, Globe, Loader2 } from "lucide-react";
+import { useState } from "react";
+import { Bell, Send as SendIcon, Trash2, Mail, Info, AlertTriangle, CheckCircle, Smartphone, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { notificationService, Notification } from "@/services/api/notifications";
+import { notificationService } from "@/services/api/notifications";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { uz } from "date-fns/locale";
@@ -52,13 +52,26 @@ export default function NotificationsAdmin() {
         sendMutation.mutate({ title, message, type, target });
     };
 
-    const sortedNotifications = notifications.filter(n => {
-        if (activeTab === 'all') return true;
-        // Since we are admin, we don't have "read/unread" in the same sense as users
-        // But we can filter by type or other criteria if needed.
-        // For now let's keep it simple.
-        return true;
-    });
+
+    // Filter and sort notifications based on activeTab
+    type Notification = {
+        id: string;
+        title: string;
+        message: string;
+        type: 'info' | 'success' | 'warning' | 'error';
+        target: string;
+        created_at: string;
+        read_by?: string[];
+    };
+
+    const sortedNotifications: Notification[] = (notifications as Notification[])
+        .filter((n) => {
+            if (activeTab === 'all') return true;
+            if (activeTab === 'unread') return !n.read_by || n.read_by.length === 0;
+            if (activeTab === 'read') return n.read_by && n.read_by.length > 0;
+            return true;
+        })
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return (
         <div className="space-y-6">
