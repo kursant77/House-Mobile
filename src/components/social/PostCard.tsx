@@ -130,7 +130,7 @@ export const PostCard = ({ post }: PostCardProps) => {
                                     {post.author?.fullName}
                                 </span>
                                 {(post.author?.role === 'super_admin' || post.author?.role === 'admin' || post.author?.role === 'blogger' || post.author?.role === 'seller') && (
-                                    <VerifiedBadge size={12} />
+                                    <VerifiedBadge size={12} className="shrink-0" />
                                 )}
                             </div>
 

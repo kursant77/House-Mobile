@@ -25,6 +25,7 @@ import { productService } from "@/services/api/products";
 import { postService } from "@/services/api/posts";
 import { useQuery } from "@tanstack/react-query";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 import { useSidebarStore } from "@/store/sidebarStore";
 
@@ -502,7 +503,7 @@ export const Header = () => {
                                             <div className="flex items-center flex-nowrap gap-1">
                                                 <span className="hidden md:inline truncate max-w-[120px]">{user?.name}</span>
                                                 {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'blogger' || user?.role === 'seller') && (
-                                                    <VerifiedBadge size={14} />
+                                                    <VerifiedBadge size={14} className="shrink-0" />
                                                 )}
                                             </div>
                                             {user?.role === 'blogger' && (

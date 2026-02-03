@@ -151,7 +151,7 @@ export default function Profile() {
             <div className="flex items-center flex-nowrap gap-2 mb-1">
               <p className="font-bold text-base">{user.username || user.name?.split(' ')[0]}</p>
               {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
-                <VerifiedBadge size={16} />
+                <VerifiedBadge size={15} className="shrink-0" />
               )}
               {(user.role === 'super_admin' || user.role === 'admin') && (
                 <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Admin</span>
@@ -256,7 +256,7 @@ export default function Profile() {
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
                 {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
-                  <VerifiedBadge size={22} className="mt-1" />
+                  <VerifiedBadge size={22} className="shrink-0" />
                 )}
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
