@@ -29,38 +29,49 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Vendor chunks
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-react';
+            // Core React libraries
+            if (
+              id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')
+            ) {
+              return 'vendor-react-core';
             }
-            if (id.includes('@radix-ui')) {
+            
+            // React Router
+            if (id.includes('node_modules/react-router') || id.includes('node_modules/@remix-run/router')) {
+              return 'vendor-router';
+            }
+
+            // UI Libraries (Radix, Lucide, etc.)
+            if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
               return 'vendor-ui';
             }
+
+            // Supabase
             if (id.includes('@supabase')) {
               return 'vendor-supabase';
             }
-            if (id.includes('@tanstack/react-query')) {
-              return 'vendor-query';
+
+            // Tanstack Query/Virtual
+            if (id.includes('@tanstack')) {
+              return 'vendor-tanstack';
             }
-            if (id.includes('@tanstack/react-virtual')) {
-              return 'vendor-virtual';
+
+            // Component libraries
+            if (id.includes('embla-carousel-react') || id.includes('cmdk') || id.includes('vaul')) {
+              return 'vendor-components';
             }
-            if (id.includes('lucide-react')) {
-              return 'vendor-icons';
+
+            // Utilities
+            if (id.includes('date-fns') || id.includes('recharts') || id.includes('zustand') || id.includes('zod')) {
+              return 'vendor-utils';
             }
-            if (id.includes('date-fns')) {
-              return 'vendor-date';
-            }
-            if (id.includes('recharts')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('zustand')) {
-              return 'vendor-state';
-            }
-            // Other vendor libraries
+
             return 'vendor-misc';
           }
+
           // Route-based code splitting
           if (id.includes('/pages/')) {
             const pageName = id.split('/pages/')[1]?.split('.')[0];
@@ -68,22 +79,11 @@ export default defineConfig(({ mode }) => ({
               return `page-${pageName}`;
             }
           }
-          // Chat components
-          if (id.includes('/components/chat/')) {
-            return 'chat-components';
-          }
         },
       },
     },
     chunkSizeWarningLimit: 1000,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true, // Remove console.log in production
-        drop_debugger: true,
-      },
-    },
     cssCodeSplit: true,
-    sourcemap: false, // Disable sourcemaps for faster builds
+    sourcemap: false,
   },
 }));
