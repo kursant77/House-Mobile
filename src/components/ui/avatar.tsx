@@ -33,17 +33,17 @@ const Avatar = React.forwardRef<
       className={cn(
         "relative flex shrink-0",
         "rounded-full",
-        borderColor === "white" 
+        borderColor === "white"
           ? cn(
-              "border-2 border-white dark:border-[#0E1621] shadow-sm",
-              "overflow-hidden",
-              sizeClasses[size]
-            )
+            "border-2 border-white dark:border-[#0E1621] shadow-sm",
+            "overflow-hidden",
+            sizeClasses[size]
+          )
           : cn(
-              "p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500",
-              "overflow-visible",
-              sizeClasses[size]
-            ),
+            "p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500",
+            "overflow-visible",
+            sizeClasses[size]
+          ),
         "hover:scale-105 transition-transform duration-200 cursor-pointer",
         "instagram-avatar",
         className
@@ -54,20 +54,7 @@ const Avatar = React.forwardRef<
         "w-full h-full rounded-full overflow-hidden",
         borderColor === "gradient" && "bg-background"
       )}>
-        <AvatarPrimitive.Image
-          className="aspect-square h-full w-full object-cover rounded-full"
-        />
-        <AvatarPrimitive.Fallback
-          className={cn(
-            "flex h-full w-full items-center justify-center rounded-full",
-            "bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800",
-            "text-gray-600 dark:text-gray-300 font-medium",
-            size === "sm" && "text-xs",
-            size === "md" && "text-sm",
-            size === "lg" && "text-base",
-            size === "xl" && "text-lg"
-          )}
-        />
+        {props.children}
       </div>
       {showStatus && (
         <div

@@ -7,7 +7,7 @@ import { SupabaseProductWithRelations, SupabaseProductMedia, SupabaseProfile } f
  */
 export function mapSupabaseProductToProduct(p: SupabaseProductWithRelations): Product {
   const productMedia = Array.isArray(p.product_media) ? p.product_media : (p.product_media ? [p.product_media] : []);
-  
+
   return {
     id: p.id,
     title: p.title,
@@ -24,8 +24,9 @@ export function mapSupabaseProductToProduct(p: SupabaseProductWithRelations): Pr
     author: p.profiles ? {
       id: p.profiles.id,
       fullName: p.profiles.full_name ?? undefined,
+      username: p.profiles.username ?? undefined,
       avatarUrl: p.profiles.avatar_url ?? undefined,
-      role: p.profiles.role === 'admin' ? 'super_admin' : (p.profiles.role === 'user' || p.profiles.role === 'blogger' || p.profiles.role === 'super_admin' ? p.profiles.role : undefined),
+      role: p.profiles.role === 'admin' ? 'super_admin' : p.profiles.role as any,
     } : undefined,
     images: productMedia.filter((m: SupabaseProductMedia) => m.type === 'image').map((m: SupabaseProductMedia) => m.url),
     videoUrl: productMedia.find((m: SupabaseProductMedia) => m.type === 'video')?.url,

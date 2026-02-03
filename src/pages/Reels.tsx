@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { Loader2, Clapperboard } from "lucide-react";
+import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 
 export default function Reels() {
   const [activeIndex, setActiveIndex] = useState(0);
@@ -153,9 +154,14 @@ export default function Reels() {
                         {reel.product.author?.fullName?.charAt(0)}
                       </div>
                     )}
-                    <span className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      {reel.product.author?.fullName || "House Mobile"}
-                    </span>
+                    <div className="flex items-center flex-nowrap gap-1">
+                      <span className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors truncate">
+                        {reel.product.author?.fullName || "House Mobile"}
+                      </span>
+                      {(reel.product.author?.role === 'super_admin' || reel.product.author?.role === 'admin' || reel.product.author?.role === 'blogger' || reel.product.author?.role === 'seller') && (
+                        <VerifiedBadge size={12} className="shrink-0" />
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 mt-2 hidden md:block">{reel.product.description}</p>
                 </div>
@@ -204,7 +210,7 @@ export default function Reels() {
           >
             <div className={cn(
               "h-full relative bg-black",
-              isMobile 
+              isMobile
                 ? "w-full md:h-full md:aspect-[9/16] md:w-auto md:my-auto md:rounded-[32px] md:shadow-[0_0_40px_rgba(0,0,0,0.8)] mx-auto overflow-hidden"
                 : "w-full max-w-7xl mx-auto flex items-center"
             )}>

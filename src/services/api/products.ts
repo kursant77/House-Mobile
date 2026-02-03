@@ -117,7 +117,7 @@ export const productService = {
             .select(`
                 *,
                 product_media!inner(*),
-                profiles!seller_id(id, full_name, avatar_url)
+                profiles!seller_id(id, full_name, avatar_url, role, username)
             `)
             .eq('product_media.type', 'video')
             .order('created_at', { ascending: false });
@@ -206,7 +206,9 @@ export const productService = {
                 const author: ReelItem['author'] = p.profiles ? {
                     id: p.profiles.id,
                     fullName: p.profiles.full_name ?? undefined,
+                    username: p.profiles.username ?? undefined,
                     avatarUrl: p.profiles.avatar_url ?? undefined,
+                    role: p.profiles.role === 'admin' ? 'super_admin' : p.profiles.role as any,
                 } : undefined;
 
                 const reelItem: ReelItem = {
