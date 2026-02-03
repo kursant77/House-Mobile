@@ -48,7 +48,7 @@ export const Sidebar = () => {
     const { user } = useAuthStore();
     const itemCount = getItemCount();
 
-    const isSeller = user?.role === 'blogger' || user?.role === 'super_admin' || user?.role === 'seller';
+    const isSeller = user?.role === 'blogger' || user?.role === 'seller';
     const sellerItems = isSeller ? [
         { icon: LayoutDashboard, label: "Sotuvchi kabineti", path: "/seller/dashboard" }
     ] : [];
