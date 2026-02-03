@@ -150,7 +150,7 @@ const WatchLater = () => {
                                                 <Eye className="h-3.5 w-3.5" />
                                                 <span>{formatNumber(item.views || 0)}</span>
                                             </div>
-                                            {item.rating && (
+                                            {!!item.rating && (
                                                 <div className="flex items-center gap-1">
                                                     <Heart className="h-3.5 w-3.5" />
                                                     <span>{item.rating}</span>

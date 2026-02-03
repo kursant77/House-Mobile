@@ -195,11 +195,13 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
           {product.title}
         </h3>
 
-        <div className="flex items-center gap-1.5">
-          <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-          <span className="text-xs font-medium text-muted-foreground">{product.rating}</span>
-          <span className="text-[10px] text-muted-foreground/60">({product.reviewCount})</span>
-        </div>
+        {!!product.rating && (
+          <div className="flex items-center gap-1.5">
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            <span className="text-xs font-medium text-muted-foreground">{product.rating}</span>
+            <span className="text-[10px] text-muted-foreground/60">({product.reviewCount})</span>
+          </div>
+        )}
 
         <div className="flex items-baseline gap-2 mt-0.5">
           <span className="text-sm md:text-base font-bold text-foreground tracking-tight">{formatPriceNumber(product.price)} {formatCurrencySymbol(product.currency || "UZS")}</span>

@@ -250,7 +250,7 @@ export default function ProductDetail() {
                     </div>
                   </div>
 
-                  {product.rating && (
+                  {!!product.rating && (
                     <div className="flex items-center gap-2 mb-4">
                       <div className="flex items-center gap-1">
                         <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
@@ -432,7 +432,7 @@ export default function ProductDetail() {
                 </div>
                 <span className="text-xs font-semibold">{product.author?.fullName || "House Mobile"}</span>
               </div>
-              {product.rating && (
+              {!!product.rating && (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
