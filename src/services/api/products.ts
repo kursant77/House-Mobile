@@ -11,23 +11,42 @@ import { mapSupabaseProductsToProducts, mapSupabaseProductToProduct } from "@/li
 export const productService = {
     /**
      * Fetch all products with their media and seller info
+     * Supports pagination for better performance
      */
-    getProducts: async (): Promise<Product[]> => {
-        const { data, error } = await supabase
+    getProducts: async (params?: {
+        limit?: number;
+        offset?: number;
+        category?: string;
+    }): Promise<{ products: Product[]; total: number }> => {
+        const limit = params?.limit || 20;
+        const offset = params?.offset || 0;
+
+        let query = supabase
             .from('products')
             .select(`
                 *,
                 product_media(*),
                 profiles!seller_id(id, full_name, avatar_url, role)
-            `)
-            .order('created_at', { ascending: false });
+            `, { count: 'exact' })
+            .order('created_at', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+        // Apply category filter if provided
+        if (params?.category) {
+            query = query.eq('category', params.category);
+        }
+
+        const { data, error, count } = await query;
 
         if (error) {
             const appError = handleError(error, 'getProducts');
             throw new Error(appError.message);
         }
 
-        return mapSupabaseProductsToProducts(data as SupabaseProductWithRelations[]);
+        return {
+            products: mapSupabaseProductsToProducts(data as SupabaseProductWithRelations[]),
+            total: count || 0,
+        };
     },
 
     /**

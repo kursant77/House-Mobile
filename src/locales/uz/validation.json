@@ -1,0 +1,12 @@
+{
+  "required": "Bu maydon to'ldirilishi shart",
+  "email_invalid": "Email noto'g'ri formatda",
+  "phone_invalid": "Telefon raqam noto'g'ri formatda",
+  "password_min_length": "Parol kamida 6 ta belgidan iborat bo'lishi kerak",
+  "password_mismatch": "Parollar mos kelmaydi",
+  "username_min_length": "Username kamida 3 ta belgidan iborat bo'lishi kerak",
+  "name_required": "Ism kiritilishi shart",
+  "price_invalid": "Narx noto'g'ri",
+  "quantity_invalid": "Miqdor 1 dan kam bo'lmasligi kerak",
+  "stock_required": "Ombordagi miqdor ko'rsatilishi shart"
+}
