@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import tailwindcss from "tailwindcss";
@@ -11,7 +12,26 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      manifest: {
+        name: 'House Mobile',
+        short_name: 'House',
+        description: 'Social commerce platform',
+        theme_color: '#ffffff',
+        icons: [
+          { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+        ],
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -19,10 +39,7 @@ export default defineConfig(({ mode }) => ({
   },
   css: {
     postcss: {
-      plugins: [
-        tailwindcss(),
-        autoprefixer(),
-      ],
+      plugins: [tailwindcss(), autoprefixer()],
     },
   },
   build: {
@@ -30,54 +47,18 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            // Core React libraries
-            if (
-              id.includes('node_modules/react/') ||
-              id.includes('node_modules/react-dom/') ||
-              id.includes('node_modules/scheduler/')
-            ) {
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
               return 'vendor-react-core';
             }
-            
-            // React Router
-            if (id.includes('node_modules/react-router') || id.includes('node_modules/@remix-run/router')) {
-              return 'vendor-router';
-            }
-
-            // UI Libraries (Radix, Lucide, etc.)
-            if (id.includes('@radix-ui') || id.includes('lucide-react') || id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
-              return 'vendor-ui';
-            }
-
-            // Supabase
-            if (id.includes('@supabase')) {
-              return 'vendor-supabase';
-            }
-
-            // Tanstack Query/Virtual
-            if (id.includes('@tanstack')) {
-              return 'vendor-tanstack';
-            }
-
-            // Component libraries
-            if (id.includes('embla-carousel-react') || id.includes('cmdk') || id.includes('vaul')) {
-              return 'vendor-components';
-            }
-
-            // Utilities
-            if (id.includes('date-fns') || id.includes('recharts') || id.includes('zustand') || id.includes('zod')) {
-              return 'vendor-utils';
-            }
-
+            if (id.includes('node_modules/react-router')) return 'vendor-router';
+            if (id.includes('@radix-ui') || id.includes('lucide-react')) return 'vendor-ui';
+            if (id.includes('@supabase')) return 'vendor-supabase';
+            if (id.includes('@tanstack')) return 'vendor-tanstack';
             return 'vendor-misc';
           }
-
-          // Route-based code splitting
           if (id.includes('/pages/')) {
             const pageName = id.split('/pages/')[1]?.split('.')[0];
-            if (pageName) {
-              return `page-${pageName}`;
-            }
+            if (pageName) return `page-${pageName}`;
           }
         },
       },
