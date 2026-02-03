@@ -18,7 +18,8 @@ import {
   Download,
   Flag,
   UserX,
-  PlusSquare
+  PlusSquare,
+  User as UserIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
@@ -436,99 +437,99 @@ export function ReelCard({
         {/* Right Side Actions - Mobile Only (Instagram Style) */}
         {isMobile && (
           <div className="absolute right-2 bottom-[84px] flex flex-col items-center gap-5 z-20">
-          <div className="flex flex-col items-center">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleLike(); }}
-              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
-            >
-              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
-                <Heart className={cn("h-7 w-7 transition-colors", isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-white fill-none")} strokeWidth={2.5} />
-              </div>
-            </button>
-            <span className="text-[11px] font-bold text-white drop-shadow-md -mt-1">{formatCount(likesCount)}</span>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
-              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
-            >
-              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
-                <MessageCircle className="h-7 w-7 text-white" strokeWidth={2.5} />
-              </div>
-            </button>
-            <CommentCount productId={reel.product.id} />
-          </div>
-
-          <div className="flex flex-col items-center">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleShare(); }}
-              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
-            >
-              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
-                <Share2 className="h-7 w-7 text-white" strokeWidth={2.5} />
-              </div>
-            </button>
-          </div>
-
-          <div className="flex flex-col items-center">
-            <button
-              onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
-              className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
-            >
-              <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
-                <Bookmark className={cn("h-7 w-7 transition-colors", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} strokeWidth={2.5} />
-              </div>
-            </button>
-          </div>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <div className="flex flex-col items-center">
               <button
-                onClick={(e) => e.stopPropagation()}
-                className="p-2.5 rounded-full hover:bg-white/10 transition-all active:scale-125"
+                onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
               >
-                < MoreVertical className="h-6 w-6 text-white" strokeWidth={2.5} />
+                <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                  <Heart className={cn("h-7 w-7 transition-colors", isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-white fill-none")} strokeWidth={2.5} />
+                </div>
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-white/10 text-white">
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
-                <Clock className="h-4 w-4 mr-2" />
-                Keyinroq ko'rish
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
-                <Download className="h-4 w-4 mr-2" />
-                Yuklab olish
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/10" />
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
-                <Flag className="h-4 w-4 mr-2" />
-                Shikoyat qilish
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
-                className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
-              >
-                <UserX className="h-4 w-4 mr-2" />
-                Foydalanuvchini bloklash
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <span className="text-[11px] font-bold text-white drop-shadow-md -mt-1">{formatCount(likesCount)}</span>
+            </div>
 
-          <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
-            className="h-10 w-10 rounded-lg border-2 border-white/80 overflow-hidden shadow-xl mt-4 transition-transform hover:scale-110 active:scale-90 bg-zinc-800 flex items-center justify-center p-0"
-          >
-            {reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl ? (
-              <img
-                src={reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <ShoppingBag className="h-5 w-5 text-white/50" />
-            )}
-          </button>
+            <div className="flex flex-col items-center">
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
+                className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
+              >
+                <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                  <MessageCircle className="h-7 w-7 text-white" strokeWidth={2.5} />
+                </div>
+              </button>
+              <CommentCount productId={reel.product.id} />
+            </div>
+
+            <div className="flex flex-col items-center">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
+              >
+                <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                  <Share2 className="h-7 w-7 text-white" strokeWidth={2.5} />
+                </div>
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <button
+                onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
+                className="group/btn flex flex-col items-center gap-1 transition-transform active:scale-125"
+              >
+                <div className="p-2.5 rounded-full hover:bg-white/10 transition-colors">
+                  <Bookmark className={cn("h-7 w-7 transition-colors", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-white fill-none")} strokeWidth={2.5} />
+                </div>
+              </button>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-2.5 rounded-full hover:bg-white/10 transition-all active:scale-125"
+                >
+                  < MoreVertical className="h-6 w-6 text-white" strokeWidth={2.5} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-zinc-900 border-white/10 text-white">
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Keyinroq ko'rish
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                  <Download className="h-4 w-4 mr-2" />
+                  Yuklab olish
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/10" />
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-white/10 focus:text-white cursor-pointer transition-colors">
+                  <Flag className="h-4 w-4 mr-2" />
+                  Shikoyat qilish
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+                  className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
+                >
+                  <UserX className="h-4 w-4 mr-2" />
+                  Foydalanuvchini bloklash
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
+              className="h-10 w-10 rounded-lg border-2 border-white/80 overflow-hidden shadow-xl mt-4 transition-transform hover:scale-110 active:scale-90 bg-zinc-800 flex items-center justify-center p-0"
+            >
+              {reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl ? (
+                <img
+                  src={reel.product.images[0] || reel.thumbnailUrl || reel.product.author?.avatarUrl}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <ShoppingBag className="h-5 w-5 text-white/50" />
+              )}
+            </button>
           </div>
         )}
 
@@ -543,13 +544,15 @@ export function ReelCard({
                 >
                   <Avatar size="md" borderColor="white">
                     <AvatarImage src={reel.author?.avatarUrl} />
-                    <AvatarFallback>{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
+                    <AvatarFallback>
+                      <UserIcon className="h-5 w-5 text-white/50" />
+                    </AvatarFallback>
                   </Avatar>
                   <div className="flex items-center gap-1 text-shadow-sm">
                     <span className="text-white font-bold text-sm tracking-tight">
                       {reel.author?.fullName || "House Mobile"}
                     </span>
-                    {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
+                    {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
                       <VerifiedBadge size={14} />
                     )}
                   </div>
@@ -595,7 +598,7 @@ export function ReelCard({
                     {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
                   </span>
                 </button>
-                
+
                 {/* Narx (alohida qator, mukammal dizayn) */}
                 <div className="animate-fade-in">
                   <div className="relative group">
@@ -640,13 +643,15 @@ export function ReelCard({
               >
                 <Avatar size="lg" borderColor="white">
                   <AvatarImage src={reel.author?.avatarUrl} />
-                  <AvatarFallback>{reel.author?.fullName?.charAt(0) || "H"}</AvatarFallback>
+                  <AvatarFallback>
+                    <UserIcon className="h-8 w-8 text-white/50" />
+                  </AvatarFallback>
                 </Avatar>
                 <div className="flex items-center gap-2">
                   <span className="text-white font-bold text-base tracking-tight">
                     {reel.author?.fullName || "House Mobile"}
                   </span>
-                  {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger') && (
+                  {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
                     <VerifiedBadge size={16} />
                   )}
                 </div>
@@ -677,10 +682,10 @@ export function ReelCard({
 
             {/* 3. Description */}
             <div>
-              <BioDisplay 
-                bio={reel.product.description || ""} 
-                maxLines={4} 
-                className="text-white/90 text-sm leading-relaxed [&_a]:text-white/80 [&_a]:hover:text-white [&_button]:text-white/70 [&_button]:hover:text-white" 
+              <BioDisplay
+                bio={reel.product.description || ""}
+                maxLines={4}
+                className="text-white/90 text-sm leading-relaxed [&_a]:text-white/80 [&_a]:hover:text-white [&_button]:text-white/70 [&_button]:hover:text-white"
               />
             </div>
 

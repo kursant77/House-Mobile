@@ -8,7 +8,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'user' | 'blogger' | 'super_admin' | 'seller';
+  role: 'user' | 'blogger' | 'super_admin' | 'seller' | 'admin';
   avatarUrl?: string;
   bio?: string;
   username?: string;

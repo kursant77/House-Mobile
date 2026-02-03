@@ -12,7 +12,6 @@ import {
     CheckCircle2,
     XCircle,
     ChevronRight,
-    Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -43,7 +42,7 @@ export default function SellerDashboard() {
     const [chartData, setChartData] = useState<any[]>([]);
 
     useEffect(() => {
-        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin')) {
+        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin' && user.role !== 'seller' && user.role !== 'admin')) {
             navigate("/");
             return;
         }

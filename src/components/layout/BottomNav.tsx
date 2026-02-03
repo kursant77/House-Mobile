@@ -1,4 +1,4 @@
-import { Home, Search, Heart, ShoppingBag, Film, User, Repeat } from "lucide-react";
+import { Home, ShoppingBag, Film, User, PlusSquare } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/cartStore";
@@ -14,6 +14,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { icon: Home, label: "Asosiy", path: "/" },
   { icon: ShoppingBag, label: "Mahsulotlar", path: "/products" },
+  { icon: PlusSquare, label: "Qo'shish", path: "/upload" },
   { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profil", path: "/profile" },
 ];
@@ -70,9 +71,10 @@ export function BottomNav({ isReelsPage = false }: BottomNavProps) {
                 <item.icon
                   className={cn(
                     "h-6 w-6 mb-0.5",
-                    isActive && "fill-current"
+                    isActive && "fill-current",
+                    item.path === "/upload" && "h-8 w-8 text-primary drop-shadow-sm"
                   )}
-                  strokeWidth={2}
+                  strokeWidth={item.path === "/upload" ? 2.5 : 2}
                 />
                 {item.showBadge && cartCount > 0 && (
                   <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white border-2 border-background">
