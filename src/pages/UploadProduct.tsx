@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { postService } from "@/services/api/posts";
 import { handleError } from "@/lib/errorHandler";
-import { postSchema, productSchema } from "@/lib/validation";
+import { productSchema } from "@/lib/validation";
 import { useProductUpload } from "@/hooks/useProductUpload";
 import { ProductMediaUpload } from "@/components/products/ProductMediaUpload";
 import { ProductForm } from "@/components/products/ProductForm";
@@ -46,7 +46,7 @@ export default function UploadProduct() {
     const canPostNews = user?.role === "super_admin" || user?.role === "blogger";
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isLoadingEdit, setIsLoadingEdit] = useState(false);
-    
+
     const {
         images,
         video,
@@ -67,9 +67,9 @@ export default function UploadProduct() {
         setValue,
         reset,
         handleSubmit: handleProductSubmit,
-        formState: { errors: productErrors },
+        formState: { errors },
     } = useForm<ProductFormInput>({
-        resolver: async (values, context, options) => {
+        resolver: async (values) => {
             const result = await productFormSchema.safeParseAsync(values);
             if (result.success) {
                 return { values: result.data, errors: {} };
@@ -143,26 +143,16 @@ export default function UploadProduct() {
         }
 
         if (editId) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:109',message:'Product edit submit',data:{editId,hasNewImages:images.some(img=>img.file),hasNewVideo:video?.file,imageCount:images.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-            // #endregion
             try {
                 setIsSubmitting(true);
                 setUploadProgress(0);
-                
+
                 // Prepare media files (only new files, not existing URLs)
                 const mediaUploads = [
                     ...images.filter(img => img.file).map(img => ({ file: img.file as File, type: 'image' as const })),
                     ...(video?.file ? [{ file: video.file, type: 'video' as const }] : [])
                 ];
 
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:112',message:'Calling updateProduct',data:{editId,title:formData.title,mediaCount:mediaUploads.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
-                
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:129',message:'Before updateProduct call',data:{editId,formData:{title:formData.title,price:formData.price,currency:formData.currency},mediaCount:mediaUploads.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
                 await productService.updateProduct(
                     editId,
                     {
@@ -176,19 +166,10 @@ export default function UploadProduct() {
                     mediaUploads.length > 0 ? mediaUploads : undefined,
                     (progress) => setUploadProgress(progress)
                 );
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:142',message:'After updateProduct call',data:{editId,success:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-                // #endregion
-                
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:120',message:'updateProduct succeeded',data:{editId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
+
                 toast.success("Mahsulot muvaffaqiyatli yangilandi");
                 navigate("/profile");
             } catch (error: unknown) {
-                // #region agent log
-                fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'UploadProduct.tsx:123',message:'updateProduct error',data:{error:String(error),editId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-                // #endregion
                 const appError = handleError(error, 'UpdateProduct');
                 toast.error(appError.message);
             } finally {
@@ -374,6 +355,7 @@ export default function UploadProduct() {
                                                             onFormDataChange={(field, value) =>
                                                                 setValue(field as keyof ProductFormInput, value)
                                                             }
+                                                            errors={errors}
                                                         />
                                                     </div>
                                                     <div className="rounded-2xl border border-border/60 bg-card/70 dark:bg-card/60 p-3 sm:p-4 flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">

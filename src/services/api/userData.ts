@@ -1,9 +1,18 @@
 import { supabase } from "@/lib/supabase";
 import { Product } from "@/types/product";
-import { SupabaseCartItem, SupabaseFavoriteItem } from "@/types/cart";
 import { mapSupabaseProductToProduct } from "@/lib/productMapper";
 import { SupabaseProductWithRelations } from "@/types/api";
 import { logger } from "@/lib/logger";
+
+interface FavoriteQueryResult {
+    product_id: string;
+    products: SupabaseProductWithRelations | SupabaseProductWithRelations[];
+}
+
+interface CartQueryResult {
+    quantity: number;
+    products: SupabaseProductWithRelations | SupabaseProductWithRelations[];
+}
 
 export const userDataService = {
     // --- Favorites ---
@@ -24,9 +33,10 @@ export const userDataService = {
 
         if (error) throw error;
 
-        return (data as SupabaseFavoriteItem[]).map(item => 
-            mapSupabaseProductToProduct(item.products as SupabaseProductWithRelations)
-        );
+        return (data as FavoriteQueryResult[]).map(item => {
+            const productData = Array.isArray(item.products) ? item.products[0] : item.products;
+            return mapSupabaseProductToProduct(productData);
+        });
     },
 
     addFavorite: async (productId: string) => {
@@ -83,10 +93,13 @@ export const userDataService = {
 
         if (error) throw error;
 
-        return (data as SupabaseCartItem[]).map(item => ({
-            quantity: item.quantity,
-            product: mapSupabaseProductToProduct(item.products as SupabaseProductWithRelations)
-        }));
+        return (data as CartQueryResult[]).map(item => {
+            const productData = Array.isArray(item.products) ? item.products[0] : item.products;
+            return {
+                quantity: item.quantity,
+                product: mapSupabaseProductToProduct(productData)
+            };
+        });
     },
 
     addToCart: async (productId: string, quantity: number = 1) => {
@@ -100,7 +113,7 @@ export const userDataService = {
                 .select('quantity')
                 .eq('user_id', user.id)
                 .eq('product_id', productId)
-                .single();
+                .maybeSingle();
 
             if (selectError && selectError.code !== 'PGRST116') {
                 throw selectError;

@@ -15,6 +15,8 @@ export function formatPrice(price: number, currency: string = "so'm"): string {
   }).format(price) + ` ${currency}`;
 }
 
+export const formatCurrency = formatPrice;
+
 /**
  * Format price without currency
  */

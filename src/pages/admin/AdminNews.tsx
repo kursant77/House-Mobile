@@ -39,23 +39,11 @@ const AdminNews: FC = () => {
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Rostdan ham ushbu yangilikni o'chirmoqchimisiz?")) return;
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:40',message:'handleDelete called',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         try {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:44',message:'Calling deletePost',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             await postService.deletePost(id);
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:45',message:'deletePost succeeded',data:{postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             toast.success("Yangilik o'chirildi");
             fetchPosts();
         } catch (error: any) {
-            // #region agent log
-            fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AdminNews.tsx:48',message:'deletePost error',data:{error:error?.message,errorCode:error?.code,postId:id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-            // #endregion
             toast.error("O'chirishda xatolik: " + error.message);
         }
     };

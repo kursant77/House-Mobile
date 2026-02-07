@@ -1,12 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { Product, Profile, ReelItem } from "@/types/product";
 
 const MAX_HISTORY_ITEMS = 20;
 
 interface SearchResults {
-  products: any[];
-  users: any[];
-  reels: any[];
+  products: Product[];
+  users: Profile[];
+  reels: ReelItem[];
 }
 
 interface SearchState {
@@ -60,18 +61,18 @@ export const useSearchStore = create<SearchState>()(
 
       addToHistory: (term: string) => {
         if (!term.trim()) return;
-        
+
         const { history } = get();
         const normalizedTerm = term.trim().toLowerCase();
-        
+
         // Remove duplicate if exists
         const filteredHistory = history.filter(
           (h) => h.toLowerCase() !== normalizedTerm
         );
-        
+
         // Add to beginning
         const newHistory = [term.trim(), ...filteredHistory].slice(0, MAX_HISTORY_ITEMS);
-        
+
         set({ history: newHistory, recentSearches: newHistory.slice(0, 5) });
       },
 

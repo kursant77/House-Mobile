@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { ProductCard } from "@/components/products/ProductCard";
 import { categories } from "@/data/mockProducts";
 import { cn } from "@/lib/utils";
-import { Search, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,12 +38,14 @@ export default function Products() {
   };
 
   const queryClient = useQueryClient();
-  
-  const { data: allProducts = [], isLoading } = useQuery({
+
+  const { data, isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: productService.getProducts,
+    queryFn: () => productService.getProducts({ limit: 100 }),
     staleTime: 1000 * 60 * 1, // 1 minute cache (aligned with global config)
   });
+
+  const allProducts = data?.products || [];
 
   // Real-time subscription for products
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "next-themes";
@@ -18,7 +18,9 @@ import {
     UserMinus,
     Trash2,
     ExternalLink,
-    Info
+    Info,
+    ShoppingBag,
+    Film
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +38,18 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/lib/supabase";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export default function Settings() {
     const { user, logout } = useAuthStore();
@@ -45,7 +59,18 @@ export default function Settings() {
     // Local settings states
     const [notifications, setNotifications] = useState(true);
     const [biometrics, setBiometrics] = useState(false);
-    const [language, setLanguage] = useState("uz");
+    const [language, setLanguage] = useState(() => localStorage.getItem("app-language") || "uz");
+
+    // Dialog states
+    const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+    const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem("app-language", language);
+    }, [language]);
 
     const queryClient = useQueryClient();
 
@@ -75,6 +100,35 @@ export default function Settings() {
         logout();
         navigate("/auth");
         toast.success("Hisobdan chiqildi");
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!newPassword || newPassword.length < 6) {
+            toast.error("Parol kamida 6 ta belgidan iborat bo'lishi kerak");
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error("Parollar mos kelmadi");
+            return;
+        }
+
+        setIsUpdatingPassword(true);
+        try {
+            const { error } = await supabase.auth.updateUser({
+                password: newPassword
+            });
+
+            if (error) throw error;
+
+            toast.success("Parol muvaffaqiyatli o'zgartirildi");
+            setPasswordDialogOpen(false);
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (error: any) {
+            toast.error("Xatolik: " + error.message);
+        } finally {
+            setIsUpdatingPassword(false);
+        }
     };
 
     const SettingItem = ({
@@ -167,7 +221,7 @@ export default function Settings() {
                         icon={Lock}
                         label="Xavfsizlik"
                         description="Parolni o'zgartirish va 2FA"
-                        onClick={() => toast.info("Tez kunda!")}
+                        onClick={() => setPasswordDialogOpen(true)}
                     />
                     <SettingItem
                         icon={Shield}
@@ -237,13 +291,32 @@ export default function Settings() {
                         onClick={handleClearCache}
                     />
 
+                    {/* Partnership Section */}
+                    <SectionHeader title="Hamkorlik" />
+                    {user?.role !== 'seller' && user?.role !== 'super_admin' && (
+                        <SettingItem
+                            icon={ShoppingBag}
+                            label="Sotuvchi bo'lish"
+                            description="O'z mahsulotlaringizni platformamizda soting"
+                            onClick={() => navigate("/apply/seller")}
+                        />
+                    )}
+                    {user?.role !== 'blogger' && user?.role !== 'super_admin' && (
+                        <SettingItem
+                            icon={Film}
+                            label="Blogger bo'lish"
+                            description="Kreativ kontent yaratib pul toping"
+                            onClick={() => navigate("/apply/blogger")}
+                        />
+                    )}
+
                     {/* Support Section */}
                     <SectionHeader title="Qo'llab-quvvatlash" />
                     <SettingItem
                         icon={HelpCircle}
                         label="Yordam markazi"
                         description="Savollar va javoblar"
-                        onClick={() => toast.info("Tez kunda!")}
+                        onClick={() => setHelpDialogOpen(true)}
                     />
                     <SettingItem
                         icon={Info}
@@ -316,6 +389,94 @@ export default function Settings() {
                     </p>
                 </div>
             </div>
+
+            {/* Password Change Dialog */}
+            <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Parolni o'zgartirish</DialogTitle>
+                        <DialogDescription>
+                            Yangi parolni kiriting va tasdiqlang.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="new-password">Yangi parol</Label>
+                            <Input
+                                id="new-password"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                                placeholder="******"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Parolni tasdiqlang</Label>
+                            <Input
+                                id="confirm-password"
+                                type="password"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                placeholder="******"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPasswordDialogOpen(false)}>Bekor qilish</Button>
+                        <Button onClick={handleUpdatePassword} disabled={isUpdatingPassword}>
+                            {isUpdatingPassword ? "Saqlanmoqda..." : "Saqlash"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Help Center Dialog */}
+            <Dialog open={helpDialogOpen} onOpenChange={setHelpDialogOpen}>
+                <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Yordam markazi</DialogTitle>
+                        <DialogDescription>
+                            Ko'p beriladigan savollarga javoblar.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Accordion type="single" collapsible className="w-full">
+                            <AccordionItem value="item-1">
+                                <AccordionTrigger>Qanday qilib sotuvchi bo'lish mumkin?</AccordionTrigger>
+                                <AccordionContent>
+                                    Profil sozlamalaridan "Sotuvchi sifatida ro'yxatdan o'tish" tugmasini bosing yoki administrator bilan bog'laning.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-2">
+                                <AccordionTrigger>Mahsulotni qanday qaytarsam bo'ladi?</AccordionTrigger>
+                                <AccordionContent>
+                                    Buyurtmalar tarixiga kiring, kerakli buyurtmani tanlang va "Qaytarish so'rovi" tugmasini bosing.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-3">
+                                <AccordionTrigger>House Mobile nima?</AccordionTrigger>
+                                <AccordionContent>
+                                    House Mobile - bu uy va maishiy texnika vositalari uchun ixtisoslashgan innovatsion savdo platformasi.
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="item-4">
+                                <AccordionTrigger>To'lov xavfsizligi qanday ta'minlanadi?</AccordionTrigger>
+                                <AccordionContent>
+                                    Barcha to'lovlar platforma tomonidan nazorat qilinadi va mahsulot yetib bormaguncha pul sotuvchiga o'tkazilmaydi.
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+
+                        <div className="mt-8 p-4 bg-primary/5 rounded-xl border border-primary/10">
+                            <p className="text-sm font-semibold mb-2">Yana savollaringiz bormi?</p>
+                            <p className="text-xs text-muted-foreground mb-4">Bizning jamoamiz sizga yordam berishga tayyor.</p>
+                            <Button className="w-full" variant="outline" onClick={() => window.open('https://t.me/house_mobile_support', '_blank')}>
+                                Telegram orqali bog'lanish
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

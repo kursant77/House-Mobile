@@ -44,3 +44,21 @@ export interface ReelItem {
   isFavorite: boolean;
   isViewed?: boolean;
 }
+
+/**
+ * Product Review interface for user reviews on products
+ */
+export interface ProductReview {
+  id: string;
+  productId: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt?: string;
+  user?: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+}

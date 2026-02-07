@@ -51,13 +51,16 @@ export default defineConfig(({ mode }) => ({
               return 'vendor-react-core';
             }
             if (id.includes('node_modules/react-router')) return 'vendor-router';
-            if (id.includes('@radix-ui') || id.includes('lucide-react')) return 'vendor-ui';
+            if (id.includes('@radix-ui')) return 'vendor-radix';
+            if (id.includes('lucide-react')) return 'vendor-icons';
             if (id.includes('@supabase')) return 'vendor-supabase';
             if (id.includes('@tanstack')) return 'vendor-tanstack';
-            return 'vendor-misc';
+            if (id.includes('recharts')) return 'vendor-charts';
+            if (id.includes('date-fns')) return 'vendor-utils';
+            return 'vendor-others';
           }
           if (id.includes('/pages/')) {
-            const pageName = id.split('/pages/')[1]?.split('.')[0];
+            const pageName = id.split('/pages/')[1]?.split('.')[0].replace(/\//g, '-');
             if (pageName) return `page-${pageName}`;
           }
         },

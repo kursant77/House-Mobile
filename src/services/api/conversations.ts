@@ -8,14 +8,16 @@ import {
   UpdateConversationData,
   SupabaseConversation,
   SupabaseConversationParticipant,
+  Message,
+  SupabaseMessage,
 } from "@/types/chat";
 
 function mapSupabaseConversationToConversation(
   conv: SupabaseConversation,
   participants?: ConversationParticipant[],
-  lastMessage?: any,
+  lastMessage?: Message,
   unreadCount?: number,
-  otherParticipant?: any
+  otherParticipant?: Conversation['otherParticipant']
 ): Conversation {
   return {
     id: conv.id,
@@ -34,7 +36,7 @@ function mapSupabaseConversationToConversation(
 }
 
 function mapSupabaseParticipantToParticipant(
-  p: SupabaseConversationParticipant & { user?: any }
+  p: SupabaseConversationParticipant & { user?: { id: string, full_name: string | null, username: string | null, avatar_url: string | null } }
 ): ConversationParticipant {
   return {
     id: p.id,
@@ -46,11 +48,11 @@ function mapSupabaseParticipantToParticipant(
     mutedUntil: p.muted_until ?? null,
     user: p.user
       ? {
-          id: p.user.id,
-          fullName: p.user.full_name ?? null,
-          username: p.user.username ?? null,
-          avatarUrl: p.user.avatar_url ?? null,
-        }
+        id: p.user.id,
+        fullName: p.user.full_name ?? null,
+        username: p.user.username ?? null,
+        avatarUrl: p.user.avatar_url ?? null,
+      }
       : undefined,
   };
 }
@@ -64,26 +66,23 @@ export const conversationService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
-      // Get all conversations where user is a participant
+      // 1. Get all conversations where user is a participant
       const { data: participantsData, error: participantsError } = await supabase
         .from("conversation_participants")
-        .select(
-          `
+        .select(`
           *,
           conversation:conversations(*)
-        `
-        )
+        `)
         .eq("user_id", user.id)
         .is("left_at", null)
         .order("joined_at", { ascending: false });
 
       if (participantsError) throw participantsError;
-      if (!participantsData) return [];
+      if (!participantsData || participantsData.length === 0) return [];
 
-      // Get conversation IDs
       const conversationIds = participantsData.map((p) => p.conversation_id);
 
-      // Get last messages for each conversation
+      // 2. Fetch last messages for all conversations at once
       const { data: lastMessagesData } = await supabase
         .from("messages")
         .select("*")
@@ -91,94 +90,106 @@ export const conversationService = {
         .is("deleted_at", null)
         .order("created_at", { ascending: false });
 
-      // Group last messages by conversation_id
-      const lastMessagesMap = new Map<string, any>();
+      const lastMessagesMap = new Map<string, SupabaseMessage>();
       if (lastMessagesData) {
         for (const msg of lastMessagesData) {
           if (!lastMessagesMap.has(msg.conversation_id)) {
-            lastMessagesMap.set(msg.conversation_id, msg);
+            lastMessagesMap.set(msg.conversation_id, msg as SupabaseMessage);
           }
         }
       }
 
-      // Get unread counts
-      const { data: unreadCountsData } = await supabase
-        .from("messages")
-        .select("conversation_id")
-        .in("conversation_id", conversationIds)
-        .is("deleted_at", null)
-        .not("sender_id", "eq", user.id);
-
+      // 3. Optimized Unread Counts
       const unreadCountsMap = new Map<string, number>();
-      if (unreadCountsData) {
-        // Get messages that haven't been read by current user
-        for (const msg of unreadCountsData) {
-          const { count } = await supabase
-            .from("message_reads")
-            .select("*", { count: "exact", head: true })
-            .eq("message_id", msg.id)
-            .eq("user_id", user.id)
-            .single();
+      const { data: allUnreadMessages } = await supabase
+        .from("messages")
+        .select("id, conversation_id")
+        .in("conversation_id", conversationIds)
+        .not("sender_id", "eq", user.id)
+        .is("deleted_at", null);
 
-          if (!count || count === 0) {
+      if (allUnreadMessages && allUnreadMessages.length > 0) {
+        const messageIds = allUnreadMessages.map(m => m.id);
+        const { data: readIds } = await supabase
+          .from("message_reads")
+          .select("message_id")
+          .eq("user_id", user.id)
+          .in("message_id", messageIds);
+
+        const readSet = new Set(readIds?.map(r => r.message_id) || []);
+        allUnreadMessages.forEach(msg => {
+          if (!readSet.has(msg.id)) {
             const current = unreadCountsMap.get(msg.conversation_id) || 0;
             unreadCountsMap.set(msg.conversation_id, current + 1);
           }
-        }
+        });
+      }
+
+      // 4. Batch fetch other participants for direct chats
+      const directConvIds = participantsData
+        .filter(p => (p.conversation as SupabaseConversation).type === "direct")
+        .map(p => p.conversation_id);
+
+      const otherParticipantsMap = new Map<string, any>();
+      if (directConvIds.length > 0) {
+        const { data: otherPartsData } = await supabase
+          .from("conversation_participants")
+          .select(`
+            conversation_id,
+            user:profiles(id, full_name, username, avatar_url)
+          `)
+          .in("conversation_id", directConvIds)
+          .neq("user_id", user.id)
+          .is("left_at", null) as unknown as { data: { conversation_id: string, user: { id: string; full_name: string | null; username: string | null; avatar_url: string | null } | { id: string; full_name: string | null; username: string | null; avatar_url: string | null }[] }[] | null };
+
+        otherPartsData?.forEach(p => {
+          const userObj = Array.isArray(p.user) ? p.user[0] : p.user;
+          if (userObj) {
+            otherParticipantsMap.set(p.conversation_id, {
+              id: userObj.id,
+              fullName: userObj.full_name ?? null,
+              username: userObj.username ?? null,
+              avatarUrl: userObj.avatar_url ?? null,
+            });
+          }
+        });
       }
 
       // Build conversations array
-      const conversations: Conversation[] = [];
+      const conversations: Conversation[] = participantsData
+        .map(pData => {
+          const conv = pData.conversation as SupabaseConversation;
+          if (!conv) return null;
 
-      for (const participantData of participantsData) {
-        const conv = participantData.conversation as SupabaseConversation;
-        if (!conv) continue;
+          const lastMessage = lastMessagesMap.get(conv.id);
+          const unreadCount = unreadCountsMap.get(conv.id) || 0;
+          const otherParticipant = otherParticipantsMap.get(conv.id);
 
-        const lastMessage = lastMessagesMap.get(conv.id);
-        const unreadCount = unreadCountsMap.get(conv.id) || 0;
-
-        // For direct conversations, get the other participant
-        let otherParticipant = null;
-        if (conv.type === "direct") {
-          const { data: otherParticipantsData } = await supabase
-            .from("conversation_participants")
-            .select("user_id")
-            .eq("conversation_id", conv.id)
-            .neq("user_id", user.id)
-            .is("left_at", null)
-            .limit(1)
-            .single();
-
-          if (otherParticipantsData?.user_id) {
-            const { data: otherProfile } = await supabase
-              .from("profiles")
-              .select("id, full_name, username, avatar_url")
-              .eq("id", otherParticipantsData.user_id)
-              .single();
-
-            if (otherProfile) {
-              otherParticipant = {
-                id: otherProfile.id,
-                fullName: otherProfile.full_name ?? null,
-                username: otherProfile.username ?? null,
-                avatarUrl: otherProfile.avatar_url ?? null,
-              };
-            }
-          }
-        }
-
-        conversations.push(
-          mapSupabaseConversationToConversation(
+          return mapSupabaseConversationToConversation(
             conv,
             undefined,
-            lastMessage,
+            lastMessage ? {
+              id: lastMessage.id,
+              conversationId: lastMessage.conversation_id,
+              senderId: lastMessage.sender_id,
+              content: lastMessage.content,
+              messageType: lastMessage.message_type,
+              mediaUrl: lastMessage.media_url,
+              mediaThumbnailUrl: lastMessage.media_thumbnail_url,
+              fileName: lastMessage.file_name,
+              fileSize: lastMessage.file_size,
+              duration: lastMessage.duration,
+              replyToId: lastMessage.reply_to_id,
+              createdAt: lastMessage.created_at,
+              updatedAt: lastMessage.updated_at,
+              deletedAt: lastMessage.deleted_at,
+            } : undefined,
             unreadCount,
             otherParticipant
-          )
-        );
-      }
+          );
+        })
+        .filter((c): c is Conversation => c !== null);
 
-      // Sort by last_message_at
       return conversations.sort((a, b) => {
         const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
         const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
@@ -224,7 +235,7 @@ export const conversationService = {
         .select("id, full_name, username, avatar_url")
         .in("id", userIds);
 
-      const userMap = new Map<string, any>();
+      const userMap = new Map<string, { id: string, full_name: string | null, username: string | null, avatar_url: string | null }>();
       if (userProfiles) {
         userProfiles.forEach((profile) => {
           userMap.set(profile.id, profile);
@@ -233,17 +244,17 @@ export const conversationService = {
 
       const participants = participantsData
         ? participantsData.map((p) => {
-            const user = userMap.get(p.user_id);
-            return mapSupabaseParticipantToParticipant({
-              ...p,
-              user: user ? {
-                id: user.id,
-                full_name: user.full_name ?? null,
-                username: user.username ?? null,
-                avatar_url: user.avatar_url ?? null,
-              } : undefined,
-            } as any);
-          })
+          const user = userMap.get(p.user_id);
+          return mapSupabaseParticipantToParticipant({
+            ...p,
+            user: user ? {
+              id: user.id,
+              full_name: user.full_name ?? null,
+              username: user.username ?? null,
+              avatar_url: user.avatar_url ?? null,
+            } : undefined,
+          });
+        })
         : [];
 
       // Get last message
@@ -283,7 +294,7 @@ export const conversationService = {
         participants,
         lastMessageData || undefined,
         unreadCount || 0,
-        otherParticipant
+        otherParticipant ?? undefined,
       );
     } catch (error) {
       handleError(error, "getConversation");
@@ -316,7 +327,7 @@ export const conversationService = {
             .eq("conversation_id", p.conversation_id)
             .eq("user_id", data.userId)
             .is("left_at", null)
-            .single();
+            .maybeSingle();
 
           if (otherParticipant) {
             // Conversation exists, return it
@@ -470,11 +481,11 @@ export const conversationService = {
     updates: UpdateConversationData
   ): Promise<Conversation> {
     try {
-      const updateData: any = {};
+      const updateData: Partial<SupabaseConversation> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.avatarUrl !== undefined) updateData.avatar_url = updates.avatarUrl;
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("conversations")
         .update(updateData)
         .eq("id", conversationId)
@@ -550,7 +561,7 @@ export const conversationService = {
         if (conv.name?.toLowerCase().includes(lowerQuery)) return true;
         if (conv.otherParticipant?.fullName?.toLowerCase().includes(lowerQuery)) return true;
         if (conv.otherParticipant?.username?.toLowerCase().includes(lowerQuery)) return true;
-        if (conv.participants?.some((p) => 
+        if (conv.participants?.some((p) =>
           p.user?.fullName?.toLowerCase().includes(lowerQuery) ||
           p.user?.username?.toLowerCase().includes(lowerQuery)
         )) return true;

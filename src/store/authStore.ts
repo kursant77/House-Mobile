@@ -121,9 +121,9 @@ export const useAuthStore = create<AuthState>((set) => ({
           useCartStore.getState().fetchCart();
           useFavoritesStore.getState().fetchFavorites();
         })
-        .catch((e) => {
+        .catch((e: unknown) => {
           // If sync fails, check if it's a 401 (unauthorized)
-          const error = e as any;
+          const error = e as { status?: number; message?: string };
           if (error?.status === 401 || error?.message?.includes('401')) {
             // Session expired or invalid, logout
             authApi.logout();

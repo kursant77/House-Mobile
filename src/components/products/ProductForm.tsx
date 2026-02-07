@@ -3,6 +3,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { categories } from "@/data/mockProducts";
+import { cn } from "@/lib/utils";
+
+import { FieldErrors } from "react-hook-form";
 
 interface ProductFormProps {
     formData: {
@@ -13,9 +16,10 @@ interface ProductFormProps {
         currency: string;
     };
     onFormDataChange: (field: keyof ProductFormProps["formData"], value: string) => void;
+    errors?: FieldErrors<ProductFormProps["formData"]>;
 }
 
-export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
+export function ProductForm({ formData, onFormDataChange, errors }: ProductFormProps) {
     return (
         <div className="w-full rounded-3xl border border-border/60 bg-card/80 dark:bg-card/70 shadow-2xl shadow-black/25 backdrop-blur-sm p-4 sm:p-6 md:p-7">
             <div className="flex flex-col gap-1">
@@ -38,8 +42,14 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         onChange={e => onFormDataChange("title", e.target.value)}
                         required
                         aria-required="true"
-                        className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-200"
+                        className={cn(
+                            "h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-200",
+                            errors?.title && "border-destructive focus-visible:ring-destructive/40"
+                        )}
                     />
+                    {errors?.title && (
+                        <p className="text-xs text-destructive mt-1 font-medium">{errors.title.message}</p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-[2fr,1fr] gap-4 md:gap-5">
@@ -55,8 +65,14 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                             onChange={e => onFormDataChange("price", e.target.value)}
                             required
                             aria-required="true"
-                            className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all"
+                            className={cn(
+                                "h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary transition-all",
+                                errors?.price && "border-destructive focus-visible:ring-destructive/40"
+                            )}
                         />
+                        {errors?.price && (
+                            <p className="text-xs text-destructive mt-1 font-medium">{errors.price.message}</p>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -67,7 +83,7 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                             value={formData.currency}
                             onValueChange={val => onFormDataChange("currency", val)}
                         >
-                            <SelectTrigger 
+                            <SelectTrigger
                                 aria-required="true"
                                 className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus:ring-2 focus:ring-primary/40"
                             >
@@ -89,9 +105,12 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                         value={formData.category}
                         onValueChange={val => onFormDataChange("category", val)}
                     >
-                        <SelectTrigger 
+                        <SelectTrigger
                             aria-required="true"
-                            className="h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus:ring-2 focus:ring-primary/40 transition-all"
+                            className={cn(
+                                "h-12 rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus:ring-2 focus:ring-primary/40 transition-all",
+                                errors?.category && "border-destructive focus:ring-destructive/40"
+                            )}
                         >
                             <SelectValue placeholder="Kategoriyani tanlang" />
                         </SelectTrigger>
@@ -101,6 +120,9 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                             ))}
                         </SelectContent>
                     </Select>
+                    {errors?.category && (
+                        <p className="text-xs text-destructive mt-1 font-medium">{errors.category.message}</p>
+                    )}
                 </div>
 
                 <div className="space-y-2">
@@ -113,12 +135,18 @@ export function ProductForm({ formData, onFormDataChange }: ProductFormProps) {
                     <Textarea
                         id="description"
                         placeholder="Mahsulot haqida batafsil ma'lumot bering..."
-                        className="min-h-[140px] sm:min-h-[170px] resize-none rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm sm:text-base"
+                        className={cn(
+                            "min-h-[140px] sm:min-h-[170px] resize-none rounded-2xl border-border/60 bg-muted/15 dark:bg-muted/15 hover:border-border focus-visible:ring-2 focus-visible:ring-primary/40 transition-all text-sm sm:text-base",
+                            errors?.description && "border-destructive focus-visible:ring-destructive/40"
+                        )}
                         value={formData.description}
                         onChange={e => onFormDataChange("description", e.target.value)}
                         required
                         aria-required="true"
                     />
+                    {errors?.description && (
+                        <p className="text-xs text-destructive mt-1 font-medium">{errors.description.message}</p>
+                    )}
                 </div>
             </div>
         </div>

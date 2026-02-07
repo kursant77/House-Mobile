@@ -112,10 +112,10 @@ class HistoryService {
                     .select(`
                         *,
                         product_media(*),
-                        profiles!seller_id(id, full_name, avatar_url)
+                        profiles(id, full_name, avatar_url, role)
                     `)
                     .eq('id', content_id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     // Return null on error
@@ -124,7 +124,7 @@ class HistoryService {
                 if (!product) return null;
 
                 // Map media logic exactly as in productService
-                const media = product.product_media || [];
+                const media = (product.product_media || []) as SupabaseProductMedia[];
                 const images = media.filter(m => m.type === 'image').map(m => m.url);
                 const videoMedia = media.find(m => m.type === 'video');
 
@@ -156,10 +156,10 @@ class HistoryService {
                     .from('public_posts')
                     .select(`
                         *,
-                        profiles!author_id(id, full_name, avatar_url)
+                        profiles(id, full_name, avatar_url, role)
                     `)
                     .eq('id', content_id)
-                    .single();
+                    .maybeSingle();
 
                 if (error) {
                     console.error(`HistoryService: Error fetching post ${content_id}:`, error);

@@ -1,8 +1,9 @@
 import { create } from "zustand";
-import { Conversation, Message, TypingIndicator } from "@/types/chat";
+import { Conversation, Message, TypingIndicator, SendMessageData, SupabaseMessage } from "@/types/chat";
 import { conversationService } from "@/services/api/conversations";
 import { chatMessageService } from "@/services/api/chatMessages";
 import { supabase } from "@/lib/supabase";
+import { RealtimeChannel } from "@supabase/supabase-js";
 
 interface ChatState {
   // Conversations
@@ -19,13 +20,16 @@ interface ChatState {
   typingUsers: Map<string, TypingIndicator[]>; // conversationId -> typing users
 
   // Real-time subscriptions
-  subscriptions: Map<string, any>; // conversationId -> subscription
+  subscriptions: Map<string, RealtimeChannel>; // conversationId -> subscription
+
+  // Message batching for real-time updates
+  messageBatchQueue: Map<string, Message[]>; // conversationId -> queued messages
 
   // Actions
   fetchConversations: () => Promise<void>;
   setCurrentConversation: (conversation: Conversation | null) => void;
   fetchMessages: (conversationId: string, before?: string) => Promise<void>;
-  sendMessage: (conversationId: string, data: any) => Promise<Message | null>;
+  sendMessage: (conversationId: string, data: Omit<SendMessageData, 'conversationId'>) => Promise<Message | null>;
   markAsRead: (conversationId: string) => Promise<void>;
   setTyping: (conversationId: string, isTyping: boolean) => Promise<void>;
   subscribeToConversation: (conversationId: string) => () => void;
@@ -53,7 +57,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     try {
       const conversations = await conversationService.getConversations();
       set({ conversations, isLoadingConversations: false });
-    } catch (error) {
+    } catch (_error) {
       set({ isLoadingConversations: false });
     }
   },
@@ -100,7 +104,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         hasMoreMessages: updatedHasMore,
         isLoadingMessages: false,
       });
-    } catch (error) {
+    } catch (_error) {
       set({ isLoadingMessages: false });
     }
   },
@@ -170,13 +174,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ conversations: finalUpdatedConversations });
 
       return message;
-    } catch (error) {
+    } catch (_error) {
       // Remove optimistic message on error
       get().deleteMessage(conversationId, tempId);
-      
+
       // Revert conversation update
       set({ conversations });
-      
+
       return null;
     }
   },
@@ -229,10 +233,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const { currentConversation, conversations } = get();
     const isCurrent = currentConversation?.id === conversationId;
     const isRecent = conversations.some((c) => c.id === conversationId);
-    
+
     if (!isCurrent && !isRecent) {
       // Don't subscribe to conversations that are not active
-      return () => {};
+      return () => { };
     }
 
     const channel = supabase
@@ -246,7 +250,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           filter: `conversation_id=eq.${conversationId}`,
         },
         async (payload) => {
-          const newMessage = payload.new as any;
+          const newMessage = payload.new as SupabaseMessage;
           // Fetch full message with sender info
           const { data: messageData } = await supabase
             .from("messages")
@@ -277,11 +281,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
               deletedAt: messageData.deleted_at,
               sender: messageData.profiles
                 ? {
-                    id: messageData.profiles.id,
-                    fullName: messageData.profiles.full_name,
-                    username: messageData.profiles.username,
-                    avatarUrl: messageData.profiles.avatar_url,
-                  }
+                  id: messageData.profiles.id,
+                  fullName: messageData.profiles.full_name,
+                  username: messageData.profiles.username,
+                  avatarUrl: messageData.profiles.avatar_url,
+                }
                 : undefined,
             };
 
@@ -298,7 +302,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
               if (batch.length === 0) return;
 
               // Add all batched messages at once
-              batch.forEach((msg) => {
+              batch.forEach((msg: Message) => {
                 get().addMessage(conversationId, msg);
               });
 
@@ -313,11 +317,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
               const updatedConversations = conversations.map((conv) =>
                 conv.id === conversationId
                   ? {
-                      ...conv,
-                      lastMessage,
-                      lastMessageAt: lastMessage.createdAt,
-                      unreadCount: (conv.unreadCount || 0) + batch.length,
-                    }
+                    ...conv,
+                    lastMessage,
+                    lastMessageAt: lastMessage.createdAt,
+                    unreadCount: (conv.unreadCount || 0) + batch.length,
+                  }
                   : conv
               );
               set({ conversations: updatedConversations });
@@ -339,7 +343,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const updatedMessage = payload.new as any;
+          const updatedMessage = payload.new as SupabaseMessage;
           get().updateMessage(
             conversationId,
             updatedMessage.id,

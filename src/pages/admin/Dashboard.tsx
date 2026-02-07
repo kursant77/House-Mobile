@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { StatsCard } from "@/components/admin/StatsCard";
 import { Button } from "@/components/ui/button";
-import { Users, ShoppingBag, Clapperboard, Eye, TrendingUp, Activity, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Users, ShoppingBag, Clapperboard, Eye, Loader2, ArrowUpRight, ArrowDownRight, Package, Download } from "lucide-react";
 import {
     AreaChart,
     Area,
@@ -17,8 +16,11 @@ import {
 } from 'recharts';
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Helmet } from "react-helmet-async";
 
-const COLORS = ['#3C50E0', '#80CAEE', '#F0950C', '#E11D48', '#10B981', '#6366F1', '#F59E0B'];
+const COLORS = ['#3C50E0', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
@@ -31,21 +33,24 @@ export default function Dashboard() {
 
     const [chartData, setChartData] = useState<any[]>([]);
     const [categoryDistribution, setCategoryDistribution] = useState<any[]>([]);
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
             try {
-                // Fetch counts - Correcting queries to avoid 400 errors
+                // Fetch counts and data
                 const [
                     { count: usersCount },
                     { count: productsCount },
                     { count: reelsCount },
-                    { data: productsData }
+                    { data: productsData },
+                    { data: usersData }
                 ] = await Promise.all([
                     supabase.from('profiles').select('*', { count: 'exact', head: true }),
                     supabase.from('products').select('*', { count: 'exact', head: true }),
                     supabase.from('product_media').select('id', { count: 'exact', head: true }).eq('type', 'video'),
-                    supabase.from('products').select('views, category, created_at')
+                    supabase.from('products').select('views, category, created_at'),
+                    supabase.from('profiles').select('created_at')
                 ]);
 
                 const totalViews = productsData?.reduce((acc, curr) => acc + (curr.views || 0), 0) || 0;
@@ -62,7 +67,7 @@ export default function Dashboard() {
                 if (productsData) {
                     const counts: Record<string, number> = {};
                     productsData.forEach(p => {
-                        const cat = p.category || 'Other';
+                        const cat = p.category || 'Boshqa';
                         counts[cat] = (counts[cat] || 0) + 1;
                     });
 
@@ -74,47 +79,55 @@ export default function Dashboard() {
                     setCategoryDistribution(distribution);
                 }
 
-                // Generate real-ish chart data from created_at timestamps
+                // Generate chart data from created_at timestamps
+                const months = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyun', 'Iyul', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];
+                const monthlyStats: Record<string, { products: number, users: number }> = {};
+
+                // Initialize last 6 months
+                const now = new Date();
+                for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const label = months[d.getMonth()];
+                    monthlyStats[label] = { products: 0, users: 0 };
+                }
+
                 if (productsData) {
-                    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                    const monthlyStats: Record<string, { total: number, active: number }> = {};
-
-                    // Initialize last 6 months
-                    const now = new Date();
-                    for (let i = 5; i >= 0; i--) {
-                        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                        const label = months[d.getMonth()];
-                        monthlyStats[label] = { total: 0, active: 0 };
-                    }
-
                     productsData.forEach(p => {
                         const d = new Date(p.created_at);
                         const label = months[d.getMonth()];
                         if (monthlyStats[label]) {
-                            monthlyStats[label].total += 1;
-                            monthlyStats[label].active += Math.random() > 0.5 ? 1 : 0; // Simulated active
+                            monthlyStats[label].products += 1;
                         }
                     });
-
-                    const chartItems = Object.entries(monthlyStats).map(([name, vals]) => ({
-                        name,
-                        total: vals.total * 100, // Scaling for visual impact
-                        active: vals.active * 80
-                    }));
-                    setChartData(chartItems);
                 }
+
+                if (usersData) {
+                    usersData.forEach(u => {
+                        const d = new Date(u.created_at);
+                        const label = months[d.getMonth()];
+                        if (monthlyStats[label]) {
+                            monthlyStats[label].users += 1;
+                        }
+                    });
+                }
+
+                const chartItems = Object.entries(monthlyStats).map(([name, vals]) => ({
+                    name,
+                    products: vals.products,
+                    users: vals.users
+                }));
+                setChartData(chartItems);
 
                 // Fetch recent activity
                 const { data: latestProducts } = await supabase
                     .from('products')
                     .select('*, profiles!seller_id(full_name, avatar_url)')
-                    .order('id', { ascending: false })
+                    .order('created_at', { ascending: false })
                     .limit(5);
 
                 setRecentActivity(latestProducts || []);
-
             } catch (error) {
-                // Error is handled by React Query
+                console.error('Dashboard error:', error);
                 setStats(prev => ({ ...prev, loading: false }));
             }
         };
@@ -122,196 +135,386 @@ export default function Dashboard() {
         fetchDashboardData();
     }, []);
 
-    // Chart and recent activity moved to state
-    const [recentActivity, setRecentActivity] = useState<any[]>([]);
+    const handleDownloadReport = async () => {
+        try {
+            const { data: products, error } = await supabase
+                .from('products')
+                .select('title, category, price, views, created_at');
+
+            if (error) throw error;
+            if (!products || products.length === 0) {
+                alert("Mahsulotlar topilmadi");
+                return;
+            }
+
+            // Simple CSV generation
+            const headers = ["Nomi", "Kategoriya", "Narxi", "Ko'rishlar", "Sana"];
+            const rows = products.map(p => [
+                `"${p.title.replace(/"/g, '""')}"`,
+                p.category,
+                p.price,
+                p.views,
+                new Date(p.created_at).toLocaleDateString()
+            ]);
+
+            const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `hisobot_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Download error:", error);
+            alert("Hisobotni yuklashda xatolik yuz berdi");
+        }
+    };
 
     if (stats.loading) {
         return (
-            <div className="h-[80vh] flex flex-col items-center justify-center gap-4 bg-[#f1f5f9] dark:bg-zinc-950 rounded-3xl">
-                <Loader2 className="h-12 w-12 text-[#3C50E0] animate-spin" />
-                <p className="text-zinc-500 font-bold tracking-widest uppercase text-xs">Loading Analytics...</p>
+            <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-background via-background to-primary/5">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+                <p className="text-muted-foreground font-semibold animate-pulse">Admin panel yuklanmoqda...</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-4 md:space-y-6">
-            {/* Stats Grid - Responsive: 1 col mobile, 2 col tablet, 4 col desktop */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 xl:grid-cols-4 2xl:gap-6">
+        <div className="space-y-6 md:space-y-8">
+            <Helmet>
+                <title>Admin Dashboard - House Mobile</title>
+            </Helmet>
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl lg:text-4xl font-black tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+                        Admin Dashboard
+                    </h1>
+                    <p className="text-muted-foreground mt-1">Platforma statistikasi va faoliyati</p>
+                </div>
+                <Button
+                    onClick={handleDownloadReport}
+                    className="rounded-lg font-semibold bg-gradient-to-r from-primary to-blue-600"
+                >
+                    <Download className="mr-2 h-4 w-4" />
+                    Hisobot yuklash
+                </Button>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                    { label: 'Total Views', value: stats.views, icon: Eye, color: '#3C50E0', trend: '0.43%', up: true },
-                    { label: 'Total Products', value: stats.products, icon: ShoppingBag, color: '#10B981', trend: '4.35%', up: true },
-                    { label: 'Total Users', value: stats.users, icon: Users, color: '#FFB81C', trend: '2.59%', up: true },
-                    { label: 'Total Reels', value: stats.reels, icon: Clapperboard, color: '#E11D48', trend: '0.95%', up: false },
+                    {
+                        label: 'Jami ko\'rishlar',
+                        value: stats.views,
+                        icon: Eye,
+                        gradient: 'from-blue-500 to-cyan-500',
+                        bgColor: 'bg-blue-500/10',
+                        iconColor: 'text-blue-500',
+                        trend: '12.5%',
+                        up: true,
+                        borderColor: 'border-l-blue-500'
+                    },
+                    {
+                        label: 'Jami mahsulotlar',
+                        value: stats.products,
+                        icon: ShoppingBag,
+                        gradient: 'from-emerald-500 to-teal-500',
+                        bgColor: 'bg-emerald-500/10',
+                        iconColor: 'text-emerald-500',
+                        trend: '8.2%',
+                        up: true,
+                        borderColor: 'border-l-emerald-500'
+                    },
+                    {
+                        label: 'Jami foydalanuvchilar',
+                        value: stats.users,
+                        icon: Users,
+                        gradient: 'from-amber-500 to-orange-500',
+                        bgColor: 'bg-amber-500/10',
+                        iconColor: 'text-amber-500',
+                        trend: '15.3%',
+                        up: true,
+                        borderColor: 'border-l-amber-500'
+                    },
+                    {
+                        label: 'Jami Reels',
+                        value: stats.reels,
+                        icon: Clapperboard,
+                        gradient: 'from-purple-500 to-pink-500',
+                        bgColor: 'bg-purple-500/10',
+                        iconColor: 'text-purple-500',
+                        trend: '3.1%',
+                        up: false,
+                        borderColor: 'border-l-purple-500'
+                    },
                 ].map((card, i) => (
-                    <div key={i} className="rounded-xl border border-zinc-200 bg-white py-5 px-5 md:py-6 md:px-6 lg:px-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 transition-transform hover:scale-[1.02] hover:shadow-md duration-300">
-                        <div className="flex h-10 w-10 md:h-11 md:w-11 items-center justify-center rounded-full bg-[#f1f5f9] dark:bg-zinc-800">
-                            <card.icon className="h-5 w-5 md:h-6 md:w-6" style={{ color: card.color }} />
-                        </div>
-
-                        <div className="mt-3 md:mt-4 flex items-end justify-between">
-                            <div>
-                                <h4 className="text-xl md:text-2xl font-black text-zinc-800 dark:text-white leading-none">
-                                    {card.value >= 1000 ? `${(card.value / 1000).toFixed(1)}K` : card.value}
-                                </h4>
-                                <span className="text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-widest mt-1 block">{card.label}</span>
+                    <Card key={i} className={cn("shadow-lg hover:shadow-xl transition-all border-l-4", card.borderColor)}>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center", card.bgColor)}>
+                                    <card.icon className={cn("h-6 w-6", card.iconColor)} />
+                                </div>
+                                <Badge variant={card.up ? "default" : "destructive"} className="gap-1">
+                                    {card.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                                    {card.trend}
+                                </Badge>
                             </div>
-
-                            <span className={cn(
-                                "flex items-center gap-1 text-xs font-black",
-                                card.up ? "text-[#10B981]" : "text-[#E11D48]"
-                            )}>
-                                {card.trend}
-                                {card.up ? <ArrowUpRight className="h-3 w-3 md:h-4 md:w-4" /> : <ArrowDownRight className="h-3 w-3 md:h-4 md:w-4" />}
-                            </span>
-                        </div>
-                    </div>
+                            <div>
+                                <h3 className="text-3xl font-black mb-1">
+                                    {card.value >= 1000 ? `${(card.value / 1000).toFixed(1)}K` : card.value}
+                                </h3>
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                    {card.label}
+                                </p>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
 
             {/* Charts Section */}
-            <div className="grid grid-cols-1 gap-4 md:gap-6 xl:grid-cols-12 2xl:gap-7.5">
-                {/* Revenue/Views Chart */}
-                <div className="col-span-12 rounded-xl border border-zinc-200 bg-white px-5 md:px-6 pt-6 md:pt-7.5 pb-5 md:pb-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 xl:col-span-8">
-                    <div className="flex flex-wrap items-start justify-between gap-3 sm:flex-nowrap">
-                        <div className="flex w-full flex-wrap gap-3 sm:gap-5">
-                            <div className="flex min-w-47.5">
-                                <span className="mt-1 mr-2 flex h-4 w-full max-w-4 items-center justify-center rounded-full border border-[#3C50E0]">
-                                    <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-[#3C50E0]"></span>
-                                </span>
-                                <div className="w-full">
-                                    <p className="font-black text-[#3C50E0]">Total Views</p>
-                                    <p className="text-sm font-medium text-zinc-500">12.04.2024 - 12.11.2024</p>
-                                </div>
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+                {/* Views/Activity Chart */}
+                <Card className="shadow-lg lg:col-span-8">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold">Ko'rishlar va Faollik</CardTitle>
+                        <CardDescription>So'nggi 6 oylik statistika</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[350px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData}>
+                                    <defs>
+                                        <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#3C50E0" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#3C50E0" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="colorActive" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                                            <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" opacity={0.5} />
+                                    <XAxis
+                                        dataKey="name"
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#94a3b8' }}
+                                    />
+                                    <YAxis
+                                        fontSize={11}
+                                        tickLine={false}
+                                        axisLine={false}
+                                        tick={{ fill: '#94a3b8' }}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                            backgroundColor: 'hsl(var(--card))',
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="products"
+                                        stroke="#3C50E0"
+                                        strokeWidth={2.5}
+                                        fillOpacity={1}
+                                        fill="url(#colorTotal)"
+                                        name="Yangi mahsulotlar"
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="users"
+                                        stroke="#10B981"
+                                        strokeWidth={2.5}
+                                        fillOpacity={1}
+                                        fill="url(#colorActive)"
+                                        name="Yangi foydalanuvchilar"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+
+                        {/* Legend */}
+                        <div className="flex flex-wrap items-center gap-6 mt-4">
+                            <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-full bg-primary"></div>
+                                <span className="text-sm font-semibold text-muted-foreground">Yangi mahsulotlar</span>
                             </div>
-                            <div className="flex min-w-47.5">
-                                <span className="mt-1 mr-2 flex h-4 w-full max-w-4 items-center justify-center rounded-full border border-[#80CAEE]">
-                                    <span className="block h-2.5 w-full max-w-2.5 rounded-full bg-[#80CAEE]"></span>
-                                </span>
-                                <div className="w-full">
-                                    <p className="font-black text-[#80CAEE]">Active Users</p>
-                                    <p className="text-sm font-medium text-zinc-500">12.04.2024 - 12.11.2024</p>
-                                </div>
+                            <div className="flex items-center gap-2">
+                                <div className="h-3 w-3 rounded-full bg-emerald-500"></div>
+                                <span className="text-sm font-semibold text-muted-foreground">Yangi foydalanuvchilar</span>
                             </div>
                         </div>
-                    </div>
+                    </CardContent>
+                </Card>
 
-                    <div className="h-[250px] sm:h-[300px] md:h-[350px] w-full mt-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3C50E0" stopOpacity={0.1} />
-                                        <stop offset="95%" stopColor="#3C50E0" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                                <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
-                                <YAxis fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#64748b' }} />
-                                <Tooltip
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                />
-                                <Area type="monotone" dataKey="total" stroke="#3C50E0" strokeWidth={2} fillOpacity={1} fill="url(#colorTotal)" />
-                                <Area type="monotone" dataKey="active" stroke="#80CAEE" strokeWidth={2} fill="transparent" />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* Profit/Category Chart */}
-                <div className="col-span-12 rounded-lg border border-zinc-200 bg-white p-7.5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 xl:col-span-4">
-                    <div className="mb-4 justify-between gap-4 sm:flex">
-                        <div>
-                            <h4 className="text-xl font-black text-black dark:text-white leading-none">Category Profit</h4>
+                {/* Category Distribution */}
+                <Card className="shadow-lg lg:col-span-4">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold">Kategoriyalar</CardTitle>
+                        <CardDescription>Mahsulotlar taqsimoti</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[280px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={categoryDistribution}>
+                                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
+                                        {categoryDistribution.map((_, index) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Bar>
+                                    <XAxis
+                                        dataKey="name"
+                                        fontSize={10}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94a3b8' }}
+                                    />
+                                    <Tooltip
+                                        cursor={{ fill: 'hsl(var(--muted))' }}
+                                        contentStyle={{
+                                            borderRadius: '12px',
+                                            border: 'none',
+                                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                                            backgroundColor: 'hsl(var(--card))',
+                                        }}
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
-                    </div>
 
-                    <div className="h-[250px] w-full mt-8">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={categoryDistribution}>
-                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                    {categoryDistribution.map((_, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} />
-                                <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="mt-8 space-y-4">
-                        {categoryDistribution.map((cat, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></span>
-                                    <span className="text-sm font-bold text-zinc-500 uppercase tracking-tighter">{cat.name}</span>
+                        <div className="mt-6 space-y-3">
+                            {categoryDistribution.map((cat, i) => (
+                                <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className="h-3 w-3 rounded-full"
+                                            style={{ backgroundColor: COLORS[i % COLORS.length] }}
+                                        />
+                                        <span className="text-sm font-semibold">{cat.name}</span>
+                                    </div>
+                                    <Badge variant="secondary">
+                                        {stats.products > 0 ? Math.round((cat.value / stats.products) * 100) : 0}%
+                                    </Badge>
                                 </div>
-                                <span className="text-sm font-black text-black dark:text-white">
-                                    {Math.round((cat.value / stats.products) * 100)}%
-                                </span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Recent Products Table */}
-            <div className="rounded-xl border border-zinc-200 bg-white p-5 md:p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-                    <h4 className="text-lg md:text-xl font-black text-black dark:text-white uppercase tracking-tighter">Recent Activities</h4>
-                    <Link to="/admin/products">
-                        <Button variant="outline" className="text-xs font-black uppercase tracking-widest px-4 md:px-6 h-9 md:h-10 border-zinc-200 dark:border-zinc-800 rounded-lg hover:bg-[#3C50E0] hover:text-white transition-all">
-                            View All
-                        </Button>
-                    </Link>
-                </div>
-
-                <div className="overflow-x-auto -mx-4 md:mx-0 scrollbar-thin">
-                    <table className="w-full">
-                        <thead>
-                            <tr className="bg-[#f7f9fc] dark:bg-zinc-800/50">
-                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-l-lg">User</th>
-                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Action</th>
-                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest">Date</th>
-                                <th className="py-4 px-4 md:px-6 text-left text-xs font-black text-zinc-500 uppercase tracking-widest rounded-r-lg">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {recentActivity.map((item) => (
-                                <tr key={item.id} className="border-b border-zinc-100 dark:border-zinc-800 last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors">
-                                    <td className="py-4 px-4 md:px-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full border border-zinc-200 dark:border-zinc-700 p-0.5 overflow-hidden">
-                                                {item.profiles?.avatar_url ? (
-                                                    <img src={item.profiles.avatar_url} alt="" className="h-full w-full rounded-full object-cover" />
-                                                ) : (
-                                                    <div className="h-full w-full rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400">
-                                                        {item.profiles?.full_name?.charAt(0) || "U"}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-black text-zinc-800 dark:text-white">{item.profiles?.full_name || "Unknown"}</p>
-                                                <p className="text-[10px] text-zinc-500">ID: {item.id.slice(0, 8)}</p>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-4 md:px-6 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                                        Uploaded new product: <span className="font-black text-[#3C50E0]">"{item.title}"</span>
-                                    </td>
-                                    <td className="py-4 px-4 md:px-6 text-xs font-bold text-zinc-500">
-                                        {new Date(item.created_at || Date.now()).toLocaleDateString()}
-                                    </td>
-                                    <td className="py-4 px-4 md:px-6">
-                                        <span className="inline-block px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[10px] font-black uppercase tracking-widest">Success</span>
-                                    </td>
-                                </tr>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Recent Activity */}
+            <Card className="shadow-lg">
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg font-bold">So'nggi faoliyat</CardTitle>
+                            <CardDescription>Yangi yuklangan mahsulotlar</CardDescription>
+                        </div>
+                        <Link to="/admin/products">
+                            <Button variant="outline" className="rounded-lg font-semibold text-sm">
+                                Barchasini ko'rish
+                            </Button>
+                        </Link>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                    {recentActivity.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="border-b">
+                                        <th className="py-3 px-6 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Foydalanuvchi
+                                        </th>
+                                        <th className="py-3 px-6 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Amal
+                                        </th>
+                                        <th className="py-3 px-6 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Sana
+                                        </th>
+                                        <th className="py-3 px-6 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                            Holat
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentActivity.map((item, index) => (
+                                        <tr
+                                            key={item.id}
+                                            className={cn(
+                                                "border-b last:border-0 hover:bg-muted/50 transition-colors",
+                                                "animate-fade-in"
+                                            )}
+                                            style={{ animationDelay: `${index * 50}ms` }}
+                                        >
+                                            <td className="py-4 px-6">
+                                                <div className="flex items-center gap-3">
+                                                    {item.profiles?.avatar_url ? (
+                                                        <img
+                                                            src={item.profiles.avatar_url}
+                                                            alt=""
+                                                            className="h-10 w-10 rounded-full object-cover border-2 border-border"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-bold text-sm">
+                                                            {item.profiles?.full_name?.charAt(0) || "U"}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <p className="text-sm font-semibold">
+                                                            {item.profiles?.full_name || "Unknown"}
+                                                        </p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            ID: {item.id.slice(0, 8)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <div className="max-w-xs">
+                                                    <p className="text-sm">
+                                                        Yangi mahsulot yukladi:{" "}
+                                                        <span className="font-semibold text-primary">
+                                                            "{item.title}"
+                                                        </span>
+                                                    </p>
+                                                </div>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <p className="text-xs text-muted-foreground">
+                                                    {new Date(item.created_at || Date.now()).toLocaleDateString('uz-UZ')}
+                                                </p>
+                                            </td>
+                                            <td className="py-4 px-6">
+                                                <Badge variant="outline" className="border-emerald-500/50 text-emerald-600 bg-emerald-500/10">
+                                                    Muvaffaqiyatli
+                                                </Badge>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-20" />
+                            <p className="text-sm font-semibold text-muted-foreground">
+                                Hozircha faoliyat yo'q
+                            </p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }

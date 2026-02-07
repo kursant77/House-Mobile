@@ -1,7 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
 import { Profile } from "@/types/product";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
-import { SupabaseCommentWithUser, SupabaseProfile, SupabaseFollow } from "@/types/api";
+import { SupabaseCommentWithUser } from "@/types/api";
 
 export const socialService = {
     getProfile: async (userId: string): Promise<Profile | null> => {
@@ -54,7 +55,7 @@ export const socialService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
 
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('follows')
             .select('*')
             .eq('follower_id', user.id)
@@ -187,8 +188,8 @@ export const socialService = {
             user: {
                 id: c.profiles?.id || '',
                 fullName: c.profiles?.full_name || '',
-                username: c.profiles?.username || undefined,
-                avatarUrl: c.profiles?.avatar_url || undefined,
+                username: c.profiles?.username || '',
+                avatarUrl: c.profiles?.avatar_url || '',
                 role: c.profiles?.role || 'user',
             }
         }));
@@ -207,17 +208,17 @@ export const socialService = {
 
         if (error) throw error;
 
-        return data.map((c: SupabaseCommentWithUser) => ({
+        return (data || []).map((c: any) => ({
             id: c.id,
             userId: c.user_id,
             text: c.text,
             createdAt: c.created_at,
             user: {
-                id: c.profiles.id,
-                fullName: c.profiles.full_name,
-                username: c.profiles.username,
-                avatarUrl: c.profiles.avatar_url,
-                role: c.profiles.role,
+                id: c.profiles?.id || '',
+                fullName: c.profiles?.full_name || '',
+                username: c.profiles?.username || '',
+                avatarUrl: c.profiles?.avatar_url || '',
+                role: c.profiles?.role || 'user',
             }
         }));
     },
@@ -339,7 +340,7 @@ export const socialService = {
                 .maybeSingle();
 
             if (error) {
-                console.error("isCommentLiked error:", error);
+                logger.error("isCommentLiked error:", error);
                 return false;
             }
             return !!data;
@@ -403,11 +404,11 @@ export const socialService = {
 
         if (error) throw error;
 
-        return data.map((p: SupabaseProfile) => ({
+        return (data || []).map((p: any) => ({
             id: p.id,
-            fullName: p.full_name ?? undefined,
-            username: p.username ?? undefined,
-            avatarUrl: p.avatar_url ?? undefined,
+            fullName: p.full_name || undefined,
+            username: p.username || undefined,
+            avatarUrl: p.avatar_url || undefined,
             role: p.role === 'admin' ? 'super_admin' : (p.role === 'user' || p.role === 'blogger' || p.role === 'super_admin' ? p.role : undefined),
         }));
     },
@@ -423,7 +424,7 @@ export const socialService = {
             .eq('follower_id', user.id);
 
         if (error) return [];
-        return data.map((f: any) => f.following_id);
+        return data.map((f: { following_id: string }) => f.following_id);
     },
 
     // Get followed profiles with full data
@@ -450,14 +451,20 @@ export const socialService = {
             return [];
         }
 
-        return data
-            .map((f: { profiles: SupabaseProfile }) => ({
-                id: f.profiles.id,
-                fullName: f.profiles.full_name ?? undefined,
-                username: f.profiles.username ?? undefined,
-                avatarUrl: f.profiles.avatar_url ?? undefined,
-                role: f.profiles.role === 'admin' ? 'super_admin' : (f.profiles.role === 'user' || f.profiles.role === 'blogger' || f.profiles.role === 'super_admin' ? f.profiles.role : undefined),
-            }))
-            .filter((p: Profile) => p.id !== undefined);
+        return (data || [])
+            .map((f: any) => {
+                const profileData = Array.isArray(f.profiles) ? f.profiles[0] : f.profiles;
+                if (!profileData) return null;
+
+                return {
+                    id: profileData.id,
+                    fullName: profileData.full_name ?? undefined,
+                    username: profileData.username ?? undefined,
+                    avatarUrl: profileData.avatar_url ?? undefined,
+                    role: profileData.role === 'admin' ? 'super_admin' :
+                        (['user', 'blogger', 'super_admin', 'seller'].includes(profileData.role) ? profileData.role : undefined),
+                } as Profile;
+            })
+            .filter((p): p is Profile => p !== null && p.id !== undefined);
     }
 };

@@ -1,5 +1,5 @@
 import { Product } from "@/types/product";
-import { SupabaseProductWithRelations, SupabaseProductMedia, SupabaseProfile } from "@/types/api";
+import { SupabaseProductWithRelations, SupabaseProductMedia } from "@/types/api";
 
 /**
  * Map Supabase product with relations to Product type

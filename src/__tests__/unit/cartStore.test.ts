@@ -15,16 +15,18 @@ describe('CartStore', () => {
   it('should add item to cart', async () => {
     const mockProduct = {
       id: '1',
-      name: 'Test Product',
+      title: 'Test Product',
       price: 100,
+      currency: 'UZS',
       images: [],
       description: 'Test',
       category: 'test',
+      inStock: true,
       stock: 10,
       rating: 5,
       reviewsCount: 0,
       createdAt: new Date().toISOString(),
-      userId: 'user1',
+      sellerId: 'user1',
       views: 0,
       sales: 0,
     };
@@ -42,16 +44,18 @@ describe('CartStore', () => {
   it('should calculate total correctly', async () => {
     const mockProduct = {
       id: '1',
-      name: 'Test Product',
+      title: 'Test Product',
       price: 100,
+      currency: 'UZS',
       images: [],
       description: 'Test',
       category: 'test',
+      inStock: true,
       stock: 10,
       rating: 5,
       reviewsCount: 0,
       createdAt: new Date().toISOString(),
-      userId: 'user1',
+      sellerId: 'user1',
       views: 0,
       sales: 0,
     };
@@ -67,16 +71,18 @@ describe('CartStore', () => {
   it('should remove item from cart', async () => {
     const mockProduct = {
       id: '1',
-      name: 'Test Product',
+      title: 'Test Product',
       price: 100,
+      currency: 'UZS',
       images: [],
       description: 'Test',
       category: 'test',
+      inStock: true,
       stock: 10,
       rating: 5,
       reviewsCount: 0,
       createdAt: new Date().toISOString(),
-      userId: 'user1',
+      sellerId: 'user1',
       views: 0,
       sales: 0,
     };

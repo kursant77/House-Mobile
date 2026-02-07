@@ -6,11 +6,11 @@ import {
     Film,
     X,
     History,
-    PlaySquare,
     Clock,
     ChevronRight,
     Settings,
-    LayoutDashboard
+    LayoutDashboard,
+    User
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,6 @@ import { useCartStore } from "@/store/cartStore";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery } from "@tanstack/react-query";
 import { socialService } from "@/services/api/social";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -31,8 +30,9 @@ const mainItems = [
 ];
 
 const libraryItems = [
+    { icon: ShoppingBag, label: "Buyurtmalarim", path: "/my-orders" },
+    { icon: User, label: "Profil", path: "/profile" },
     { icon: History, label: "Tarix", path: "/history" },
-    { icon: PlaySquare, label: "Videolaringiz", path: "/profile" },
     { icon: Clock, label: "Keyinroq ko'rish", path: "/watch-later" },
     { icon: Heart, label: "Sevimlilar", path: "/favorites" },
     { icon: ShoppingCart, label: "Savat", path: "/cart" },
@@ -55,9 +55,10 @@ export const Sidebar = () => {
 
     // Fetch followed profiles for "Obunalar" section
     const { data: following = [] } = useQuery({
-        queryKey: ["following-profiles"],
+        queryKey: ["following-profiles", user?.id],
         queryFn: () => socialService.getFollowedProfiles(),
         staleTime: 1000 * 60 * 5, // 5 minutes
+        enabled: !!user?.id,
     });
 
     // Close drawer on navigation
@@ -178,7 +179,8 @@ export const Sidebar = () => {
         <div className="px-1 py-2 space-y-0">
             {mainItems.map(item => <NavItem key={item.path} item={item} collapsed={true} />)}
             {isSeller && sellerItems.map(item => <NavItem key={item.path} item={item} collapsed={true} />)}
-            <NavItem item={{ icon: PlaySquare, label: "Siz", path: "/library" }} collapsed={true} />
+            <NavItem item={{ icon: ShoppingBag, label: "Zakaz", path: "/my-orders" }} collapsed={true} />
+            <NavItem item={{ icon: User, label: "Profil", path: "/profile" }} collapsed={true} />
             <NavItem item={{ icon: ShoppingCart, label: "Savat", path: "/cart" }} collapsed={true} />
         </div>
     );

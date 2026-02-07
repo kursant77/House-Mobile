@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, BarChart3, Bell, ShieldCheck, Mail, MessageSquare, HelpCircle, X, Newspaper, ChevronDown, ChevronUp } from "lucide-react";
+import { LayoutDashboard, Users, ShoppingBag, Clapperboard, Settings, LogOut, BarChart3, Bell, ShieldCheck, Mail, MessageSquare, HelpCircle, X, Newspaper, ChevronDown, ChevronUp, FileText } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ const menuGroups = [
         items: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/admin" },
             { icon: Users, label: "Foydalanuvchilar", path: "/admin/users" },
+            { icon: FileText, label: "Arizalar", path: "/admin/applications" },
+            { icon: ShoppingBag, label: "Buyurtmalar", path: "/admin/orders" },
             { icon: Newspaper, label: "Yangiliklar", path: "/admin/news" },
             { icon: ShoppingBag, label: "Mahsulotlar", path: "/admin/products" },
             { icon: Clapperboard, label: "Reels", path: "/admin/reels" },
@@ -46,14 +48,13 @@ export const AdminSidebar = ({ sidebarOpen, setSidebarOpen }: SidebarProps) => {
 
     return (
         <>
-            {/* Mobile Overlay */}
-            <div
-                className={cn(
-                    "fixed inset-0 z-[998] bg-black/60 backdrop-blur-sm transition-all duration-300 lg:hidden",
-                    sidebarOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-                )}
-                onClick={() => setSidebarOpen(false)}
-            />
+            {/* Mobile Overlay - only show on mobile when sidebar is open */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 z-[998] bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
 
             {/* Sidebar Container */}
             <aside

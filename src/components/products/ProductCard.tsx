@@ -8,7 +8,6 @@ import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface ProductCardProps {
@@ -23,9 +22,6 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
   const { addToCart } = useCartStore();
   const isProductFavorite = isFavorite(product.id);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("uz-UZ").format(price);
-  };
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)

@@ -69,9 +69,7 @@ export default function Reels() {
     }
   }, [activeIndex, reels]);
 
-  const handleLike = (id: string) => {
-    // Like action handled by ReelCard component
-  };
+
 
   if (isLoading) {
     return (
@@ -173,7 +171,6 @@ export default function Reels() {
     );
   }
 
-  const containerHeight = '100%';
 
   return (
     <div className={cn(

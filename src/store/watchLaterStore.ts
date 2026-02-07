@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { Product } from "@/types/product";
 import { watchLaterService } from "@/services/api/watchLater";
+import { logger } from "@/lib/logger";
 
 interface WatchLaterState {
     items: Product[];
@@ -21,7 +22,7 @@ export const useWatchLaterStore = create<WatchLaterState>((set, get) => ({
         try {
             const items = await watchLaterService.getWatchLaterItems();
             set({ items, isLoading: false });
-        } catch (error) {
+        } catch (_error) {
             // Return empty array on error
             set({ items: [], isLoading: false });
         }
@@ -35,7 +36,7 @@ export const useWatchLaterStore = create<WatchLaterState>((set, get) => ({
             await watchLaterService.addToWatchLater(product.id);
             set({ items: [product, ...items] });
         } catch (error) {
-            console.error("Failed to add to watch later", error);
+            logger.error("Failed to add to watch later", error);
         }
     },
 
@@ -43,7 +44,7 @@ export const useWatchLaterStore = create<WatchLaterState>((set, get) => ({
         try {
             await watchLaterService.removeFromWatchLater(productId);
             set({ items: get().items.filter(item => item.id !== productId) });
-        } catch (error) {
+        } catch (_error) {
             // Silently ignore remove errors
         }
     },

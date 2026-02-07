@@ -9,7 +9,7 @@ import {
 } from "@/types/chat";
 
 function mapSupabaseMessageToMessage(
-  msg: SupabaseMessage & { sender?: any; reply_to?: any },
+  msg: SupabaseMessage & { sender?: { id: string, full_name: string | null, username: string | null, avatar_url: string | null }; reply_to?: any },
   readBy?: string[]
 ): Message {
   return {
@@ -29,22 +29,30 @@ function mapSupabaseMessageToMessage(
     deletedAt: msg.deleted_at ?? null,
     sender: msg.sender
       ? {
-          id: msg.sender.id,
-          fullName: msg.sender.full_name ?? null,
-          username: msg.sender.username ?? null,
-          avatarUrl: msg.sender.avatar_url ?? null,
-        }
+        id: msg.sender.id,
+        fullName: msg.sender.full_name ?? "",
+        username: msg.sender.username ?? "",
+        avatarUrl: msg.sender.avatar_url ?? null,
+      }
       : undefined,
     replyTo: msg.reply_to
       ? {
-          id: msg.reply_to.id,
-          conversationId: msg.reply_to.conversation_id,
-          senderId: msg.reply_to.sender_id,
-          content: msg.reply_to.content ?? null,
-          messageType: msg.reply_to.message_type,
-          createdAt: msg.reply_to.created_at,
-          sender: msg.reply_to.sender,
-        }
+        id: msg.reply_to.id,
+        conversationId: msg.reply_to.conversation_id,
+        senderId: msg.reply_to.sender_id,
+        content: msg.reply_to.content ?? null,
+        messageType: msg.reply_to.message_type,
+        mediaUrl: msg.reply_to.media_url ?? null,
+        mediaThumbnailUrl: msg.reply_to.media_thumbnail_url ?? null,
+        fileName: msg.reply_to.file_name ?? null,
+        fileSize: msg.reply_to.file_size ?? null,
+        duration: msg.reply_to.duration ?? null,
+        replyToId: msg.reply_to.reply_to_id ?? null,
+        createdAt: msg.reply_to.created_at,
+        updatedAt: msg.reply_to.updated_at,
+        deletedAt: msg.reply_to.deleted_at ?? null,
+        sender: msg.reply_to.sender,
+      }
       : undefined,
     readBy,
     isRead: readBy ? readBy.length > 0 : false,
@@ -94,7 +102,7 @@ export const chatMessageService = {
         .select("id, full_name, username, avatar_url")
         .in("id", senderIds);
 
-      const senderMap = new Map<string, any>();
+      const senderMap = new Map<string, { id: string, full_name: string | null, username: string | null, avatar_url: string | null }>();
       if (senderProfiles) {
         senderProfiles.forEach((profile) => {
           senderMap.set(profile.id, profile);
@@ -105,14 +113,14 @@ export const chatMessageService = {
       const replyIds = messagesData
         .map((m) => m.reply_to_id)
         .filter((id): id is string => id !== null);
-      
-      let replyMap = new Map<string, any>();
+
+      const replyMap = new Map<string, Message>();
       if (replyIds.length > 0) {
         const { data: replyMessages } = await supabase
           .from("messages")
           .select("*")
           .in("id", replyIds);
-        
+
         if (replyMessages) {
           replyMessages.forEach((msg) => {
             const sender = senderMap.get(msg.sender_id);
@@ -151,7 +159,7 @@ export const chatMessageService = {
         const readBy = readsMap.get(msg.id) || [];
         const sender = senderMap.get(msg.sender_id);
         const replyTo = msg.reply_to_id ? replyMap.get(msg.reply_to_id) : undefined;
-        
+
         return mapSupabaseMessageToMessage(
           {
             ...msg,
@@ -420,7 +428,7 @@ export const chatMessageService = {
       if (error) throw error;
       if (!typingData) return [];
 
-      return typingData.map((t: SupabaseTypingIndicator & { profiles?: any }) => ({
+      return typingData.map((t: SupabaseTypingIndicator & { profiles?: { id: string, full_name: string | null, username: string | null, avatar_url: string | null } }) => ({
         id: t.id,
         conversationId: t.conversation_id,
         userId: t.user_id,
@@ -428,11 +436,11 @@ export const chatMessageService = {
         updatedAt: t.updated_at,
         user: t.profiles
           ? {
-              id: t.profiles.id,
-              fullName: t.profiles.full_name ?? null,
-              username: t.profiles.username ?? null,
-              avatarUrl: t.profiles.avatar_url ?? null,
-            }
+            id: t.profiles.id,
+            fullName: t.profiles.full_name ?? null,
+            username: t.profiles.username ?? null,
+            avatarUrl: t.profiles.avatar_url ?? null,
+          }
           : undefined,
       }));
     } catch (error) {
@@ -579,7 +587,7 @@ export const chatMessageService = {
       // Update conversation's last_message_at
       await supabase
         .from("conversations")
-        .update({ 
+        .update({
           last_message_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

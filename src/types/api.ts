@@ -5,7 +5,7 @@ export interface SupabaseProfile {
   username: string | null;
   phone: string | null;
   avatar_url: string | null;
-  role: 'user' | 'blogger' | 'super_admin' | 'admin';
+  role: 'user' | 'blogger' | 'super_admin' | 'admin' | 'seller';
   is_professional: boolean;
   is_blocked: boolean;
   bio: string | null;

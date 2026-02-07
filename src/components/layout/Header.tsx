@@ -26,6 +26,8 @@ import { postService } from "@/services/api/posts";
 import { useQuery } from "@tanstack/react-query";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Product } from "@/types/product";
+import { PublicPost } from "@/services/api/posts";
 
 import { useSidebarStore } from "@/store/sidebarStore";
 
@@ -59,9 +61,9 @@ export const Header = () => {
 
     const { data: productResults = [], isLoading: isSearchingProducts } = useQuery({
         queryKey: ["product-search-header", searchQuery],
-        queryFn: productService.getProducts,
+        queryFn: () => productService.getProducts({ limit: 50 }),
         enabled: searchQuery.trim().length > 0 && searchOpen,
-        select: (data) => data.filter(p =>
+        select: (data) => data.products.filter(p =>
             p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             p.description?.toLowerCase().includes(searchQuery.toLowerCase())
         ).slice(0, 5),
@@ -72,7 +74,7 @@ export const Header = () => {
         queryKey: ["post-search-header", searchQuery],
         queryFn: () => postService.getPosts(1, 40),
         enabled: searchQuery.trim().length > 0 && searchOpen,
-        select: (data) => data.filter(p =>
+        select: (data: PublicPost[]) => data.filter(p =>
             p.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             p.content.toLowerCase().includes(searchQuery.toLowerCase())
         ).slice(0, 8),
@@ -252,7 +254,7 @@ export const Header = () => {
                                         {(activeSearchFilter === 'all' || activeSearchFilter === 'products') && productResults.length > 0 && (
                                             <div>
                                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-3 py-2">Mahsulotlar</h3>
-                                                {productResults.map((product) => (
+                                                {productResults.map((product: Product) => (
                                                     <button
                                                         key={product.id}
                                                         onClick={() => {
@@ -491,25 +493,17 @@ export const Header = () => {
                         <div className="hidden md:block">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-2 md:px-4 gap-2">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden">
+                                    <Button variant="ghost" size="icon" className="rounded-full text-primary font-medium w-auto px-1 md:px-2 gap-2">
+                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 overflow-hidden shrink-0">
                                             {user?.avatarUrl ? (
                                                 <img src={user.avatarUrl} className="h-full w-full object-cover" alt="avatar" />
                                             ) : (
                                                 <User className="h-5 w-5 text-primary" />
                                             )}
                                         </div>
-                                        <div className="flex flex-col items-start">
-                                            <div className="flex items-center flex-nowrap gap-1">
-                                                <span className="hidden md:inline truncate max-w-[120px]">{user?.name}</span>
-                                                {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'blogger' || user?.role === 'seller') && (
-                                                    <VerifiedBadge size={14} className="shrink-0" />
-                                                )}
-                                            </div>
-                                            {user?.role === 'blogger' && (
-                                                <span className="text-[10px] text-amber-600 font-bold uppercase tracking-widest hidden md:block">Blogger</span>
-                                            )}
-                                        </div>
+                                        {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'blogger' || user?.role === 'seller') && (
+                                            <VerifiedBadge size={14} className="shrink-0" />
+                                        )}
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-56">

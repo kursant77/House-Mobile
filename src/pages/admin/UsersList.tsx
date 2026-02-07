@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { authApi } from "@/services/api/auth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, Filter, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users, Trash2, AlertTriangle } from "lucide-react";
+import { Search, MoreVertical, Ban, CheckCircle, Shield, ShieldCheck, Mail, Calendar, UserPlus, ArrowRight, Users, Trash2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

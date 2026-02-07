@@ -52,8 +52,8 @@ export default function SupportAdmin({ type }: SupportAdminProps) {
             queryFn: async () => {
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('id, full_name, username, avatar_url, email')
-                    .or(`full_name.ilike.%${userSearchQuery}%,username.ilike.%${userSearchQuery}%,email.ilike.%${userSearchQuery}%`)
+                    .select('id, full_name, username, avatar_url')
+                    .or(`full_name.ilike.%${userSearchQuery}%,username.ilike.%${userSearchQuery}%`)
                     .limit(20);
                 if (error) throw error;
                 return data || [];

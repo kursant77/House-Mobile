@@ -14,7 +14,7 @@ export interface PublicPost {
     author?: {
         id: string;
         fullName: string;
-        avatarUrl: string;
+        avatarUrl?: string;
         role: string;
         telegram?: string;
         instagram?: string;
@@ -41,8 +41,13 @@ export const postService = {
         if (error) throw error;
 
         return (data as SupabasePublicPostWithAuthor[]).map((p) => ({
-            ...p,
-            authorId: p.author_id,
+            id: p.id,
+            author_id: p.author_id,
+            content: p.content,
+            title: p.title ?? undefined,
+            category: p.category,
+            views: p.views,
+            created_at: p.created_at,
             mediaUrl: p.media_url ?? undefined,
             mediaType: p.media_type ?? undefined,
             author: p.profiles ? {
@@ -70,20 +75,25 @@ export const postService = {
 
         if (error) throw error;
 
-        return data.map((p: SupabasePublicPostWithAuthor) => ({
-            ...p,
-            authorId: p.author_id,
-            mediaUrl: p.media_url,
-            mediaType: p.media_type,
+        return (data as SupabasePublicPostWithAuthor[]).map((p) => ({
+            id: p.id,
+            author_id: p.author_id,
+            content: p.content,
+            title: p.title ?? undefined,
+            category: p.category,
+            views: p.views,
+            created_at: p.created_at,
+            mediaUrl: p.media_url ?? undefined,
+            mediaType: p.media_type ?? undefined,
             author: p.profiles ? {
                 id: p.profiles.id,
-                fullName: p.profiles.full_name,
-                avatarUrl: p.profiles.avatar_url,
+                fullName: p.profiles.full_name ?? '',
+                avatarUrl: p.profiles.avatar_url ?? undefined,
                 role: p.profiles.role,
-                telegram: p.profiles.telegram,
-                instagram: p.profiles.instagram,
-                facebook: p.profiles.facebook,
-                youtube: p.profiles.youtube
+                telegram: p.profiles.telegram ?? undefined,
+                instagram: p.profiles.instagram ?? undefined,
+                facebook: p.profiles.facebook ?? undefined,
+                youtube: p.profiles.youtube ?? undefined
             } : undefined
         }));
     },
@@ -126,7 +136,7 @@ export const postService = {
         });
     },
 
-    getSavedPosts: async () => {
+    getSavedPosts: async (): Promise<PublicPost[]> => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return [];
 
@@ -146,13 +156,26 @@ export const postService = {
             return [];
         }
 
-        return (data || [])
-            .filter((item): item is { post_id: string; public_posts: SupabasePublicPostWithAuthor } => !!item.public_posts)
+        // Type for nested join result
+        interface SavedPostRow {
+            post_id: string;
+            public_posts: SupabasePublicPostWithAuthor | null;
+        }
+
+        return ((data || []) as unknown as SavedPostRow[])
+            .filter((item): item is SavedPostRow & { public_posts: SupabasePublicPostWithAuthor } =>
+                item.public_posts !== null
+            )
             .map(item => {
                 const p = item.public_posts;
                 return {
-                    ...p,
-                    authorId: p.author_id,
+                    id: p.id,
+                    author_id: p.author_id,
+                    content: p.content,
+                    category: p.category,
+                    views: p.views,
+                    created_at: p.created_at,
+                    title: p.title ?? undefined,
                     mediaUrl: p.media_url ?? undefined,
                     mediaType: p.media_type ?? undefined,
                     author: p.profiles ? {
@@ -161,14 +184,11 @@ export const postService = {
                         avatarUrl: p.profiles.avatar_url ?? undefined,
                         role: p.profiles.role
                     } : undefined
-                };
-            }) as PublicPost[];
+                } satisfies PublicPost;
+            });
     },
 
     updatePost: async (postId: string, updates: Partial<PublicPost>) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:168',message:'updatePost service called',data:{postId,hasTitle:!!updates.title,hasContent:!!updates.content},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         // Use 'posts' table directly instead of 'public_posts' view for updates
         const { data, error } = await supabase
             .from('posts')
@@ -182,25 +202,16 @@ export const postService = {
             .eq('id', postId)
             .select()
             .single();
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:182',message:'updatePost result',data:{error:error?.message,errorCode:error?.code,hasData:!!data,postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-        // #endregion
         if (error) throw error;
         return data;
     },
 
     deletePost: async (postId: string) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:186',message:'deletePost service called',data:{postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         // Use 'posts' table directly instead of 'public_posts' view for deletes
         const { error } = await supabase
             .from('posts')
             .delete()
             .eq('id', postId);
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b052e248-b93d-4ae6-bcfc-4e1a4be8a219',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'posts.ts:192',message:'deletePost result',data:{error:error?.message,errorCode:error?.code,postId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
         if (error) throw error;
     },
 

@@ -235,7 +235,7 @@ export const orderService = {
 
     const { error } = await supabase
       .from('orders')
-      .update({ 
+      .update({
         status: 'cancelled',
         updated_at: new Date().toISOString()
       })
@@ -265,16 +265,16 @@ export const orderService = {
       throw new Error("Sizda bu amalni bajarish uchun ruxsat yo'q");
     }
 
-    let query = supabase
+    const query = supabase
       .from('orders')
       .select(`
         *,
-        profiles!user_id(full_name, avatar_url)
+        profiles!user_id(full_name, avatar_url, username)
       `)
       .order('created_at', { ascending: false });
 
     if (status) {
-      query = query.eq('status', status);
+      query.eq('status', status);
     }
 
     const { data, error } = await query;
@@ -296,7 +296,77 @@ export const orderService = {
       status: order.status as Order['status'],
       createdAt: order.created_at,
       updatedAt: order.updated_at,
-    }));
+      // Pass through user profile info if available
+      user: order.profiles ? {
+        fullName: order.profiles.full_name,
+        avatarUrl: order.profiles.avatar_url,
+        username: order.profiles.username,
+      } : undefined
+    })) as any; // Cast as any to allow the extra user property for now
+  },
+
+  /**
+   * Admin: Get order with full details including items
+   */
+  getOrderWithDetails: async (orderId: string): Promise<Order & { items: any[], userProfile: any }> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Avtorizatsiya zarur");
+
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .select(`
+        *,
+        profiles!user_id(id, full_name, avatar_url, username, phone),
+        order_items(
+          *,
+          products(
+            id, 
+            title, 
+            price, 
+            currency,
+            product_media(url, type)
+          )
+        )
+      `)
+      .eq('id', orderId)
+      .single();
+
+    if (orderError) {
+      const appError = handleError(orderError, 'getOrderWithDetails');
+      throw new Error(appError.message);
+    }
+
+    return {
+      id: order.id,
+      orderNumber: order.order_number,
+      customerName: order.customer_name,
+      customerPhone: order.customer_phone,
+      customerAddress: order.customer_address,
+      notes: order.notes ?? undefined,
+      totalAmount: Number(order.total_amount),
+      currency: order.currency,
+      status: order.status as Order['status'],
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      items: (order.order_items || []).map((item: any) => ({
+        id: item.id,
+        productId: item.product_id,
+        quantity: item.quantity,
+        price: item.price,
+        currency: item.currency,
+        product: item.products ? {
+          title: item.products.title,
+          image: item.products.product_media?.find((m: any) => m.type === 'image')?.url || null
+        } : null
+      })),
+      userProfile: order.profiles ? {
+        id: order.profiles.id,
+        fullName: order.profiles.full_name,
+        avatarUrl: order.profiles.avatar_url,
+        username: order.profiles.username,
+        phone: order.profiles.phone
+      } : null
+    };
   },
 
   /**
@@ -321,7 +391,7 @@ export const orderService = {
 
     const { error } = await supabase
       .from('orders')
-      .update({ 
+      .update({
         status,
         updated_at: new Date().toISOString()
       })

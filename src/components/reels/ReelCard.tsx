@@ -13,12 +13,10 @@ import {
   Music2,
   Bookmark,
   Play,
-  Pause,
   Clock,
   Download,
   Flag,
   UserX,
-  PlusSquare,
   User as UserIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -126,7 +124,6 @@ export function ReelCard({
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likesCount, setLikesCount] = useState(reel.likes);
   const [showHeart, setShowHeart] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
@@ -175,10 +172,7 @@ export function ReelCard({
   }, [isActive, isPaused, isMuted]);
 
   const onTimeUpdate = () => {
-    if (videoRef.current) {
-      const p = (videoRef.current.currentTime / videoRef.current.duration) * 100;
-      setProgress(p);
-    }
+    // Progress is currently unused in UI
   };
 
   const handleLike = async () => {
@@ -266,7 +260,7 @@ export function ReelCard({
     }
   };
 
-  const handleVideoTouchMove = (e: React.TouchEvent) => {
+  const handleVideoTouchMove = () => {
     if (!isMobile) return;
 
     if (longPressTimer.current) {

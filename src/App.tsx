@@ -10,6 +10,7 @@ import { lazy, Suspense } from "react";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import { AdminLayout } from "./components/admin/AdminLayout";
+import { SellerLayout } from "./components/seller/SellerLayout";
 import { Loader2 } from "lucide-react";
 
 // Lazy load pages for code splitting
@@ -33,16 +34,29 @@ const MyVideos = lazy(() => import("./pages/MyVideos"));
 const WatchLater = lazy(() => import("./pages/WatchLater"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Blocked = lazy(() => import("./pages/Blocked"));
+const MyOrders = lazy(() => import("./pages/MyOrders"));
+const ApplySeller = lazy(() => import("./pages/ApplySeller"));
+const ApplyBlogger = lazy(() => import("./pages/ApplyBlogger"));
 const Dashboard = lazy(() => import("./pages/admin/Dashboard"));
 const UsersList = lazy(() => import("./pages/admin/UsersList"));
 const ProductsList = lazy(() => import("./pages/admin/ProductsList"));
+const OrdersAdmin = lazy(() => import("./pages/admin/OrdersAdmin"));
+const OrderDetail = lazy(() => import("./pages/admin/OrderDetail"));
 const ReelsList = lazy(() => import("./pages/admin/ReelsList"));
 const Analytics = lazy(() => import("./pages/admin/Analytics"));
 const NotificationsAdmin = lazy(() => import("./pages/admin/NotificationsAdmin"));
 const AdminUserProfile = lazy(() => import("./pages/admin/AdminUserProfile"));
 const SupportAdmin = lazy(() => import("./pages/admin/SupportAdmin"));
 const AdminNews = lazy(() => import("./pages/admin/AdminNews"));
+const ApplicationsAdmin = lazy(() => import("./pages/admin/ApplicationsAdmin"));
 const SellerDashboard = lazy(() => import("./pages/admin/SellerDashboard"));
+const SellerOrders = lazy(() => import("./pages/admin/SellerOrders"));
+const SellerInventory = lazy(() => import("./pages/admin/SellerInventory"));
+const SellerFinancial = lazy(() => import("./pages/admin/SellerFinancial"));
+const SellerReviews = lazy(() => import("./pages/admin/SellerReviews"));
+const SellerPromotions = lazy(() => import("./pages/admin/SellerPromotions"));
+const SellerSettings = lazy(() => import("./pages/admin/SellerSettings"));
+const SellerAnalytics = lazy(() => import("./pages/admin/SellerAnalytics"));
 
 // Loading fallback component
 
@@ -152,12 +166,32 @@ const AppContent = () => {
             <Route path="/profile/edit" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
             <Route path="/profile/:id" element={<StoreProfile />} />
             <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
+            <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
+            <Route path="/apply/seller" element={<ProtectedRoute><ApplySeller /></ProtectedRoute>} />
+            <Route path="/apply/blogger" element={<ProtectedRoute><ApplyBlogger /></ProtectedRoute>} />
             <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
             <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-            <Route path="/seller/dashboard" element={<ProtectedRoute role={['blogger', 'seller', 'admin', 'super_admin']}><SellerDashboard /></ProtectedRoute>} />
+            <Route path="/upload-product" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
+          </Route>
+
+          {/* Seller Routes */}
+          <Route path="/seller" element={
+            <ProtectedRoute role={['blogger', 'seller', 'admin', 'super_admin']}>
+              <SellerLayout />
+            </ProtectedRoute>
+          }>
+            <Route index element={<SellerDashboard />} />
+            <Route path="dashboard" element={<SellerDashboard />} />
+            <Route path="orders" element={<SellerOrders />} />
+            <Route path="inventory" element={<SellerInventory />} />
+            <Route path="financial" element={<SellerFinancial />} />
+            <Route path="reviews" element={<SellerReviews />} />
+            <Route path="promotions" element={<SellerPromotions />} />
+            <Route path="analytics" element={<SellerAnalytics />} />
+            <Route path="settings" element={<SellerSettings />} />
           </Route>
 
           {/* Admin Routes */}
@@ -171,6 +205,9 @@ const AppContent = () => {
             <Route path="users/:id" element={<AdminUserProfile />} />
             <Route path="news" element={<AdminNews />} />
             <Route path="products" element={<ProductsList />} />
+            <Route path="orders" element={<OrdersAdmin />} />
+            <Route path="orders/:id" element={<OrderDetail />} />
+            <Route path="applications" element={<ApplicationsAdmin />} />
             <Route path="reels" element={<ReelsList />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="notifications" element={<NotificationsAdmin />} />

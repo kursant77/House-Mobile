@@ -1,6 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useMemo } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,17 +8,13 @@ import {
   Settings,
   Grid,
   Play,
-  LogOut,
   Edit,
   Camera,
   Trash2,
-  PackageSearch,
-  Loader2,
   Heart,
   Eye,
   MoreVertical,
   Plus,
-  MapPin,
   Instagram,
   Facebook,
   Send as SendIcon,
@@ -28,10 +23,8 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { postService } from "@/services/api/posts";
-import { useNavigate, Link } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
-import { useFavoritesStore } from "@/store/favoritesStore";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
@@ -45,11 +38,9 @@ import {
 import { BioDisplay } from "@/components/shared/BioDisplay";
 
 export default function Profile() {
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, logout } = useAuthStore();
-  const { favorites } = useFavoritesStore();
+  const { user } = useAuthStore();
 
 
   const { data: userProducts = [], isLoading: isLoadingProducts } = useQuery({
@@ -81,10 +72,7 @@ export default function Profile() {
     onError: (err: Error) => toast.error(err.message || "Xatolik yuz berdi"),
   });
 
-  const handleLogout = () => {
-    logout();
-    navigate("/auth");
-  };
+
 
   const reelProducts = useMemo(() => userProducts.filter((p) => p.videoUrl), [userProducts]);
 
@@ -426,10 +414,11 @@ export default function Profile() {
                   <div key={product.id} className="relative aspect-square group bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
                     <img
                       src={product.images[0]}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-cover cursor-pointer"
                       alt={product.title}
                       loading="lazy"
                       decoding="async"
+                      onClick={() => navigate(`/product/${product.id}`)}
                     />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="flex gap-6 text-white font-bold text-xs md:text-sm">

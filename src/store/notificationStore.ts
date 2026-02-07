@@ -47,7 +47,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                     const unreadCount = filtered.filter(n => !n.read_by.includes(user?.id || '')).length;
                     set({ notifications: filtered, unreadCount, isLoading: false });
-                } catch (error) {
+                } catch (_error) {
                     // Return empty array on error
                     set({ notifications: [], unreadCount: 0, isLoading: false });
                 }
@@ -73,7 +73,7 @@ export const useNotificationStore = create<NotificationState>()(
 
                     const unreadCount = newNotifications.filter(n => !n.read_by.includes(user?.id || '')).length;
                     set({ notifications: newNotifications, unreadCount });
-                } catch (error) {
+                } catch (_error) {
                     // Silently ignore mark as read errors
                 }
             },
@@ -90,7 +90,7 @@ export const useNotificationStore = create<NotificationState>()(
                     }));
 
                     set({ notifications: newNotifications, unreadCount: 0 });
-                } catch (error) {
+                } catch (_error) {
                     // Silently ignore mark all as read errors
                 }
             },
