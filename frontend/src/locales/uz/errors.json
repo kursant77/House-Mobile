@@ -1,0 +1,20 @@
+{
+  "network_error": "Internet aloqasi yo'q. Iltimos, qayta urinib ko'ring",
+  "unknown_error": "Noma'lum xatolik yuz berdi",
+  "auth_invalid_email": "Email noto'g'ri formatda",
+  "auth_user_not_found": "Foydalanuvchi topilmadi",
+  "auth_wrong_password": "Parol noto'g'ri",
+  "auth_email_in_use": "Bu email allaqachon ishlatilmoqda",
+  "auth_weak_password": "Parol juda zaif",
+  "auth_too_many_requests": "Juda ko'p so'rovlar. Iltimos, biroz kutib turing",
+  "cart_add_failed": "Mahsulotni savatga qo'shib bo'lmadi",
+  "cart_remove_failed": "Mahsulotni o'chirib bo'lmadi",
+  "cart_update_failed": "Miqdorni yangilab bo'lmadi",
+  "cart_clear_failed": "Savatni tozalab bo'lmadi",
+  "cart_load_failed": "Savat ma'lumotlarini yuklashda xatolik",
+  "favorite_add_failed": "Sevimligalrga qo'shib bo'lmadi",
+  "favorite_remove_failed": "Sevimlilardan o'chirib bo'lmadi",
+  "upload_failed": "Fayl yuklashda xatolik",
+  "file_too_large": "Fayl hajmi juda katta",
+  "invalid_file_type": "Fayl turi noto'g'ri"
+}

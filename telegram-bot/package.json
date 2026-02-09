@@ -1,0 +1,20 @@
+{
+  "name": "house-mobile-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for House Mobile",
+  "main": "src/bot.ts",
+  "scripts": {
+    "start": "tsx src/bot.ts",
+    "dev": "tsx watch src/bot.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "grammy": "^1.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  }
+}

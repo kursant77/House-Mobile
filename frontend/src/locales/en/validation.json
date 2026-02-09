@@ -1,0 +1,12 @@
+{
+  "required": "This field is required",
+  "email_invalid": "Invalid email format",
+  "phone_invalid": "Invalid phone number",
+  "password_min_length": "Password must be at least 6 characters",
+  "password_mismatch": "Passwords do not match",
+  "username_min_length": "Username must be at least 3 characters",
+  "name_required": "Name is required",
+  "price_invalid": "Invalid price",
+  "quantity_invalid": "Quantity must be at least 1",
+  "stock_required": "Stock quantity is required"
+}
