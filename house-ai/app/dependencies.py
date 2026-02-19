@@ -29,7 +29,7 @@ _currency_service: Optional[CurrencyService] = None
 
 async def init_services(settings: Settings) -> None:
     """Initialize all services on startup."""
-    global _llm_service, _supabase_service, _redis_service, _brave_service, _currency_service
+    global _llm_service, _supabase_service, _redis_service, _search_service, _currency_service
 
     _llm_service = LLMService(settings)
     _supabase_service = SupabaseService(settings)
