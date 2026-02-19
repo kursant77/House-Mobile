@@ -16,3 +16,5 @@ export const REACT_QUERY_GC_TIME_MS = 15 * 60 * 1000; // 15 minutes
 export const REACT_QUERY_REFETCH_INTERVAL_MS = 2 * 60 * 1000; // 2 minutes
 export const REACT_QUERY_RETRY_DELAY_MS = 1000; // 1 second
 
+// House AI backend
+export const AI_BASE_URL = import.meta.env.VITE_AI_BASE_URL || "http://localhost:8100";

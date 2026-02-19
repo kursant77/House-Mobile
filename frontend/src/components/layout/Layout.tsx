@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSidebarStore } from "@/store/sidebarStore";
 import { useEffect } from "react";
 import GlobalStoryViewer from "@/components/stories/GlobalStoryViewer";
+import { AiChatBubble } from "@/components/ai-chat/AiChatBubble";
+import { AiChatWindow } from "@/components/ai-chat/AiChatWindow";
+import { useAiChatStore } from "@/store/aiChatStore";
 
 export const Layout = () => {
     const location = useLocation();
@@ -16,6 +19,7 @@ export const Layout = () => {
     const isMobile = useIsMobile();
     const isReelsPage = location.pathname === "/reels";
     const { isCollapsed } = useSidebarStore();
+    const isAiChatOpen = useAiChatStore((s) => s.isOpen);
 
     // Bottom Nav Routes Order for swiping
     const navRoutes = ["/", "/products", "/upload", "/reels", "/profile"];
@@ -101,8 +105,12 @@ export const Layout = () => {
             {/* Global Story Viewer */}
             <GlobalStoryViewer />
 
-            {/* Mobile Bottom Nav */}
-            <BottomNav isReelsPage={isReelsPage} />
+            {/* AI Chat Widget */}
+            <AiChatBubble />
+            <AiChatWindow />
+
+            {/* Mobile Bottom Nav — hide when AI chat is open */}
+            {!isAiChatOpen && <BottomNav isReelsPage={isReelsPage} />}
         </div>
     );
 };

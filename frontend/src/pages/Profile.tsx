@@ -28,7 +28,6 @@ import {
   ShoppingBag,
   History,
   LogOut,
-  HelpCircle,
   Share2,
   ArrowRight
 } from "lucide-react";
@@ -48,18 +47,17 @@ import {
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { BioDisplay } from "@/components/shared/BioDisplay";
 import UserBadges from "@/components/profile/UserBadges";
+import { useAiChatStore } from "@/store/aiChatStore";
 
 export default function Profile() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
+  const isAiChatOpen = useAiChatStore((s) => s.isOpen);
 
 
   const { data: userProducts = [], isLoading: isLoadingProducts } = useQuery({
@@ -108,15 +106,15 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0 pt-16 uppercase-none">
-      <BottomNav />
+    <div className="min-h-screen bg-background pb-20 md:pb-0 pt-12 uppercase-none">
+      {!isAiChatOpen && <BottomNav />}
 
 
 
       <main className="max-w-4xl mx-auto pt-2 md:pt-8 px-4">
         {/* Mobile View */}
         <div className="md:hidden">
-          <div className="flex items-center px-4 mb-3 mt-4">
+          <div className="flex items-center px-4 mb-3 mt-1">
             <div className="relative mr-5 shrink-0">
               <Avatar className="h-20 w-20 border border-border/50 ring-2 ring-background">
                 <AvatarImage src={user.avatarUrl} alt={user.name} />

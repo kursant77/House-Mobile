@@ -176,15 +176,15 @@ export const Sidebar = () => {
                         {storyGroups.some(g => g.userId === user?.id) ? (
                             <div className="rounded-full p-[1.5px] bg-gradient-to-tr from-amber-500 via-pink-500 to-purple-500">
                                 <Avatar size="sm" className="h-[22px] w-[22px] border-background border">
-                                    <AvatarImage src={user?.avatar_url} />
-                                    <AvatarFallback>{user?.full_name?.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={user?.avatarUrl} />
+                                    <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                             </div>
                         ) : (
                             <div className="relative">
                                 <Avatar size="sm" className="h-[22px] w-[22px]">
-                                    <AvatarImage src={user?.avatar_url} />
-                                    <AvatarFallback>{user?.full_name?.charAt(0)}</AvatarFallback>
+                                    <AvatarImage src={user?.avatarUrl} />
+                                    <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div className="absolute -bottom-1 -right-1 bg-blue-500 border-2 border-background rounded-full w-3.5 h-3.5 flex items-center justify-center">
                                     <span className="text-[10px] text-white font-bold leading-none">+</span>
@@ -237,12 +237,12 @@ export const Sidebar = () => {
             {/* Footer */}
             <div className="px-6 py-4 space-y-4">
                 <div className="flex flex-wrap gap-x-2 gap-y-1 text-[12px] font-medium text-zinc-500">
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Haqida</a>
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Matbuot</a>
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Mualliflik huquqi</a>
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Bog'lanish</a>
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Bloggerlar</a>
-                    <a href="#" className="hover:text-zinc-900 dark:hover:text-white">Reklama</a>
+                    <Link to="/about" className="hover:text-zinc-900 dark:hover:text-white">Haqida</Link>
+                    <Link to="/press" className="hover:text-zinc-900 dark:hover:text-white">Matbuot</Link>
+                    <Link to="/copyright" className="hover:text-zinc-900 dark:hover:text-white">Mualliflik huquqi</Link>
+                    <Link to="/contact" className="hover:text-zinc-900 dark:hover:text-white">Bog'lanish</Link>
+                    <Link to="/bloggers" className="hover:text-zinc-900 dark:hover:text-white">Bloggerlar</Link>
+                    <Link to="/advertising" className="hover:text-zinc-900 dark:hover:text-white">Reklama</Link>
                 </div>
                 <p className="text-[12px] text-zinc-400 font-bold">© 2024 House Mobile</p>
             </div>

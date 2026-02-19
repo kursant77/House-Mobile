@@ -10,14 +10,16 @@ import {
   Check,
   MessageCircle,
   MoreVertical,
-  Music2,
   Bookmark,
   Play,
   Clock,
   Download,
   Flag,
   UserX,
-  User as UserIcon
+  User as UserIcon,
+  Sparkles,
+  ChevronDown,
+  Music2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
@@ -51,6 +53,7 @@ import { historyService } from "@/services/api/history";
 import { useWatchLaterStore } from "@/store/watchLaterStore";
 import { useUiStore } from "@/store/uiStore";
 import { BioDisplay } from "@/components/shared/BioDisplay";
+import { useAiChatStore } from "@/store/aiChatStore";
 
 // Real-time comment count component
 function CommentCount({ productId }: { productId: string }) {
@@ -147,6 +150,7 @@ export function ReelCard({
   const [isPaused, setIsPaused] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [showDescription, setShowDescription] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{
     progress: number;
     speed: string;
@@ -801,56 +805,59 @@ export function ReelCard({
                 )}
               </div>
 
-              <div className="space-y-1.5 drop-shadow-md">
+              <div className="space-y-1 drop-shadow-md">
                 <h3 className="text-white font-bold text-sm leading-tight line-clamp-1">{reel.product.title}</h3>
-                <p className="text-white/95 text-xs line-clamp-2 leading-relaxed font-medium">
-                  {reel.product.description}
-                </p>
+                {/* Ta'rif... toggle */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowDescription(!showDescription); }}
+                  className="flex items-center gap-1 text-white/70 text-xs font-medium active:text-white transition-colors"
+                >
+                  Ta'rif...
+                  <ChevronDown className={cn("h-3 w-3 transition-transform", showDescription && "rotate-180")} />
+                </button>
+                {showDescription && (
+                  <p className="text-white/90 text-xs leading-relaxed font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                    {reel.product.description}
+                  </p>
+                )}
               </div>
 
-              <div className="flex flex-col gap-3 mt-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                  className={cn(
-                    "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto hover:shadow-xl",
-                    isProductInCart
-                      ? "bg-green-500 text-white hover:bg-green-600"
-                      : "bg-white text-black hover:bg-zinc-100"
-                  )}
-                >
+              {/* Combined Cart + Price button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                className={cn(
+                  "w-full py-2.5 px-4 rounded-xl flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto",
+                  isProductInCart
+                    ? "bg-green-500 text-white"
+                    : "bg-white text-black"
+                )}
+              >
+                <div className="flex items-center gap-2">
                   {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
                   <span className="text-[13px] font-bold">
-                    {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
+                    {isProductInCart ? "Savatchada" : "Savatga"}
                   </span>
-                </button>
-
-                {/* Narx (alohida qator, mukammal dizayn) */}
-                <div className="animate-fade-in">
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="relative bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 hover:bg-white/15 hover:border-white/30 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-white/10">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-white/70 text-xs font-medium">Narxi:</span>
-                        <span className="text-white font-black text-xl tracking-tight">
-                          {formatPriceNumber(reel.product.price)}
-                        </span>
-                        <span className="text-white/90 font-bold text-base">
-                          {formatCurrencySymbol(reel.product.currency || "UZS")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </div>
+                <span className="text-[13px] font-black">
+                  {formatPriceNumber(reel.product.price)} {formatCurrencySymbol(reel.product.currency || "UZS")}
+                </span>
+              </button>
 
-              <div className="flex items-center gap-2 overflow-hidden bg-black/20 backdrop-blur-sm px-2.5 py-1 rounded-full w-fit max-w-full">
-                <Music2 className="h-3 w-3 text-white flex-shrink-0" />
-                <div className="text-[11px] text-white font-semibold whitespace-nowrap overflow-hidden relative">
-                  <div className="animate-reel-music inline-block">
-                    {reel.author?.fullName || "House Mobile"} • Original Audio
-                  </div>
-                </div>
-              </div>
+              {/* AI — "Qurilma haqida ma'lumot olish" button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const { startNewChat, sendMessage, openChat } = useAiChatStore.getState();
+                  startNewChat();
+                  openChat();
+                  const prompt = `"${reel.product.title}" qurilmasi haqida batafsil ma'lumot ber. Texnik xarakteristikalari, afzalliklari, kamchiliklari, narxi va kimga mos ekanligi haqida professional obzor yoz. Qurilma narxi: ${formatPriceNumber(reel.product.price)} ${reel.product.currency}. Qo'shimcha ma'lumot: ${reel.product.description}`;
+                  sendMessage(prompt);
+                }}
+                className="flex items-center gap-2 bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5 w-fit active:scale-95 transition-all hover:border-white/40 pointer-events-auto"
+              >
+                <Sparkles className="h-3 w-3 text-fuchsia-300" />
+                <span className="text-[11px] text-white font-semibold">Qurilma haqida ma'lumot olish</span>
+              </button>
             </div>
           </div>
         )}

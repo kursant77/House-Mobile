@@ -65,6 +65,14 @@ const BadgesAdmin = lazy(() => import("./pages/admin/BadgesAdmin"));
 const ContentModeration = lazy(() => import("./pages/admin/ContentModeration"));
 const TelegramHub = lazy(() => import("./pages/TelegramHub"));
 
+// Footer Pages
+const About = lazy(() => import("./pages/footer/About"));
+const Press = lazy(() => import("./pages/footer/Press"));
+const Copyright = lazy(() => import("./pages/footer/Copyright"));
+const Contact = lazy(() => import("./pages/footer/Contact"));
+const Bloggers = lazy(() => import("./pages/footer/Bloggers"));
+const Advertising = lazy(() => import("./pages/footer/Advertising"));
+
 // Loading fallback component
 
 const PageLoader = () => (
@@ -184,6 +192,14 @@ const AppContent = () => {
             <Route path="/upload-product" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
             <Route path="/referral" element={<ProtectedRoute><ReferralHub /></ProtectedRoute>} />
             <Route path="/telegram" element={<ProtectedRoute><TelegramHub /></ProtectedRoute>} />
+
+            {/* Footer Pages */}
+            <Route path="/about" element={<About />} />
+            <Route path="/press" element={<Press />} />
+            <Route path="/copyright" element={<Copyright />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/bloggers" element={<Bloggers />} />
+            <Route path="/advertising" element={<Advertising />} />
           </Route>
 
           {/* Seller Routes */}
