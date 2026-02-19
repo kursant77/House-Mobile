@@ -128,16 +128,27 @@ async def chat(
         tokens_used = 0
 
         if intent == Intent.RECOMMENDATION:
-            # Extract focus from query
-            focus = _extract_focus(corrected_text)
-            rec_engine = RecommendationEngine(settings)
-            rec_result = await rec_engine.recommend(
-                supabase, llm, corrected_text,
-                focus=focus, language=language.value,
-            )
-            response_text = rec_result["message"]
-            products = rec_result.get("products")
-            tokens_used = rec_result.get("tokens_used", 0)
+            try:
+                # Extract focus from query
+                focus = _extract_focus(corrected_text)
+                rec_engine = RecommendationEngine(settings)
+                rec_result = await rec_engine.recommend(
+                    supabase, llm, corrected_text,
+                    focus=focus, language=language.value,
+                )
+                response_text = rec_result["message"]
+                products = rec_result.get("products")
+                tokens_used = rec_result.get("tokens_used", 0)
+            except Exception as e:
+                logger.warning(f"Recommendation failed: {e}")
+                # Fallback to LLM without database
+                model = settings.LLM_MODEL_FALLBACK
+                fallback_sys = system_prompt + "\n(Note: Product Database unavailable. Recommend based on general knowledge.)"
+                messages = memory.build_messages(fallback_sys, context, corrected_text)
+                result = await llm.complete(messages, model=model)
+                response_text = result["content"]
+                sources = ["General Knowledge (Database Unavailable)"]
+                tokens_used = result["tokens"]["total"]
 
         elif intent == Intent.COMPARISON:
             # Extract product names
@@ -152,14 +163,25 @@ async def chat(
                 tokens_used = comp_result.get("tokens_used", 0)
             else:
                 # Not enough product names detected — use RAG
-                rag = RAGPipeline(settings)
-                rag_result = await rag.query(
-                    corrected_text, llm, supabase, search, redis,
-                    language=language.value, system_context=system_prompt,
-                )
-                response_text = rag_result["message"]
-                sources = rag_result.get("sources")
-                tokens_used = rag_result.get("tokens_used", 0)
+                try:
+                    rag = RAGPipeline(settings)
+                    rag_result = await rag.query(
+                        corrected_text, llm, supabase, search, redis,
+                        language=language.value, system_context=system_prompt,
+                    )
+                    response_text = rag_result["message"]
+                    sources = rag_result.get("sources")
+                    tokens_used = rag_result.get("tokens_used", 0)
+                except Exception as e:
+                    logger.warning(f"RAG failed: {e}")
+                    # Fallback to LLM without RAG
+                    model = settings.LLM_MODEL_FALLBACK
+                    fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge.)"
+                    messages = memory.build_messages(fallback_sys, context, corrected_text)
+                    result = await llm.complete(messages, model=model)
+                    response_text = result["content"]
+                    sources = ["General Knowledge (Database Unavailable)"]
+                    tokens_used = result["tokens"]["total"]
 
         elif intent == Intent.BUDGET_CONVERSION:
             # Handle currency conversion
@@ -168,14 +190,25 @@ async def chat(
 
         elif intent in (Intent.PRODUCT_DETAIL, Intent.BLOG_SEARCH, Intent.TREND_INQUIRY):
             # Use RAG pipeline
-            rag = RAGPipeline(settings)
-            rag_result = await rag.query(
-                corrected_text, llm, supabase, search, redis,
-                language=language.value, system_context=system_prompt,
-            )
-            response_text = rag_result["message"]
-            sources = rag_result.get("sources")
-            tokens_used = rag_result.get("tokens_used", 0)
+            try:
+                rag = RAGPipeline(settings)
+                rag_result = await rag.query(
+                    corrected_text, llm, supabase, search, redis,
+                    language=language.value, system_context=system_prompt,
+                )
+                response_text = rag_result["message"]
+                sources = rag_result.get("sources")
+                tokens_used = rag_result.get("tokens_used", 0)
+            except Exception as e:
+                logger.warning(f"RAG failed: {e}")
+                # Fallback to LLM without RAG
+                model = settings.LLM_MODEL_FALLBACK
+                fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge.)"
+                messages = memory.build_messages(fallback_sys, context, corrected_text)
+                result = await llm.complete(messages, model=model)
+                response_text = result["content"]
+                sources = ["General Knowledge (Database Unavailable)"]
+                tokens_used = result["tokens"]["total"]
 
         else:
             # General chat — use LLM with memory context
