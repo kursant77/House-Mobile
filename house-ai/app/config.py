@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     LLM_MODEL_DEFAULT: str = "gpt-4o-mini"
     LLM_MODEL_ADVANCED: str = "gpt-4o"
-    LLM_MODEL_FALLBACK: str = "llama3-70b-8192"
+    LLM_MODEL_FALLBACK: str = "llama-3.3-70b-versatile"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_DIMENSIONS: int = 1536
     CONFIDENCE_THRESHOLD: float = 0.7

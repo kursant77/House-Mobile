@@ -210,10 +210,11 @@ async def chat(
 
     except Exception as e:
         import traceback
-        error_msg = f"Internal Error: {str(e)}\n{traceback.format_exc()}"
+        groq_key_len = len(settings.GROQ_API_KEY) if settings.GROQ_API_KEY else 0
+        error_msg = f"Internal Error: {str(e)}\n(Groq Key Len: {groq_key_len})\n{traceback.format_exc()}"
         logger.error(error_msg)
         return ChatResponse(
-            message=f"I encountered a server error. Details: {str(e)}",
+            message=f"I encountered a server error. Details: {str(e)} \n(Groq Key Len: {groq_key_len})",
             session_id=request.session_id or "error",
         )
 
