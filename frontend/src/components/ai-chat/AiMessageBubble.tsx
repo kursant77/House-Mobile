@@ -203,17 +203,24 @@ export const AiMessageBubble = memo(function AiMessageBubble({ message }: Props)
                     {/* Sources */}
                     {message.sources && message.sources.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                            {message.sources.map((src, i) => (
-                                <a
-                                    key={i}
-                                    href={src}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs px-2.5 py-1 rounded-full bg-white/[0.05] text-white/40 hover:text-white/60 hover:bg-white/[0.08] transition-colors"
-                                >
-                                    {new URL(src).hostname}
-                                </a>
-                            ))}
+                            {message.sources.map((src, i) => {
+                                try {
+                                    const url = new URL(src);
+                                    return (
+                                        <a
+                                            key={i}
+                                            href={src}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-xs px-2.5 py-1 rounded-full bg-white/[0.05] text-white/40 hover:text-white/60 hover:bg-white/[0.08] transition-colors"
+                                        >
+                                            {url.hostname}
+                                        </a>
+                                    );
+                                } catch {
+                                    return null;
+                                }
+                            })}
                         </div>
                     )}
 
