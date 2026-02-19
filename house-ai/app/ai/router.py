@@ -47,8 +47,9 @@ router = APIRouter(tags=["AI Chat"])
 
 BASE_SYSTEM_PROMPT = (
     "You are House Mobile's AI Assistant — a friendly, knowledgeable "
-    "smartphone expert. You help users find the perfect phone, compare "
-    "devices, and answer questions about smartphones.\n\n"
+    "smartphone expert and platform guide. You help users find the perfect "
+    "phone, compare devices, answer questions about smartphones, AND help "
+    "users navigate the House Mobile app.\n\n"
     "Guidelines:\n"
     "- Be helpful, conversational, and concise\n"
     "- Provide specific, accurate information\n"
@@ -56,7 +57,57 @@ BASE_SYSTEM_PROMPT = (
     "- Format responses with markdown for readability\n"
     "- If you don't have enough info, say so honestly\n"
     "- Never hallucinate specifications or prices\n"
+    "- For platform navigation questions, give exact step-by-step instructions\n"
 )
+
+PLATFORM_KNOWLEDGE_PROMPT = """
+## House Mobile Platform Guide
+
+House Mobile — O'zbekistonda smartfonlar uchun ijtimoiy savdo platformasi.
+
+### Asosiy Navigatsiya / Navigation
+- **Bosh sahifa (Home)**: Mahsulotlar, reels/videolar, hikoyalar lenti
+- **Qidiruv (Search)**: Yuqoridagi qidiruv paneli (lupa belgisi) — mahsulot va sotuvchilarni qidirish
+- **Savatcha (Cart)**: Pastki navigatsiya paneli, savatcha ikonkasi
+- **Reels/Videolar**: Pastki navigatsiya, play ikonkasi
+- **Profil (Profile)**: Pastki navigatsiya, eng o'ng ikonka
+
+### Profil Menyusi Funksiyalari / Profile Menu
+- **Buyurtmalarim (My Orders)** → Profil → "Buyurtmalarim" → /my-orders
+- **Sevimlilar (Favorites)** → Profil → "Sevimlilar" → /favorites
+- **Profilni tahrirlash (Edit Profile)** → Profil → "Profilni tahrirlash"
+- **Sozlamalar (Settings)** → Profil → "Sozlamalar"
+
+### Tilni O'zgartirish / Language Change
+- Yo'l: Profil → Sozlamalar → Til (Language) bo'limi
+- Qo'llab-quvvatlanadigan tillar: O'zbek, Русский, English
+
+### Sotuvchiga Ariza / Become a Seller
+- Profil menyusi → "Sotuvchiga ariza" tugmasi → /apply-seller sahifasi
+- Ariza formasini to'ldiring
+
+### Blogerlikga Ariza / Become a Blogger
+- Profil menyusi → "Blogerlikga ariza" tugmasi → /apply-blogger sahifasi
+- Ariza formasini to'ldiring
+
+### Telegram Bog'lash / Account Linking
+- Profil → Sozlamalar → "Telegramni ulash"
+
+### Yon Panel / Sidebar & Messages
+- O'ngga suring yoki menyu ikonkasini bosing
+- Chat/xabarlar, bildirishnomalar mavjud
+
+### Buyurtma Holati / Order Status
+- Profil → Buyurtmalarim → /my-orders
+- Holatlari: Kutilmoqda → Tasdiqlandi → Tayyorlanmoqda → Yetkazilmoqda → Yetkazildi
+
+### Mahsulot Joylash / Upload Product (Sellers only)
+- Profil → Sotuvchi paneli yoki /upload-product
+
+### Qo'llab-Quvvatlash / Support
+- Telegram: /start buyrug'i orqali bot bilan bog'laning
+- Profil → Sozlamalar → Yordam markazi
+"""
 
 
 # ── Chat Endpoint (REST) ────────────────────────────────────
@@ -114,11 +165,32 @@ async def chat(
         memory = MemoryManager(redis, supabase, llm, settings)
         context = await memory.get_context(session_id)
 
+        # 6b. Fetch user profile for personalization (non-blocking)
+        user_profile = None
+        if user_id:
+            try:
+                user_profile = await supabase.get_user_profile(user_id)
+            except Exception:
+                pass  # Personalization is optional — never fail the request
+
         # 7. Build system prompt
+        personalization_context = ""
+        if user_profile:
+            name = user_profile.get("full_name") or user_profile.get("username", "")
+            order_count = user_profile.get("order_count", 0)
+            role = user_profile.get("role", "user")
+            if name:
+                personalization_context += f"\nUser's name: {name}. Address them personally when appropriate."
+            if order_count > 0:
+                personalization_context += f"\nThis user has made {order_count} previous orders — they are an experienced buyer."
+            if role in ("seller", "blogger"):
+                personalization_context += f"\nUser is a {role} on the platform."
+
         system_prompt = (
             BASE_SYSTEM_PROMPT
             + get_language_instruction(language) + "\n"
             + get_tone_instruction(emotion) + "\n"
+            + personalization_context
         )
 
         # 8. Route by intent
@@ -139,6 +211,26 @@ async def chat(
                 response_text = rec_result["message"]
                 products = rec_result.get("products")
                 tokens_used = rec_result.get("tokens_used", 0)
+                # Supplement with real platform listings (non-blocking)
+                try:
+                    brand_term = _extract_brand_from_query(corrected_text)
+                    platform_prods = await supabase.get_platform_products(
+                        search_term=brand_term, limit=5
+                    )
+                    if platform_prods:
+                        lang_val = language.value
+                        if lang_val == "uz":
+                            platform_note = "\n\n**Platformada mavjud (House Mobile):**\n"
+                        elif lang_val == "ru":
+                            platform_note = "\n\n**Доступно на платформе (House Mobile):**\n"
+                        else:
+                            platform_note = "\n\n**Available on House Mobile platform:**\n"
+                        for p in platform_prods[:3]:
+                            price = p.get("price", 0)
+                            platform_note += f"- {p.get('title', '')}: {price:,.0f} so'm\n"
+                        response_text = response_text + platform_note
+                except Exception:
+                    pass  # Supplement is optional — never block main response
             except Exception as e:
                 logger.warning(f"Recommendation failed: {e}")
                 
@@ -182,6 +274,7 @@ async def chat(
                     rag_result = await rag.query(
                         corrected_text, llm, supabase, search, redis,
                         language=language.value, system_context=system_prompt,
+                        conversation_history=context,
                     )
                     response_text = rag_result["message"]
                     sources = rag_result.get("sources")
@@ -248,6 +341,23 @@ async def chat(
                 response_text = result["content"]
                 tokens_used = result["tokens"]["total"]
 
+        elif intent == Intent.PLATFORM_HELP:
+            # Platform navigation / how-to — inject full platform knowledge
+            platform_system = (
+                BASE_SYSTEM_PROMPT
+                + PLATFORM_KNOWLEDGE_PROMPT
+                + "\n" + get_language_instruction(language) + "\n"
+                + get_tone_instruction(emotion) + "\n"
+                + "\nWhen answering how-to questions about the platform, "
+                "give clear step-by-step navigation instructions. "
+                "Always mention the exact menu path or URL."
+            )
+            model = cost_ctrl.select_model(intent, intent_conf)
+            messages = memory.build_messages(platform_system, context, corrected_text)
+            result = await llm.complete(messages, model=model)
+            response_text = result["content"]
+            tokens_used = result["tokens"]["total"]
+
         else:
             # General chat — use LLM with memory context
             model = cost_ctrl.select_model(intent, intent_conf)
@@ -281,11 +391,12 @@ async def chat(
 
     except Exception as e:
         import traceback
-        groq_key_len = len(settings.GROQ_API_KEY) if settings.GROQ_API_KEY else 0
-        error_msg = f"Internal Error: {str(e)}\n(Groq Key Len: {groq_key_len})\n{traceback.format_exc()}"
-        logger.error(error_msg)
+        logger.error(
+            f"Chat endpoint error for session={request.session_id}: "
+            f"{type(e).__name__}: {str(e)}\n{traceback.format_exc()}"
+        )
         return ChatResponse(
-            message=f"I encountered a server error. Details: {str(e)} \n(Groq Key Len: {groq_key_len})",
+            message="I'm sorry, something went wrong on my end. Please try again in a moment.",
             session_id=request.session_id or "error",
         )
 
@@ -298,9 +409,11 @@ async def chat_stream(
     llm: LLMService = Depends(get_llm),
     supabase: SupabaseService = Depends(get_supabase),
     redis: RedisService = Depends(get_redis),
+    search: SearchService = Depends(get_search),
+    currency: CurrencyService = Depends(get_currency),
     settings: Settings = Depends(get_settings),
 ):
-    """WebSocket endpoint for streaming chat responses."""
+    """WebSocket endpoint for streaming chat responses with full intent routing."""
     await websocket.accept()
 
     try:
@@ -326,53 +439,104 @@ async def chat_stream(
                         content="I'm sorry, I can only help with smartphone-related questions."
                     ).model_dump()
                 )
-                await websocket.send_json(
-                    StreamChunk(type="done").model_dump()
-                )
+                await websocket.send_json(StreamChunk(type="done").model_dump())
                 continue
 
-            # Process language and intent
+            # Process language, intent, emotion
             corrected_text, language = await process_language(message)
+            intent, intent_conf = await classify_intent(corrected_text, llm)
             emotion, _ = detect_emotion(corrected_text)
 
-            # Build prompt
+            # Memory context
+            memory = MemoryManager(redis, supabase, llm, settings)
+            context = await memory.get_context(session_id)
+            cost_ctrl = CostController(redis, settings)
+
+            # Base system prompt
             system_prompt = (
                 BASE_SYSTEM_PROMPT
                 + get_language_instruction(language) + "\n"
                 + get_tone_instruction(emotion) + "\n"
             )
 
-            # Memory context
-            memory = MemoryManager(redis, supabase, llm, settings)
-            context = await memory.get_context(session_id)
-            messages = memory.build_messages(system_prompt, context, corrected_text)
-
-            # Stream response
             full_response = ""
-            async for chunk in llm.stream(messages):
-                full_response += chunk
+
+            if intent == Intent.PLATFORM_HELP:
+                # Platform navigation — inject knowledge prompt, stream response
+                platform_system = (
+                    BASE_SYSTEM_PROMPT
+                    + PLATFORM_KNOWLEDGE_PROMPT
+                    + "\n" + get_language_instruction(language) + "\n"
+                    + get_tone_instruction(emotion) + "\n"
+                    + "\nGive clear step-by-step navigation instructions. Always mention the exact menu path or URL."
+                )
+                ws_messages = memory.build_messages(platform_system, context, corrected_text)
+                async for chunk in llm.stream(ws_messages):
+                    full_response += chunk
+                    await websocket.send_json(
+                        StreamChunk(type="text", content=chunk).model_dump()
+                    )
+
+            elif intent == Intent.BUDGET_CONVERSION:
+                # Currency — compute and send as single chunk
+                response_text = await _handle_currency(corrected_text, currency, language.value)
+                full_response = response_text
                 await websocket.send_json(
-                    StreamChunk(type="text", content=chunk).model_dump()
+                    StreamChunk(type="text", content=response_text).model_dump()
                 )
 
-            # Save exchange
+            elif intent in (Intent.PRODUCT_DETAIL, Intent.BLOG_SEARCH, Intent.TREND_INQUIRY):
+                # RAG — retrieve context then send full response
+                try:
+                    rag = RAGPipeline(settings)
+                    rag_result = await rag.query(
+                        corrected_text, llm, supabase, search, redis,
+                        language=language.value, system_context=system_prompt,
+                        conversation_history=context,
+                    )
+                    full_response = rag_result["message"]
+                    await websocket.send_json(
+                        StreamChunk(type="text", content=full_response).model_dump()
+                    )
+                except Exception as rag_err:
+                    logger.warning(f"WebSocket RAG failed: {rag_err}")
+                    # Fallback: plain LLM stream
+                    ws_messages = memory.build_messages(system_prompt, context, corrected_text)
+                    async for chunk in llm.stream(ws_messages):
+                        full_response += chunk
+                        await websocket.send_json(
+                            StreamChunk(type="text", content=chunk).model_dump()
+                        )
+
+            else:
+                # General chat (and RECOMMENDATION/COMPARISON — keep as general LLM stream)
+                model = cost_ctrl.select_model(intent, intent_conf)
+                ws_messages = memory.build_messages(system_prompt, context, corrected_text)
+                async for chunk in llm.stream(ws_messages, model=model):
+                    full_response += chunk
+                    await websocket.send_json(
+                        StreamChunk(type="text", content=chunk).model_dump()
+                    )
+
+            # Save exchange to memory
             await memory.save_exchange(session_id, message, full_response)
 
-            # Send done
+            # Send done signal
             await websocket.send_json(
                 StreamChunk(
                     type="done",
-                    data={"session_id": session_id}
+                    data={"session_id": session_id, "intent": intent.value}
                 ).model_dump()
             )
 
     except WebSocketDisconnect:
         logger.info("WebSocket client disconnected")
     except Exception as e:
-        logger.error(f"WebSocket error: {e}")
+        import traceback
+        logger.error(f"WebSocket error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
         try:
             await websocket.send_json(
-                StreamChunk(type="error", content=str(e)).model_dump()
+                StreamChunk(type="error", content="A server error occurred. Please reconnect.").model_dump()
             )
         except Exception:
             pass
@@ -498,6 +662,20 @@ def _extract_focus(text: str) -> Optional[str]:
     return None
 
 
+def _extract_brand_from_query(text: str) -> Optional[str]:
+    """Extract a brand/model keyword from user query for platform product search."""
+    brands = [
+        "samsung", "apple", "iphone", "xiaomi", "redmi", "realme", "poco",
+        "huawei", "oppo", "vivo", "oneplus", "google", "pixel", "sony",
+        "motorola", "nokia", "tecno", "infinix", "itel",
+    ]
+    text_lower = text.lower()
+    for brand in brands:
+        if brand in text_lower:
+            return brand
+    return None
+
+
 def _extract_product_names(text: str) -> list:
     """Extract product names from comparison query."""
     import re
@@ -538,20 +716,23 @@ async def _handle_currency(
 
     amount = float(amount_match.group(1).replace(",", "").replace(" ", ""))
 
-    # Detect currencies
+    # Detect currencies (use str.find() to avoid ValueError on missing currency)
     text_upper = text.upper()
     from_cur = "USD"
     to_cur = "UZS"
 
-    if "UZS" in text_upper and ("USD" in text_upper or "DOLLAR" in text_upper.upper()):
-        if text_upper.index("UZS") < text_upper.index("USD") if "USD" in text_upper else 999:
+    has_uzs = "UZS" in text_upper or "SO'M" in text_upper or "СУМ" in text_upper
+    has_usd = "USD" in text_upper or "DOLLAR" in text_upper
+    has_eur = "EUR" in text_upper
+
+    if has_uzs and has_usd:
+        uzs_pos = text_upper.find("UZS") if "UZS" in text_upper else text_upper.find("SO'M")
+        usd_pos = text_upper.find("USD") if "USD" in text_upper else text_upper.find("DOLLAR")
+        if uzs_pos != -1 and usd_pos != -1 and uzs_pos < usd_pos:
             from_cur, to_cur = "UZS", "USD"
-    elif "EUR" in text_upper:
-        if "UZS" in text_upper:
-            from_cur, to_cur = "EUR", "UZS"
-        else:
-            from_cur, to_cur = "USD", "EUR"
-    elif "SO'M" in text_upper or "СУМ" in text_upper:
+    elif has_eur:
+        from_cur, to_cur = ("EUR", "UZS") if has_uzs else ("USD", "EUR")
+    elif has_uzs and not has_usd:
         from_cur, to_cur = "UZS", "USD"
 
     converted = await currency.convert(amount, from_cur, to_cur)

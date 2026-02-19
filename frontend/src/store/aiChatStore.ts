@@ -11,6 +11,7 @@ import {
     type AiProductCard,
     type AiComparisonTable,
 } from "@/services/api/aiChat";
+import { useAuthStore } from "@/store/authStore";
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -176,6 +177,8 @@ export const useAiChatStore = create<AiChatState>((set, get) => ({
 
     sendMessage: async (text: string) => {
         const { activeSessionId, language, sessions } = get();
+        const authUser = useAuthStore.getState().user;
+        const userId = authUser?.id ?? undefined;
 
         // Find or create session
         let sessionId = activeSessionId;
@@ -237,6 +240,7 @@ export const useAiChatStore = create<AiChatState>((set, get) => ({
                 message: text,
                 session_id: sessionId.startsWith("local-") ? undefined : sessionId,
                 language,
+                user_id: userId,
             });
 
             // If backend returns a real session ID, update

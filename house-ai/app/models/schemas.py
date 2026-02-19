@@ -24,6 +24,7 @@ class Intent(str, Enum):
     BLOG_SEARCH = "blog_search"
     TREND_INQUIRY = "trend_inquiry"
     BUDGET_CONVERSION = "budget_conversion"
+    PLATFORM_HELP = "platform_help"
     GENERAL_CHAT = "general_chat"
 
 

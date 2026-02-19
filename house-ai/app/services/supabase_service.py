@@ -141,6 +141,67 @@ class SupabaseService:
                 products.append(product)
         return products
 
+    async def get_platform_products(
+        self,
+        category: Optional[str] = None,
+        min_price: Optional[float] = None,
+        max_price: Optional[float] = None,
+        search_term: Optional[str] = None,
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Fetch real platform listings from the products table.
+        These are actual user-listed products with real prices and availability.
+        """
+        try:
+            query = (
+                self.client.table("products")
+                .select("id, title, price, images, category, condition, created_at")
+                .eq("is_active", True)
+            )
+            if category:
+                query = query.ilike("category", f"%{category}%")
+            if min_price is not None:
+                query = query.gte("price", min_price)
+            if max_price is not None:
+                query = query.lte("price", max_price)
+            if search_term:
+                query = query.ilike("title", f"%{search_term}%")
+            result = query.order("created_at", desc=True).limit(limit).execute()
+            return result.data or []
+        except Exception as e:
+            logger.error(f"Get platform products error: {e}")
+            return []
+
+    async def get_user_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetch user profile for personalization context.
+        Returns name, role, and order count.
+        """
+        try:
+            result = (
+                self.client.table("profiles")
+                .select("id, full_name, username, role, created_at")
+                .eq("id", user_id)
+                .single()
+                .execute()
+            )
+            profile = result.data
+            if not profile:
+                return None
+            # Get order count for personalization context
+            order_result = (
+                self.client.table("orders")
+                .select("id", count="exact")
+                .eq("user_id", user_id)
+                .execute()
+            )
+            profile["order_count"] = order_result.count or 0
+            return profile
+        except Exception as e:
+            logger.error(f"Get user profile error: {e}")
+            return None
+
     # ── Chat Sessions ────────────────────────────────────
 
     async def create_session(

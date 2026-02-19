@@ -474,16 +474,53 @@ export async function broadcastMessage(
     let sent = 0;
     let failed = 0;
 
-    for (const user of eligibleUsers) {
+    const BATCH_SIZE = 25;        // 25 concurrent sends per batch (safe below 30/s limit)
+    const BATCH_DELAY_MS = 1100;  // 1.1s between batches → ~22 msgs/sec
+    const MAX_RETRIES = 2;
+
+    // Helper: send with retry on 429, skip on permanent failure
+    const sendWithRetry = async (chatId: number, text: string, retries = MAX_RETRIES): Promise<boolean> => {
         try {
-            await bot.api.sendMessage(user.telegram_chat_id, message, {
-                parse_mode: "HTML"
-            });
-            sent++;
-            // Small delay to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 50));
-        } catch (error) {
-            failed++;
+            await bot.api.sendMessage(chatId, text, { parse_mode: "HTML" });
+            return true;
+        } catch (error: any) {
+            if (error?.error_code === 429 && retries > 0) {
+                // Respect retry_after from Telegram
+                const retryAfterMs = ((error?.parameters?.retry_after ?? 5) + 1) * 1000;
+                await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+                return sendWithRetry(chatId, text, retries - 1);
+            }
+            if (error?.error_code === 403 || error?.error_code === 400) {
+                // User blocked the bot or account deactivated — permanent failure, no retry
+                return false;
+            }
+            if (retries > 0) {
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                return sendWithRetry(chatId, text, retries - 1);
+            }
+            return false;
+        }
+    };
+
+    // Process in batches to respect Telegram rate limits
+    for (let i = 0; i < eligibleUsers.length; i += BATCH_SIZE) {
+        const batch = eligibleUsers.slice(i, i + BATCH_SIZE);
+
+        const results = await Promise.allSettled(
+            batch.map(user => sendWithRetry(user.telegram_chat_id, message))
+        );
+
+        results.forEach(result => {
+            if (result.status === 'fulfilled' && result.value) {
+                sent++;
+            } else {
+                failed++;
+            }
+        });
+
+        // Wait between batches (skip delay after the last batch)
+        if (i + BATCH_SIZE < eligibleUsers.length) {
+            await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
         }
     }
 

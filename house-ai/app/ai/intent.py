@@ -102,6 +102,47 @@ INTENT_PATTERNS = {
         r"necha dollar",
         r"necha so'm",
     ],
+    Intent.PLATFORM_HELP: [
+        # English
+        r"how\s+do\s+i",
+        r"where\s+(is|are|can\s+i\s+find)",
+        r"how\s+to\s+(change|switch|find|access|open|apply|become|register)",
+        r"how\s+can\s+i",
+        r"language\s+(change|switch|setting)",
+        r"apply\s+(for\s+)?(blogger|seller)",
+        r"become\s+a?\s+(seller|blogger)",
+        r"my\s+orders",
+        r"order\s+history",
+        r"where\s+is\s+(cart|basket|favorites|profile|menu)",
+        r"edit\s+profile",
+        # Uzbek
+        r"qanday\s+qilsam",
+        r"qayerda",
+        r"qanday\s+o[''`]zgartirish",
+        r"til\s+(o[''`]zgartirish|sozlash)",
+        r"blogerlikga\s+ariza",
+        r"sotuvchiga\s+ariza",
+        r"mening\s+buyurtmalarim",
+        r"profil\s+tahrirlash",
+        r"savatcha",
+        r"sevimlilar",
+        r"sozlamalar",
+        r"qanday\s+ulash",
+        r"qanday\s+ro[''`]yxatdan",
+        r"ilovada\s+qayerdan",
+        r"qayerdan\s+topaman",
+        # Russian
+        r"как\s+(изменить|переключить|найти|зайти|подать)",
+        r"где\s+(находится|найти)",
+        r"смена\s+языка",
+        r"настройки",
+        r"стать\s+(продавцом|блогером)",
+        r"подать\s+заявку",
+        r"мои\s+заказы",
+        r"редактировать\s+профиль",
+        r"корзина",
+        r"избранное",
+    ],
 }
 
 # Compile patterns
@@ -151,6 +192,7 @@ async def classify_intent_llm(text: str, llm_service) -> Tuple[Intent, float]:
                 "- blog_search (user asks about articles/reviews)\n"
                 "- trend_inquiry (user asks about trending phones)\n"
                 "- budget_conversion (user asks about currency/price conversion)\n"
+                "- platform_help (user asks how to use the app, navigation, how to apply for blogger/seller, change language, find orders, settings, etc.)\n"
                 "- general_chat (everything else)"
             ),
         },

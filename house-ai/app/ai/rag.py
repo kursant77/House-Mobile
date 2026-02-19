@@ -4,7 +4,7 @@ Cost-efficient retrieval-augmented generation with vector search and Brave fallb
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.services.llm_service import LLMService
 from app.services.supabase_service import SupabaseService
@@ -32,6 +32,7 @@ class RAGPipeline:
         redis: RedisService,
         language: str = "en",
         system_context: str = "",
+        conversation_history: Optional[Dict[str, Any]] = None,
     ) -> Dict:
         """
         Full RAG pipeline:
@@ -103,6 +104,7 @@ class RAGPipeline:
             sources=sources,
             language=language,
             system_context=system_context,
+            conversation_history=conversation_history,
         )
 
         # 9. Cache result
@@ -151,6 +153,7 @@ class RAGPipeline:
         sources: List[str],
         language: str,
         system_context: str = "",
+        conversation_history: Optional[Dict[str, Any]] = None,
     ) -> Dict:
         """Generate a grounded response using retrieved context."""
         lang_instruction = {
@@ -187,10 +190,25 @@ class RAGPipeline:
         if system_context:
             system_prompt = f"{system_context}\n\n{system_prompt}"
 
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
-        ]
+        messages = [{"role": "system", "content": system_prompt}]
+
+        # Inject conversation summary if available
+        if conversation_history and conversation_history.get("summary"):
+            messages.append({
+                "role": "system",
+                "content": f"Previous conversation summary:\n{conversation_history['summary']}",
+            })
+
+        # Inject recent conversation messages (excluding current query)
+        if conversation_history and conversation_history.get("recent_messages"):
+            for msg in conversation_history["recent_messages"]:
+                messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"],
+                })
+
+        # Add current user query
+        messages.append({"role": "user", "content": query})
 
         try:
             result = await llm.complete(messages, temperature=0.5)
