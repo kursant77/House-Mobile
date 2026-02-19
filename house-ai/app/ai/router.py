@@ -145,7 +145,7 @@ async def chat(
                 # Fallback: Try Web Search first
                 model = settings.LLM_MODEL_FALLBACK
                 web_context = ""
-                sources = ["General Knowledge (Database Unavailable)"]
+                sources = []
                 try:
                     # Search using original query
                     web_results = await search.search(corrected_text)
@@ -192,7 +192,7 @@ async def chat(
                     # Fallback: Try Web Search first
                     model = settings.LLM_MODEL_FALLBACK
                     web_context = ""
-                    sources = ["General Knowledge (Database Unavailable)"]
+                    sources = []
                     try:
                         web_results = await search.search(corrected_text)
                         if web_results:
@@ -231,7 +231,7 @@ async def chat(
                 # Fallback: Try Web Search first
                 model = settings.LLM_MODEL_FALLBACK
                 web_context = ""
-                sources = ["General Knowledge (Database Unavailable)"]
+                sources = []
                 try:
                     web_results = await search.search(corrected_text)
                     if web_results:

@@ -71,12 +71,7 @@ class SearchService:
 
     def format_sources(self, results: List[Dict[str, Any]]) -> List[str]:
         """Format search results as source citations."""
-        sources = []
-        for r in results:
-            title = r.get("title", "Unknown")
-            url = r.get("url", "")
-            sources.append(f"[{title}]({url})")
-        return sources
+        return [r.get("url", "") for r in results if r.get("url")]
 
     def build_context(self, results: List[Dict[str, Any]]) -> str:
         """Build context string from search results for LLM prompt."""
