@@ -141,13 +141,27 @@ async def chat(
                 tokens_used = rec_result.get("tokens_used", 0)
             except Exception as e:
                 logger.warning(f"Recommendation failed: {e}")
-                # Fallback to LLM without database
+                
+                # Fallback: Try Web Search first
                 model = settings.LLM_MODEL_FALLBACK
-                fallback_sys = system_prompt + "\n(Note: Product Database unavailable. Recommend based on general knowledge.)"
+                web_context = ""
+                sources = ["General Knowledge (Database Unavailable)"]
+                try:
+                    # Search using original query
+                    web_results = await search.search(corrected_text)
+                    if web_results:
+                        formatted_context = search.build_context(web_results)
+                        web_context = f"\n\nWeb Search Results (Use these to answer):\n{formatted_context}"
+                        sources = search.format_sources(web_results)
+                except Exception as ws_e:
+                    logger.error(f"Fallback web search failed: {ws_e}")
+
+                # Fallback LLM generation
+                fallback_sys = system_prompt + "\n(Note: Product Database unavailable. Answer based on general knowledge and web results if provided.)" + web_context
                 messages = memory.build_messages(fallback_sys, context, corrected_text)
                 result = await llm.complete(messages, model=model)
                 response_text = result["content"]
-                sources = ["General Knowledge (Database Unavailable)"]
+                products = []
                 tokens_used = result["tokens"]["total"]
 
         elif intent == Intent.COMPARISON:
@@ -174,13 +188,25 @@ async def chat(
                     tokens_used = rag_result.get("tokens_used", 0)
                 except Exception as e:
                     logger.warning(f"RAG failed: {e}")
-                    # Fallback to LLM without RAG
+                    
+                    # Fallback: Try Web Search first
                     model = settings.LLM_MODEL_FALLBACK
-                    fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge.)"
+                    web_context = ""
+                    sources = ["General Knowledge (Database Unavailable)"]
+                    try:
+                        web_results = await search.search(corrected_text)
+                        if web_results:
+                            formatted_context = search.build_context(web_results)
+                            web_context = f"\n\nWeb Search Results (Use these to answer):\n{formatted_context}"
+                            sources = search.format_sources(web_results)
+                    except Exception as ws_e:
+                        logger.error(f"Fallback web search failed: {ws_e}")
+
+                    # Fallback LLM generation
+                    fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge and web results if provided.)" + web_context
                     messages = memory.build_messages(fallback_sys, context, corrected_text)
                     result = await llm.complete(messages, model=model)
                     response_text = result["content"]
-                    sources = ["General Knowledge (Database Unavailable)"]
                     tokens_used = result["tokens"]["total"]
 
         elif intent == Intent.BUDGET_CONVERSION:
@@ -201,13 +227,25 @@ async def chat(
                 tokens_used = rag_result.get("tokens_used", 0)
             except Exception as e:
                 logger.warning(f"RAG failed: {e}")
-                # Fallback to LLM without RAG
+                
+                # Fallback: Try Web Search first
                 model = settings.LLM_MODEL_FALLBACK
-                fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge.)"
+                web_context = ""
+                sources = ["General Knowledge (Database Unavailable)"]
+                try:
+                    web_results = await search.search(corrected_text)
+                    if web_results:
+                        formatted_context = search.build_context(web_results)
+                        web_context = f"\n\nWeb Search Results (Use these to answer):\n{formatted_context}"
+                        sources = search.format_sources(web_results)
+                except Exception as ws_e:
+                    logger.error(f"Fallback web search failed: {ws_e}")
+
+                # Fallback LLM generation
+                fallback_sys = system_prompt + "\n(Note: Database currently unavailable. Answer based on general knowledge and web results if provided.)" + web_context
                 messages = memory.build_messages(fallback_sys, context, corrected_text)
                 result = await llm.complete(messages, model=model)
                 response_text = result["content"]
-                sources = ["General Knowledge (Database Unavailable)"]
                 tokens_used = result["tokens"]["total"]
 
         else:
