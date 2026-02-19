@@ -81,76 +81,93 @@ async def chat(
             session_id=request.session_id or str(uuid.uuid4()),
         )
 
-    # 1. Session setup
-    session_id = request.session_id or str(uuid.uuid4())
-    user_id = request.user_id or (user["user_id"] if user else None)
+    try:
+        # 1. Session setup
+        session_id = request.session_id or str(uuid.uuid4())
+        user_id = request.user_id or (user["user_id"] if user else None)
 
-    # 2. Cost control: budget check
-    cost_ctrl = CostController(redis, settings)
-    if user_id:
-        allowed, remaining = await cost_ctrl.check_budget(user_id)
-        if not allowed:
-            lang = request.language.value if request.language else "en"
-            return ChatResponse(
-                message=cost_ctrl.budget_exceeded_message(lang),
-                session_id=session_id,
-            )
+        # 2. Cost control: budget check
+        cost_ctrl = CostController(redis, settings)
+        if user_id:
+            allowed, remaining = await cost_ctrl.check_budget(user_id)
+            if not allowed:
+                lang = request.language.value if request.language else "en"
+                return ChatResponse(
+                    message=cost_ctrl.budget_exceeded_message(lang),
+                    session_id=session_id,
+                )
 
-    # 3. Language processing
-    corrected_text, language = await process_language(
-        request.message,
-        override=request.language,
-        llm_service=llm,
-    )
-
-    # 4. Intent classification
-    intent, intent_conf = await classify_intent(corrected_text, llm)
-
-    # 5. Emotion detection
-    emotion, emotion_conf = detect_emotion(corrected_text)
-
-    # 6. Memory context
-    memory = MemoryManager(redis, supabase, llm, settings)
-    context = await memory.get_context(session_id)
-
-    # 7. Build system prompt
-    system_prompt = (
-        BASE_SYSTEM_PROMPT
-        + get_language_instruction(language) + "\n"
-        + get_tone_instruction(emotion) + "\n"
-    )
-
-    # 8. Route by intent
-    products = None
-    comparison = None
-    sources = None
-    tokens_used = 0
-
-    if intent == Intent.RECOMMENDATION:
-        # Extract focus from query
-        focus = _extract_focus(corrected_text)
-        rec_engine = RecommendationEngine(settings)
-        rec_result = await rec_engine.recommend(
-            supabase, llm, corrected_text,
-            focus=focus, language=language.value,
+        # 3. Language processing
+        corrected_text, language = await process_language(
+            request.message,
+            override=request.language,
+            llm_service=llm,
         )
-        response_text = rec_result["message"]
-        products = rec_result.get("products")
-        tokens_used = rec_result.get("tokens_used", 0)
 
-    elif intent == Intent.COMPARISON:
-        # Extract product names
-        product_names = _extract_product_names(corrected_text)
-        if len(product_names) >= 2:
-            comp_engine = ComparisonEngine()
-            comp_result = await comp_engine.compare(
-                supabase, llm, product_names, language=language.value,
+        # 4. Intent classification
+        intent, intent_conf = await classify_intent(corrected_text, llm)
+
+        # 5. Emotion detection
+        emotion, emotion_conf = detect_emotion(corrected_text)
+
+        # 6. Memory context
+        memory = MemoryManager(redis, supabase, llm, settings)
+        context = await memory.get_context(session_id)
+
+        # 7. Build system prompt
+        system_prompt = (
+            BASE_SYSTEM_PROMPT
+            + get_language_instruction(language) + "\n"
+            + get_tone_instruction(emotion) + "\n"
+        )
+
+        # 8. Route by intent
+        products = None
+        comparison = None
+        sources = None
+        tokens_used = 0
+
+        if intent == Intent.RECOMMENDATION:
+            # Extract focus from query
+            focus = _extract_focus(corrected_text)
+            rec_engine = RecommendationEngine(settings)
+            rec_result = await rec_engine.recommend(
+                supabase, llm, corrected_text,
+                focus=focus, language=language.value,
             )
-            response_text = comp_result["message"]
-            comparison = comp_result.get("comparison")
-            tokens_used = comp_result.get("tokens_used", 0)
-        else:
-            # Not enough product names detected — use RAG
+            response_text = rec_result["message"]
+            products = rec_result.get("products")
+            tokens_used = rec_result.get("tokens_used", 0)
+
+        elif intent == Intent.COMPARISON:
+            # Extract product names
+            product_names = _extract_product_names(corrected_text)
+            if len(product_names) >= 2:
+                comp_engine = ComparisonEngine()
+                comp_result = await comp_engine.compare(
+                    supabase, llm, product_names, language=language.value,
+                )
+                response_text = comp_result["message"]
+                comparison = comp_result.get("comparison")
+                tokens_used = comp_result.get("tokens_used", 0)
+            else:
+                # Not enough product names detected — use RAG
+                rag = RAGPipeline(settings)
+                rag_result = await rag.query(
+                    corrected_text, llm, supabase, search, redis,
+                    language=language.value, system_context=system_prompt,
+                )
+                response_text = rag_result["message"]
+                sources = rag_result.get("sources")
+                tokens_used = rag_result.get("tokens_used", 0)
+
+        elif intent == Intent.BUDGET_CONVERSION:
+            # Handle currency conversion
+            response_text = await _handle_currency(corrected_text, currency, language.value)
+            tokens_used = 0
+
+        elif intent in (Intent.PRODUCT_DETAIL, Intent.BLOG_SEARCH, Intent.TREND_INQUIRY):
+            # Use RAG pipeline
             rag = RAGPipeline(settings)
             rag_result = await rag.query(
                 corrected_text, llm, supabase, search, redis,
@@ -160,52 +177,45 @@ async def chat(
             sources = rag_result.get("sources")
             tokens_used = rag_result.get("tokens_used", 0)
 
-    elif intent == Intent.BUDGET_CONVERSION:
-        # Handle currency conversion
-        response_text = await _handle_currency(corrected_text, currency, language.value)
-        tokens_used = 0
+        else:
+            # General chat — use LLM with memory context
+            model = cost_ctrl.select_model(intent, intent_conf)
+            messages = memory.build_messages(system_prompt, context, corrected_text)
+            result = await llm.complete(messages, model=model)
+            response_text = result["content"]
+            tokens_used = result["tokens"]["total"]
 
-    elif intent in (Intent.PRODUCT_DETAIL, Intent.BLOG_SEARCH, Intent.TREND_INQUIRY):
-        # Use RAG pipeline
-        rag = RAGPipeline(settings)
-        rag_result = await rag.query(
-            corrected_text, llm, supabase, search, redis,
-            language=language.value, system_context=system_prompt,
+        # 9. Save exchange to memory
+        await memory.save_exchange(session_id, request.message, response_text)
+
+        # 10. Check if summarization needed
+        await memory.check_and_summarize(session_id)
+
+        # 11. Track token usage
+        if user_id and tokens_used > 0:
+            await cost_ctrl.track_usage(user_id, tokens_used, settings.LLM_MODEL_DEFAULT)
+
+        return ChatResponse(
+            message=response_text,
+            session_id=session_id,
+            intent=intent,
+            emotion=emotion,
+            language=language,
+            products=products,
+            comparison=comparison,
+            sources=sources,
+            tokens_used=tokens_used,
+            model_used=settings.LLM_MODEL_DEFAULT,
         )
-        response_text = rag_result["message"]
-        sources = rag_result.get("sources")
-        tokens_used = rag_result.get("tokens_used", 0)
 
-    else:
-        # General chat — use LLM with memory context
-        model = cost_ctrl.select_model(intent, intent_conf)
-        messages = memory.build_messages(system_prompt, context, corrected_text)
-        result = await llm.complete(messages, model=model)
-        response_text = result["content"]
-        tokens_used = result["tokens"]["total"]
-
-    # 9. Save exchange to memory
-    await memory.save_exchange(session_id, request.message, response_text)
-
-    # 10. Check if summarization needed
-    await memory.check_and_summarize(session_id)
-
-    # 11. Track token usage
-    if user_id and tokens_used > 0:
-        await cost_ctrl.track_usage(user_id, tokens_used, settings.LLM_MODEL_DEFAULT)
-
-    return ChatResponse(
-        message=response_text,
-        session_id=session_id,
-        intent=intent,
-        emotion=emotion,
-        language=language,
-        products=products,
-        comparison=comparison,
-        sources=sources,
-        tokens_used=tokens_used,
-        model_used=settings.LLM_MODEL_DEFAULT,
-    )
+    except Exception as e:
+        import traceback
+        error_msg = f"Internal Error: {str(e)}\n{traceback.format_exc()}"
+        logger.error(error_msg)
+        return ChatResponse(
+            message=f"I encountered a server error. Details: {str(e)}",
+            session_id=request.session_id or "error",
+        )
 
 
 # ── WebSocket Streaming ─────────────────────────────────────
