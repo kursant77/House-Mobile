@@ -17,7 +17,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn, formatCurrencySymbol } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCartStore } from "@/store/cartStore";
 import { socialService } from "@/services/api/social";
@@ -39,6 +40,7 @@ export const Header = () => {
     const { getItemCount } = useCartStore();
     const cartCount = getItemCount();
     const isMobile = useIsMobile();
+    const { formatPrice } = useCurrency();
     const [searchQuery, setSearchQuery] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
     const [activeSearchFilter, setActiveSearchFilter] = useState("all");
@@ -275,7 +277,7 @@ export const Header = () => {
                                                         </div>
                                                         <div className="flex-1 min-w-0">
                                                             <p className="text-sm font-bold truncate">{product.title}</p>
-                                                            <p className="text-xs text-primary font-bold">{product.price.toLocaleString()} {formatCurrencySymbol(product.currency || "UZS")}</p>
+                                                            <p className="text-xs text-primary font-bold">{formatPrice(product.price, product.currency || "UZS")}</p>
                                                         </div>
                                                     </button>
                                                 ))}

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 
 from app.services.llm_service import LLMService
 from app.services.supabase_service import SupabaseService
-from app.services.brave_service import BraveService
+from app.services.search_service import SearchService
 from app.services.redis_service import RedisService
 from app.config import Settings
 
@@ -28,7 +28,7 @@ class RAGPipeline:
         user_query: str,
         llm: LLMService,
         supabase: SupabaseService,
-        brave: BraveService,
+        search: SearchService,
         redis: RedisService,
         language: str = "en",
         system_context: str = "",
@@ -38,7 +38,7 @@ class RAGPipeline:
         1. Check cache
         2. Embed user query
         3. Vector search in Supabase
-        4. If similarity low → call Brave Search
+        4. If similarity low → call Web Search
         5. Merge context
         6. Generate grounded response
         7. Cache result
@@ -66,7 +66,7 @@ class RAGPipeline:
         # 5. Build context
         context_parts = []
         sources = []
-        used_brave = False
+        used_web_search = False
 
         # Add product context
         if product_results:
@@ -78,17 +78,17 @@ class RAGPipeline:
             blog_context = self._format_blog_context(blog_results)
             context_parts.append(blog_context)
 
-        # 6. If no results or low quality, try Brave search
+        # 6. If no results or low quality, try Web search
         if not product_results and not blog_results:
-            logger.info("No vector results, falling back to Brave search")
-            brave_results = await brave.search(
+            logger.info("No vector results, falling back to Web search")
+            search_results = await search.search(
                 f"smartphone {user_query}", count=3
             )
-            if brave_results:
-                brave_context = brave.build_context(brave_results)
-                context_parts.append(brave_context)
-                sources = brave.format_sources(brave_results)
-                used_brave = True
+            if search_results:
+                search_context = search.build_context(search_results)
+                context_parts.append(search_context)
+                sources = search.format_sources(search_results)
+                used_web_search = True
 
         # 7. Merge context
         merged_context = "\n\n".join(context_parts) if context_parts else ""
@@ -99,7 +99,7 @@ class RAGPipeline:
             query=user_query,
             context=merged_context,
             has_context=bool(context_parts),
-            used_brave=used_brave,
+            used_web_search=used_web_search,
             sources=sources,
             language=language,
             system_context=system_context,
@@ -147,7 +147,7 @@ class RAGPipeline:
         query: str,
         context: str,
         has_context: bool,
-        used_brave: bool,
+        used_web_search: bool,
         sources: List[str],
         language: str,
         system_context: str = "",
@@ -169,7 +169,7 @@ class RAGPipeline:
                 f"Context:\n{context}"
             )
 
-            if used_brave and sources:
+            if used_web_search and sources:
                 system_prompt += (
                     "\n\nNote: Some information came from web search. "
                     "Cite sources when using external information."
@@ -196,10 +196,10 @@ class RAGPipeline:
             result = await llm.complete(messages, temperature=0.5)
             return {
                 "message": result["content"],
-                "sources": sources if used_brave else [],
+                "sources": sources if used_web_search else [],
                 "tokens_used": result["tokens"]["total"],
                 "model": result["model"],
-                "used_brave": used_brave,
+                "used_web_search": used_web_search,
                 "context_found": has_context,
             }
         except Exception as e:
@@ -209,7 +209,7 @@ class RAGPipeline:
                 "sources": [],
                 "tokens_used": 0,
                 "model": "",
-                "used_brave": False,
+                "used_web_search": False,
                 "context_found": False,
             }
 

@@ -12,7 +12,7 @@ from app.config import get_settings, Settings
 from app.services.llm_service import LLMService
 from app.services.supabase_service import SupabaseService
 from app.services.redis_service import RedisService
-from app.services.brave_service import BraveService
+from app.services.search_service import SearchService
 from app.services.currency_service import CurrencyService
 
 logger = logging.getLogger("house_ai")
@@ -23,7 +23,7 @@ logger = logging.getLogger("house_ai")
 _llm_service: Optional[LLMService] = None
 _supabase_service: Optional[SupabaseService] = None
 _redis_service: Optional[RedisService] = None
-_brave_service: Optional[BraveService] = None
+_search_service: Optional[SearchService] = None
 _currency_service: Optional[CurrencyService] = None
 
 
@@ -34,7 +34,7 @@ async def init_services(settings: Settings) -> None:
     _llm_service = LLMService(settings)
     _supabase_service = SupabaseService(settings)
     _redis_service = RedisService(settings)
-    _brave_service = BraveService(settings)
+    _search_service = SearchService(settings)
     _currency_service = CurrencyService(settings)
 
     await _redis_service.connect()
@@ -69,10 +69,10 @@ def get_redis() -> RedisService:
     return _redis_service
 
 
-def get_brave() -> BraveService:
-    if _brave_service is None:
-        raise RuntimeError("BraveService not initialized")
-    return _brave_service
+def get_search() -> SearchService:
+    if _search_service is None:
+        raise RuntimeError("SearchService not initialized")
+    return _search_service
 
 
 def get_currency() -> CurrencyService:

@@ -17,7 +17,8 @@ import { useAuthStore } from "@/store/authStore";
 import { historyService } from "@/services/api/history";
 import { handleError } from "@/lib/errorHandler";
 import { ERROR_MESSAGES as ERROR_MSGS } from "@/lib/errorMessages";
-import { formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
+import { formatPriceNumber } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Helmet } from "react-helmet-async";
 import { logger } from "@/lib/logger";
 import { OneClickCheckout } from "@/components/checkout/OneClickCheckout";
@@ -58,6 +59,7 @@ export default function ProductDetail() {
     delivery: false,
     warranty: false,
   });
+  const { formatPrice } = useCurrency();
 
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -436,15 +438,12 @@ export default function ProductDetail() {
                 {/* Price */}
                 <div className="flex items-baseline gap-2">
                   <span className="text-3xl font-black">
-                    {formatPriceNumber(product.price)}
-                  </span>
-                  <span className="text-base font-medium text-muted-foreground">
-                    {product.currency}
+                    {formatPrice(product.price, product.currency || "UZS")}
                   </span>
                 </div>
                 {product.originalPrice && (
                   <p className="text-xs text-muted-foreground -mt-2 line-through">
-                    {formatPriceNumber(product.originalPrice)} {product.currency}
+                    {formatPrice(product.originalPrice, product.currency || "UZS")}
                   </p>
                 )}
 
@@ -654,8 +653,7 @@ export default function ProductDetail() {
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-muted-foreground">Jami</p>
             <p className="text-base font-bold truncate">
-              {formatPriceNumber(product.price * quantity)}{" "}
-              {formatCurrencySymbol(product.currency || "UZS")}
+              {formatPrice(product.price * quantity, product.currency || "UZS")}
             </p>
           </div>
           <Button

@@ -100,6 +100,34 @@ fi
 cd ..
 print_success "Telegram Bot is ready."
 
+# 3. Setup AI Service
+print_status "Setting up AI Service (FastAPI)"
+cd "house-ai"
+if [ ! -d ".venv" ]; then
+    echo -e "  ${YELLOW}📦 Creating Python virtual environment...${NC}"
+    python -m venv .venv
+fi
+
+# Activate venv (Cross-platform support)
+if [ -f ".venv/Scripts/activate" ]; then
+    source .venv/Scripts/activate
+elif [ -f ".venv/bin/activate" ]; then
+    source .venv/bin/activate
+else
+    print_error "Virtual environment not found!"
+    exit 1
+fi
+
+echo -e "  ${YELLOW}📦 Upgrading pip & build tools...${NC}"
+python -m pip install --upgrade pip setuptools wheel > /dev/null
+
+echo -e "  ${YELLOW}📦 Installing AI dependencies...${NC}"
+# Quiet install to reduce noise, unless error. Use --prefer-binary to avoid compiling from source.
+pip install -r requirements.txt --prefer-binary > /dev/null || pip install -r requirements.txt --prefer-binary
+
+cd ..
+print_success "AI Service is ready."
+
 echo ""
 echo -e "${MAGENTA}${BOLD}🚀 LAUNCHING SERVICES CONCURRENTLY${NC}"
 echo -e "------------------------------------------------------------------------------------------"
@@ -113,7 +141,11 @@ echo -e "-----------------------------------------------------------------------
 # Start Bot Logs
 (npm run dev --prefix "telegram-bot" 2>&1 | while read line; do echo -e "${MAGENTA}[BOT]${NC} $line"; done) &
 
+# Start AI Logs
+(cd house-ai && (source .venv/Scripts/activate 2>/dev/null || source .venv/bin/activate 2>/dev/null) && uvicorn app.main:app --host 0.0.0.0 --port 8100 --reload --colors 2>&1 | while read line; do echo -e "${YELLOW}[AI]${NC} $line"; done) &
+
 echo -e "  ${GREEN}✅ Website:${NC} http://localhost:5173"
+echo -e "  ${GREEN}✅ AI API: ${NC} http://localhost:8100"
 echo -e "  ${GREEN}✅ Bot:    ${NC} Active (awaiting messages)"
 echo ""
 echo -e "${YELLOW}${BOLD}💡 PRO TIP:${NC} Press ${BOLD}Ctrl+C${NC} to gracefully stop everything."

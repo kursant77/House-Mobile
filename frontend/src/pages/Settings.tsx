@@ -21,7 +21,10 @@ import {
     Info,
     ShoppingBag,
     Film,
-    MessageCircle
+    MessageCircle,
+    DollarSign,
+    RefreshCw,
+    Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -51,6 +54,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useCurrencyStore, POPULAR_CURRENCIES, getCurrencySymbol } from "@/store/currencyStore";
+
 
 export default function Settings() {
     const { user, logout } = useAuthStore();
@@ -69,6 +74,11 @@ export default function Settings() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
     const [telegramUser, setTelegramUser] = useState<any>(null);
+
+    // Currency store
+    const { selectedCurrency, setSelectedCurrency, fetchRates, rates, ratesLastFetched, isFetchingRates } = useCurrencyStore();
+    const [currencyDialogOpen, setCurrencyDialogOpen] = useState(false);
+    const ratesDate = ratesLastFetched ? new Date(ratesLastFetched).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" }) : null;
 
     useEffect(() => {
         // Load telegram connection status
@@ -271,6 +281,30 @@ export default function Settings() {
 
                     {/* App Settings Section */}
                     <SectionHeader title="Ilova sozlamalari" />
+
+                    {/* Currency Setting */}
+                    <div
+                        onClick={() => { setCurrencyDialogOpen(true); if (Object.keys(rates).length === 0) fetchRates(); }}
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 rounded-lg bg-emerald-500/10">
+                                <DollarSign className="h-5 w-5 text-emerald-500" />
+                            </div>
+                            <div>
+                                <p className="font-medium text-sm">Valyuta</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {ratesDate ? `Yangilangan: ${ratesDate}` : "CBU kursi bo'yicha"}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                                {selectedCurrency} {getCurrencySymbol(selectedCurrency)}
+                            </span>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                    </div>
                     <SettingItem
                         icon={Moon}
                         label="Tungi rejim"
@@ -516,6 +550,85 @@ export default function Settings() {
                     </div>
                 </DialogContent>
             </Dialog>
+            {/* Currency Selection Dialog */}
+            <Dialog open={currencyDialogOpen} onOpenChange={setCurrencyDialogOpen}>
+                <DialogContent className="sm:max-w-[420px] max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <DollarSign className="h-5 w-5 text-emerald-500" />
+                            Valyutani tanlang
+                        </DialogTitle>
+                    </DialogHeader>
+
+                    <div className="py-2">
+                        <div className="flex items-center justify-between mb-4 px-1">
+                            <p className="text-xs text-muted-foreground">
+                                {ratesDate
+                                    ? `CBU kursi: ${ratesDate} da yangilangan`
+                                    : "CBU O'zbekiston Markaziy Banki kursi"}
+                            </p>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 rounded-full"
+                                onClick={() => fetchRates()}
+                                disabled={isFetchingRates}
+                                title="Kurslarni yangilash"
+                            >
+                                <RefreshCw className={`h-3.5 w-3.5 ${isFetchingRates ? "animate-spin" : ""}`} />
+                            </Button>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            {POPULAR_CURRENCIES.map((cur) => {
+                                const isSelected = selectedCurrency === cur.code;
+                                const rate = rates[cur.code];
+                                const rateText = cur.code === "UZS"
+                                    ? "Asosiy valyuta"
+                                    : rate
+                                        ? `1 ${cur.code} = ${Math.round(rate).toLocaleString("uz-UZ")} so'm`
+                                        : isFetchingRates ? "Yuklanmoqda..." : "Kurs mavjud emas";
+
+                                return (
+                                    <button
+                                        key={cur.code}
+                                        onClick={() => {
+                                            setSelectedCurrency(cur.code);
+                                            toast.success(`Valyuta ${cur.code} ga o'zgartirildi`);
+                                            setCurrencyDialogOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${isSelected
+                                            ? "bg-emerald-500/10 border border-emerald-500/30"
+                                            : "hover:bg-muted/50 border border-transparent"
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xl">{cur.flag}</span>
+                                            <div className="text-left">
+                                                <p className={`text-sm font-semibold ${isSelected ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                                                    {cur.code} — {cur.symbol}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">{cur.name}</p>
+                                                <p className="text-[10px] text-muted-foreground/70">{rateText}</p>
+                                            </div>
+                                        </div>
+                                        {isSelected && (
+                                            <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <p className="text-[10px] text-muted-foreground/60 text-center mt-4 px-2">
+                            Kurslar CBU (O'zbekiston Markaziy Banki) ma'lumotlari asosida, har 30 daqiqada yangilanadi.
+                        </p>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
+
+
+

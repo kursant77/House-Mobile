@@ -19,8 +19,15 @@ class LLMService:
 
     def __init__(self, settings: Settings):
         self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client_groq = None
+        if settings.GROQ_API_KEY:
+            self.client_groq = AsyncOpenAI(
+                base_url="https://api.groq.com/openai/v1",
+                api_key=settings.GROQ_API_KEY
+            )
         self.model_default = settings.LLM_MODEL_DEFAULT
         self.model_advanced = settings.LLM_MODEL_ADVANCED
+        self.model_fallback = settings.LLM_MODEL_FALLBACK
         self.embedding_model = settings.EMBEDDING_MODEL
         self.max_response_tokens = settings.MAX_RESPONSE_TOKENS
         self.confidence_threshold = settings.CONFIDENCE_THRESHOLD
@@ -91,8 +98,32 @@ class LLMService:
                 "finish_reason": choice.finish_reason,
             }
         except Exception as e:
-            logger.error(f"LLM completion error: {e}")
-            raise
+            logger.warning(f"Primary LLM failed: {e}")
+            if self.client_groq:
+                logger.info("Switching to Groq fallback...")
+                try:
+                    response = await self.client_groq.chat.completions.create(
+                        model=self.model_fallback,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                    )
+                    choice = response.choices[0]
+                    usage = response.usage
+                    return {
+                        "content": choice.message.content or "",
+                        "model": self.model_fallback,
+                        "tokens": {
+                            "prompt": usage.prompt_tokens if usage else 0,
+                            "completion": usage.completion_tokens if usage else 0,
+                            "total": usage.total_tokens if usage else 0,
+                        },
+                        "finish_reason": choice.finish_reason,
+                    }
+                except Exception as e2:
+                    logger.error(f"Groq fallback failed: {e2}")
+                    raise e2
+            raise e
 
     async def stream(
         self,
@@ -119,8 +150,25 @@ class LLMService:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
         except Exception as e:
-            logger.error(f"LLM stream error: {e}")
-            raise
+            logger.warning(f"Primary LLM stream failed: {e}")
+            if self.client_groq:
+                logger.info("Switching to Groq fallback stream...")
+                try:
+                    stream = await self.client_groq.chat.completions.create(
+                        model=self.model_fallback,
+                        messages=messages,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        stream=True,
+                    )
+                    async for chunk in stream:
+                        if chunk.choices and chunk.choices[0].delta.content:
+                            yield chunk.choices[0].delta.content
+                    return
+                except Exception as e2:
+                    logger.error(f"Groq fallback stream failed: {e2}")
+                    raise e2
+            raise e
 
     async def embed(self, texts: List[str]) -> List[List[float]]:
         """Generate embeddings for a list of texts."""

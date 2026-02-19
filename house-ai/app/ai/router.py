@@ -20,13 +20,13 @@ from app.models.response_models import (
     ComparisonResponse, SessionResponse,
 )
 from app.dependencies import (
-    get_llm, get_supabase, get_redis, get_brave, get_currency,
+    get_llm, get_supabase, get_redis, get_search, get_currency,
     get_current_user,
 )
 from app.services.llm_service import LLMService
 from app.services.supabase_service import SupabaseService
 from app.services.redis_service import RedisService
-from app.services.brave_service import BraveService
+from app.services.search_service import SearchService
 from app.services.currency_service import CurrencyService
 from app.ai.intent import classify_intent
 from app.ai.emotion import detect_emotion, get_tone_instruction
@@ -67,7 +67,7 @@ async def chat(
     llm: LLMService = Depends(get_llm),
     supabase: SupabaseService = Depends(get_supabase),
     redis: RedisService = Depends(get_redis),
-    brave: BraveService = Depends(get_brave),
+    search: SearchService = Depends(get_search),
     currency: CurrencyService = Depends(get_currency),
     user: Optional[dict] = Depends(get_current_user),
     settings: Settings = Depends(get_settings),
@@ -153,7 +153,7 @@ async def chat(
             # Not enough product names detected — use RAG
             rag = RAGPipeline(settings)
             rag_result = await rag.query(
-                corrected_text, llm, supabase, brave, redis,
+                corrected_text, llm, supabase, search, redis,
                 language=language.value, system_context=system_prompt,
             )
             response_text = rag_result["message"]
@@ -169,7 +169,7 @@ async def chat(
         # Use RAG pipeline
         rag = RAGPipeline(settings)
         rag_result = await rag.query(
-            corrected_text, llm, supabase, brave, redis,
+            corrected_text, llm, supabase, search, redis,
             language=language.value, system_context=system_prompt,
         )
         response_text = rag_result["message"]

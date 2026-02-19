@@ -19,10 +19,13 @@ import {
   User as UserIcon,
   Sparkles,
   ChevronDown,
-  Music2
+  Music2,
+  FileText,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
+import { cn, formatCurrencySymbol } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,6 +49,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { socialService } from "@/services/api/social";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { CommentsDrawer } from "./CommentsDrawer";
+import { DescriptionDrawer } from "./DescriptionDrawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
@@ -140,6 +144,7 @@ export function ReelCard({
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const touchStartTime = useRef<number>(0);
   const isMobile = useIsMobile();
+  const { formatPrice } = useCurrency();
 
   const [isLiked, setIsLiked] = useState(reel.isLiked);
   const [likesCount, setLikesCount] = useState(reel.likes);
@@ -150,7 +155,7 @@ export function ReelCard({
   const [isPaused, setIsPaused] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const [showDescription, setShowDescription] = useState(false);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{
     progress: number;
     speed: string;
@@ -807,57 +812,54 @@ export function ReelCard({
 
               <div className="space-y-1 drop-shadow-md">
                 <h3 className="text-white font-bold text-sm leading-tight line-clamp-1">{reel.product.title}</h3>
-                {/* Ta'rif... toggle */}
+                {/* Ta'rif... button */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); setShowDescription(!showDescription); }}
-                  className="flex items-center gap-1 text-white/70 text-xs font-medium active:text-white transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setIsDescriptionOpen(true); }}
+                  className="flex items-center gap-1.5 text-white/80 text-[11px] font-semibold hover:text-white transition-colors w-fit bg-black/20 backdrop-blur-sm px-2 py-0.5 rounded-md active:bg-black/40"
                 >
-                  Ta'rif...
-                  <ChevronDown className={cn("h-3 w-3 transition-transform", showDescription && "rotate-180")} />
+                  <FileText className="h-3 w-3" />
+                  Batafsil...
                 </button>
-                {showDescription && (
-                  <p className="text-white/90 text-xs leading-relaxed font-medium animate-in fade-in slide-in-from-top-1 duration-200">
-                    {reel.product.description}
-                  </p>
-                )}
               </div>
 
-              {/* Combined Cart + Price button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                className={cn(
-                  "w-full py-2.5 px-4 rounded-xl flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-lg pointer-events-auto",
-                  isProductInCart
-                    ? "bg-green-500 text-white"
-                    : "bg-white text-black"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
-                  <span className="text-[13px] font-bold">
-                    {isProductInCart ? "Savatchada" : "Savatga"}
+              <div className="flex items-stretch gap-2 pointer-events-auto w-full">
+                {/* Combined Cart + Price button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                  className={cn(
+                    "flex-1 py-2.5 px-3 rounded-xl flex items-center justify-between transition-all duration-300 active:scale-[0.98] shadow-lg",
+                    isProductInCart
+                      ? "bg-green-500 text-white"
+                      : "bg-white text-black"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {isProductInCart ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" />}
+                    <span className="text-[12px] font-bold">
+                      {isProductInCart ? "Savatchada" : "Savatga"}
+                    </span>
+                  </div>
+                  <span className="text-[12px] font-black">
+                    {formatPrice(reel.product.price, reel.product.currency || "UZS")}
                   </span>
-                </div>
-                <span className="text-[13px] font-black">
-                  {formatPriceNumber(reel.product.price)} {formatCurrencySymbol(reel.product.currency || "UZS")}
-                </span>
-              </button>
+                </button>
 
-              {/* AI — "Qurilma haqida ma'lumot olish" button */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const { startNewChat, sendMessage, openChat } = useAiChatStore.getState();
-                  startNewChat();
-                  openChat();
-                  const prompt = `"${reel.product.title}" qurilmasi haqida batafsil ma'lumot ber. Texnik xarakteristikalari, afzalliklari, kamchiliklari, narxi va kimga mos ekanligi haqida professional obzor yoz. Qurilma narxi: ${formatPriceNumber(reel.product.price)} ${reel.product.currency}. Qo'shimcha ma'lumot: ${reel.product.description}`;
-                  sendMessage(prompt);
-                }}
-                className="flex items-center gap-2 bg-gradient-to-r from-violet-500/30 to-fuchsia-500/30 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1.5 w-fit active:scale-95 transition-all hover:border-white/40 pointer-events-auto"
-              >
-                <Sparkles className="h-3 w-3 text-fuchsia-300" />
-                <span className="text-[11px] text-white font-semibold">Qurilma haqida ma'lumot olish</span>
-              </button>
+                {/* AI Button - Icon + Text for mobile */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { startNewChat, sendMessage, openChat } = useAiChatStore.getState();
+                    startNewChat();
+                    openChat();
+                    const prompt = `"${reel.product.title}" qurilmasi haqida batafsil ma'lumot ber. Texnik xarakteristikalari, afzalliklari, kamchiliklari, narxi va kimga mos ekanligi haqida professional obzor yoz. Qurilma narxi: ${formatPrice(reel.product.price, reel.product.currency || "UZS")}. Qo'shimcha ma'lumot: ${reel.product.description}`;
+                    sendMessage(prompt);
+                  }}
+                  className="flex items-center justify-center gap-1.5 px-3 bg-gradient-to-r from-violet-500/80 to-fuchsia-500/80 backdrop-blur-md border border-white/20 rounded-xl active:scale-95 transition-all shadow-lg text-white"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span className="text-[10px] font-bold whitespace-nowrap">AI Tahlil</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -865,173 +867,253 @@ export function ReelCard({
 
       {/* Desktop Content Section - Right Side */}
       {!isMobile && (
-        <div className="flex-1 h-full flex flex-col justify-center px-6 py-8 bg-reels text-reels-foreground overflow-y-auto">
-          <div className="max-w-md mx-auto w-full flex flex-col gap-6">
-            {/* 1. Avatar + Username + Follow */}
-            <div className="flex items-center gap-3">
-              <div
-                className="flex items-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
-                onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
-              >
-                <Avatar size="lg" borderColor="white">
-                  <AvatarImage src={reel.author?.avatarUrl} />
-                  <AvatarFallback>
-                    <UserIcon className="h-8 w-8 text-white/50" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex items-center flex-nowrap gap-2">
-                  <span className="text-reels-foreground font-bold text-base tracking-tight">
-                    {reel.author?.fullName || "House Mobile"}
-                  </span>
-                  {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
-                    <VerifiedBadge size={16} />
-                  )}
-                </div>
-              </div>
+        <div className="flex-1 h-full flex flex-col bg-black/5 dark:bg-black/30 backdrop-blur-sm text-reels-foreground overflow-hidden border-l border-white/10">
+          {/* Scrollable content area */}
+          <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+            <div className="flex flex-col gap-0 px-6 py-6 min-h-full">
 
-              {user?.id !== (reel.author?.id || reel.product.sellerId) && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={isFollowLoading}
-                  onClick={handleFollow}
-                  className={cn(
-                    "h-8 px-4 text-xs font-bold border rounded-lg transition-all",
-                    isFollowing
-                      ? "bg-white/10 text-white border-white/20 hover:bg-white/20"
-                      : "bg-transparent text-white border-white hover:bg-white/20"
-                  )}
+              {/* ── Header: Avatar + Name + Follow ─────────────────── */}
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div
+                  className="flex items-center gap-3 cursor-pointer group"
+                  onClick={(e) => { e.stopPropagation(); navigate(`/profile/${reel.author?.id || reel.product.sellerId}`); }}
                 >
-                  {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Follow"}
-                </Button>
-              )}
-            </div>
-
-            {/* 2. Title */}
-            <div>
-              <h3 className="text-reels-foreground font-bold text-xl leading-tight">{reel.product.title}</h3>
-            </div>
-
-            {/* 3. Description */}
-            <div>
-              <BioDisplay
-                bio={reel.product.description || ""}
-                maxLines={4}
-                className="text-reels-foreground/90 text-sm leading-relaxed [&_a]:text-reels-foreground/80 [&_a]:hover:text-reels-foreground [&_button]:text-reels-foreground/70 [&_button]:hover:text-reels-foreground"
-              />
-            </div>
-
-            {/* 4. Savatga qo'shish tugmasi */}
-            <div>
-              <button
-                onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
-                className={cn(
-                  "w-full py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl active:scale-[0.98]",
-                  isProductInCart
-                    ? "bg-green-500 text-white hover:bg-green-600"
-                    : "bg-primary text-primary-foreground hover:opacity-90"
-                )}
-              >
-                {isProductInCart ? <Check className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
-                <span className="text-sm font-bold">
-                  {isProductInCart ? "Savatchada" : "Savatchaga qo'shish"}
-                </span>
-              </button>
-            </div>
-
-            {/* 5. Narx (alohida qator, mukammal dizayn) */}
-            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative bg-muted/30 dark:bg-white/5 backdrop-blur-sm border border-border dark:border-white/10 rounded-2xl px-6 py-4 hover:bg-muted/50 dark:hover:bg-white/10 transition-all duration-300 hover:scale-[1.02]">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-reels-foreground/60 text-sm font-medium">Narxi:</span>
-                    <span className="text-reels-foreground font-black text-2xl tracking-tight">
-                      {formatPriceNumber(reel.product.price)}
-                    </span>
-                    <span className="text-reels-foreground/90 font-bold text-lg">
-                      {formatCurrencySymbol(reel.product.currency || "UZS")}
-                    </span>
+                  <div className="relative">
+                    <Avatar size="lg" borderColor="white">
+                      <AvatarImage src={reel.author?.avatarUrl} />
+                      <AvatarFallback>
+                        <UserIcon className="h-8 w-8 text-white/40" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="absolute inset-0 rounded-full ring-2 ring-white/20 group-hover:ring-white/50 transition-all duration-300" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-reels-foreground font-bold text-base leading-none">
+                        {reel.author?.fullName || "House Mobile"}
+                      </span>
+                      {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
+                        <VerifiedBadge size={15} />
+                      )}
+                    </div>
+                    <p className="text-reels-foreground/50 text-xs mt-0.5">@{reel.author?.username || "housemobile"}</p>
                   </div>
                 </div>
+
+                {user?.id !== (reel.author?.id || reel.product.sellerId) && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={isFollowLoading}
+                    onClick={handleFollow}
+                    className={cn(
+                      "h-8 px-5 text-xs font-bold rounded-full border transition-all duration-200",
+                      isFollowing
+                        ? "bg-white/10 text-white border-white/20 hover:bg-white/20 hover:border-white/40"
+                        : "bg-white text-black border-transparent hover:bg-white/90"
+                    )}
+                  >
+                    {isFollowLoading ? "..." : isFollowing ? "Obuna bo'lindi" : "Follow"}
+                  </Button>
+                )}
               </div>
-            </div>
 
-            {/* 5. Like/Comment/Share iconlar (gorizontal qator) */}
-            <div className="flex items-center gap-6">
-              <button
-                onClick={(e) => { e.stopPropagation(); handleLike(); }}
-                className="flex items-center gap-2 transition-transform active:scale-95"
-              >
-                <Heart className={cn("h-6 w-6 transition-colors", isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-reels-foreground dark:text-white fill-none")} strokeWidth={2.5} />
-                <span className="text-reels-foreground dark:text-white font-bold text-sm">{formatCount(likesCount)}</span>
-              </button>
+              {/* ── Product Title ───────────────────────────────────── */}
+              <h2 className="text-reels-foreground font-black text-2xl leading-tight tracking-tight mb-3">
+                {reel.product.title}
+              </h2>
 
-              <button
-                onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
-                className="flex items-center gap-2 transition-transform active:scale-95"
-              >
-                <MessageCircle className="h-6 w-6 text-reels-foreground dark:text-white" strokeWidth={2.5} />
-                <CommentCount productId={reel.product.id} />
-              </button>
+              {/* ── Description ────────────────────────────────────── */}
+              <div className="mb-5">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsDescriptionOpen(true); }}
+                  className="text-reels-foreground/60 hover:text-reels-foreground text-sm font-medium flex items-center gap-1 transition-colors group p-1 -ml-1 rounded-lg hover:bg-white/5"
+                >
+                  <span>Batafsil ma'lumot</span>
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </button>
+              </div>
 
-              <button
-                onClick={(e) => { e.stopPropagation(); handleShare(); }}
-                className="flex items-center gap-2 transition-transform active:scale-95"
-              >
-                <Share2 className="h-6 w-6 text-reels-foreground dark:text-white" strokeWidth={2.5} />
-              </button>
+              {/* ── Divider ────────────────────────────────────────── */}
+              <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent mb-5" />
 
-              <button
-                onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
-                className="flex items-center gap-2 transition-transform active:scale-95"
-              >
-                <Bookmark className={cn("h-6 w-6 transition-colors", isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-reels-foreground dark:text-white fill-none")} strokeWidth={2.5} />
-              </button>
+              {/* ── Price Row ──────────────────────────────────────── */}
+              <div className="flex items-baseline gap-2 mb-3 px-1">
+                <span className="text-reels-foreground/50 text-sm font-medium">Narxi:</span>
+                <span className="text-reels-foreground font-black text-3xl tracking-tight">
+                  {formatPrice(reel.product.price, reel.product.currency || "UZS")}
+                </span>
+                {reel.product.originalPrice && reel.product.originalPrice > reel.product.price && (
+                  <>
+                    <span className="text-reels-foreground/35 text-base line-through">
+                      {formatPrice(reel.product.originalPrice, reel.product.currency || "UZS")}
+                    </span>
+                    <span className="text-[11px] font-bold text-green-400 bg-green-500/20 px-1.5 py-0.5 rounded-md">
+                      -{Math.round((1 - reel.product.price / reel.product.originalPrice) * 100)}%
+                    </span>
+                  </>
+                )}
+              </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              {/* ── Actions Row: Cart + AI ─────────────────────────── */}
+              <div className="flex items-stretch gap-3 mb-5">
+                {/* Cart Button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleAddToCart(); }}
+                  className={cn(
+                    "flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 shadow-lg active:scale-[0.98] group",
+                    isProductInCart
+                      ? "bg-green-500 hover:bg-green-400 text-white shadow-green-500/25"
+                      : "bg-white hover:bg-white/90 text-black shadow-white/10"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {isProductInCart
+                      ? <Check className="h-5 w-5" />
+                      : <ShoppingBag className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                    }
+                    <span className="text-sm font-bold">
+                      {isProductInCart ? "Savatchada" : "Savatga"}
+                    </span>
+                  </div>
+                  <span className="text-sm font-black opacity-80">
+                    {formatPrice(reel.product.price, reel.product.currency || "UZS")}
+                  </span>
+                </button>
+
+                {/* AI Button */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const { startNewChat, sendMessage, openChat } = useAiChatStore.getState();
+                    startNewChat();
+                    openChat();
+                    const prompt = `"${reel.product.title}" qurilmasi haqida batafsil ma'lumot ber. Texnik xarakteristikalari, afzalliklari, kamchiliklari, narxi va kimga mos ekanligi haqida professional obzor yoz. Qurilma narxi: ${formatPrice(reel.product.price, reel.product.currency || "UZS")}. Qo'shimcha ma'lumot: ${reel.product.description}`;
+                    sendMessage(prompt);
+                  }}
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600/25 via-fuchsia-500/20 to-pink-500/20 hover:from-violet-600/40 hover:via-fuchsia-500/35 hover:to-pink-500/35 backdrop-blur-sm border border-violet-400/25 hover:border-violet-400/50 rounded-2xl px-5 transition-all duration-300 active:scale-[0.98] group"
+                >
+                  <Sparkles className="h-5 w-5 text-fuchsia-300 group-hover:text-fuchsia-200 transition-colors shrink-0" />
+                  <span className="hidden sm:inline text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
+                    Ai Tahlil
+                  </span>
+                </button>
+              </div>
+
+              {/* ── Divider ────────────────────────────────────────── */}
+              <div className="h-px bg-gradient-to-r from-transparent via-white/15 to-transparent mb-5" />
+
+              {/* ── Like / Comment / Share / Bookmark / More ───────── */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-5">
+                  {/* Like */}
                   <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-1 rounded-full hover:bg-white/10 transition-all"
+                    onClick={(e) => { e.stopPropagation(); handleLike(); }}
+                    className="flex items-center gap-1.5 group transition-transform active:scale-90"
                   >
-                    <MoreVertical className="h-5 w-5 text-white" strokeWidth={2.5} />
+                    <Heart
+                      className={cn(
+                        "h-6 w-6 transition-all duration-200 group-hover:scale-110",
+                        isLiked ? "text-[#FF3040] fill-[#FF3040]" : "text-reels-foreground dark:text-white fill-none"
+                      )}
+                      strokeWidth={2.5}
+                    />
+                    <span className="text-reels-foreground dark:text-white font-bold text-sm tabular-nums">
+                      {formatCount(likesCount)}
+                    </span>
                   </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-popover border-border text-popover-foreground">
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-accent cursor-pointer transition-colors">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Keyinroq ko'rish
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-accent cursor-pointer transition-colors">
-                    <Download className="h-4 w-4 mr-2" />
-                    Yuklab olish
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-accent cursor-pointer transition-colors">
-                    <Flag className="h-4 w-4 mr-2" />
-                    Shikoyat qilish
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
-                    className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
-                  >
-                    <UserX className="h-4 w-4 mr-2" />
-                    Foydalanuvchini bloklash
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
-            {/* 6. Audio info */}
-            <div className="flex items-center gap-2 overflow-hidden bg-muted/50 dark:bg-black/20 backdrop-blur-sm px-3 py-2 rounded-full w-fit">
-              <Music2 className="h-4 w-4 text-reels-foreground dark:text-white flex-shrink-0" />
-              <div className="text-xs text-reels-foreground dark:text-white font-semibold whitespace-nowrap overflow-hidden relative">
-                <div className="animate-reel-music inline-block">
-                  {reel.author?.fullName || "House Mobile"} • Original Audio
+                  {/* Comment */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setIsCommentsOpen(true); }}
+                    className="flex items-center gap-1.5 group transition-transform active:scale-90"
+                  >
+                    <MessageCircle className="h-6 w-6 text-reels-foreground dark:text-white group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                    <CommentCount productId={reel.product.id} />
+                  </button>
+
+                  {/* Share */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleShare(); }}
+                    className="flex items-center gap-1.5 group transition-transform active:scale-90"
+                  >
+                    <Share2 className="h-6 w-6 text-reels-foreground dark:text-white group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+                  </button>
+
+                  {/* Bookmark */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleFavorite(); }}
+                    className="flex items-center gap-1.5 group transition-transform active:scale-90"
+                  >
+                    <Bookmark
+                      className={cn(
+                        "h-6 w-6 transition-all duration-200 group-hover:scale-110",
+                        isProductFavorite ? "text-yellow-400 fill-yellow-400" : "text-reels-foreground dark:text-white fill-none"
+                      )}
+                      strokeWidth={2.5}
+                    />
+                  </button>
                 </div>
+
+                {/* More Options */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 rounded-full hover:bg-white/10 transition-all active:scale-90"
+                    >
+                      <MoreVertical className="h-5 w-5 text-white" strokeWidth={2.5} />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-popover border-border text-popover-foreground">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleWatchLater(); }} className="focus:bg-accent cursor-pointer transition-colors">
+                      <Clock className="h-4 w-4 mr-2" />
+                      Keyinroq ko'rish
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="focus:bg-accent cursor-pointer transition-colors">
+                      <Download className="h-4 w-4 mr-2" />
+                      Yuklab olish
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleReport(); }} className="focus:bg-accent cursor-pointer transition-colors">
+                      <Flag className="h-4 w-4 mr-2" />
+                      Shikoyat qilish
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+                      className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
+                    >
+                      <UserX className="h-4 w-4 mr-2" />
+                      Foydalanuvchini bloklash
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
+
             </div>
+          </div>
+
+          {/* ── Bottom: Product thumbnail link ──────────────────────── */}
+          <div className="shrink-0 border-t border-white/10 px-6 py-3 flex items-center gap-3">
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
+              className="h-9 w-9 rounded-lg overflow-hidden border border-white/20 hover:border-white/50 transition-all hover:scale-105 shrink-0 bg-zinc-800"
+            >
+              {(reel.product.images[0] || reel.thumbnailUrl) ? (
+                <img src={reel.product.images[0] || reel.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <ShoppingBag className="h-4 w-4 text-white/40 m-auto mt-2.5" />
+              )}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/product/${reel.product.id}`); }}
+              className="flex-1 text-left"
+            >
+              <p className="text-white/90 text-xs font-semibold truncate hover:text-white transition-colors">
+                {reel.product.title}
+              </p>
+              <p className="text-white/40 text-[11px]">Mahsulotni ko'rish →</p>
+            </button>
           </div>
         </div>
       )}
@@ -1040,6 +1122,12 @@ export function ReelCard({
         isOpen={isCommentsOpen}
         onOpenChange={setIsCommentsOpen}
         productId={reel.product.id}
+      />
+      <DescriptionDrawer
+        isOpen={isDescriptionOpen}
+        onOpenChange={setIsDescriptionOpen}
+        title={reel.product.title}
+        description={reel.product.description || ""}
       />
     </div>
   );

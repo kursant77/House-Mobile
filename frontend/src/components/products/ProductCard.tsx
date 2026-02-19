@@ -3,12 +3,13 @@ import { Product } from "@/types/product";
 import { Heart, Star, ShoppingCart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { VerifiedBadge } from "../ui/VerifiedBadge";
-import { cn, formatPriceNumber, formatCurrencySymbol } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useCartStore } from "@/store/cartStore";
 import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +22,7 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
   const { isFavorite, toggleFavorite } = useFavoritesStore();
   const { addToCart } = useCartStore();
   const isProductFavorite = isFavorite(product.id);
+  const { formatPrice } = useCurrency();
 
 
   const discount = product.originalPrice
@@ -200,10 +202,12 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
         )}
 
         <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="text-sm md:text-base font-bold text-foreground tracking-tight">{formatPriceNumber(product.price)} {formatCurrencySymbol(product.currency || "UZS")}</span>
+          <span className="text-sm md:text-base font-bold text-foreground tracking-tight">
+            {formatPrice(product.price, product.currency || "UZS")}
+          </span>
           {product.originalPrice && (
             <span className="text-[10px] md:text-xs text-muted-foreground/70 line-through decoration-zinc-400/50">
-              {formatPriceNumber(product.originalPrice)}
+              {formatPrice(product.originalPrice, product.currency || "UZS")}
             </span>
           )}
         </div>

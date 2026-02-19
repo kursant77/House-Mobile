@@ -22,10 +22,12 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "info"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
-    # ── OpenAI ───────────────────────────────────────────
+    # ── OpenAI & Groq ────────────────────────────────────
     OPENAI_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
     LLM_MODEL_DEFAULT: str = "gpt-4o-mini"
     LLM_MODEL_ADVANCED: str = "gpt-4o"
+    LLM_MODEL_FALLBACK: str = "llama3-70b-8192"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_DIMENSIONS: int = 1536
     CONFIDENCE_THRESHOLD: float = 0.7
@@ -49,9 +51,9 @@ class Settings(BaseSettings):
     CACHE_TTL_CURRENCY: int = 172800      # 48h
     SESSION_MEMORY_MAX_MESSAGES: int = 20
 
-    # ── Brave Search ─────────────────────────────────────
-    BRAVE_API_KEY: str = ""
-    BRAVE_SEARCH_COUNT: int = 5
+    # ── Tavily Search ────────────────────────────────────
+    TAVILY_API_KEY: str = ""
+    TAVILY_SEARCH_COUNT: int = 5
 
     # ── RAG ──────────────────────────────────────────────
     RAG_TOP_K: int = 3

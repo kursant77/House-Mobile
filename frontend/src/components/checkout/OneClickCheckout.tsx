@@ -15,7 +15,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { formatPriceNumber } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface OneClickCheckoutProps {
     open: boolean;
@@ -43,6 +43,7 @@ export function OneClickCheckout({ open, onOpenChange, product, quantity }: OneC
     const isMobile = useIsMobile();
     const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
+    const { formatPrice } = useCurrency();
 
     const form = useForm<CheckoutFormValues>({
         resolver: zodResolver(checkoutSchema),
@@ -89,7 +90,7 @@ export function OneClickCheckout({ open, onOpenChange, product, quantity }: OneC
                 <p className="text-sm text-muted-foreground mb-1">Buyurtma:</p>
                 <div className="flex justify-between items-center font-medium">
                     <span className="truncate flex-1 mr-2">{product.title} (x{quantity})</span>
-                    <span className="whitespace-nowrap">{formatPriceNumber(product.price * quantity)} {product.currency}</span>
+                    <span className="whitespace-nowrap">{formatPrice(product.price * quantity, product.currency)}</span>
                 </div>
             </div>
 
@@ -182,7 +183,7 @@ export function OneClickCheckout({ open, onOpenChange, product, quantity }: OneC
 
                     <Button type="submit" className="w-full h-12 rounded-xl text-lg font-bold mt-4" disabled={isLoading}>
                         {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <ShoppingBag className="mr-2 h-5 w-5" />}
-                        {formatPriceNumber(product.price * quantity)} {product.currency} - Sotib olish
+                        {formatPrice(product.price * quantity, product.currency)} - Sotib olish
                     </Button>
                 </form>
             </Form>
