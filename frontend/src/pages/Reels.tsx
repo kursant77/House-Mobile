@@ -156,7 +156,7 @@ export default function Reels() {
                       <span className="text-xs md:text-sm text-muted-foreground hover:text-foreground transition-colors truncate">
                         {reel.product.author?.fullName || "House Mobile"}
                       </span>
-                      {(reel.product.author?.role === 'super_admin' || reel.product.author?.role === 'admin' || reel.product.author?.role === 'blogger' || reel.product.author?.role === 'seller') && (
+                      {(reel.product.author?.role === 'super_admin' || reel.product.author?.role === 'blogger' || reel.product.author?.role === 'seller') && (
                         <VerifiedBadge size={12} className="shrink-0" />
                       )}
                     </div>

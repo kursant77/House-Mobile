@@ -503,7 +503,7 @@ export const Header = () => {
                                                 <User className="h-5 w-5 text-primary" />
                                             )}
                                         </div>
-                                        {(user?.role === 'super_admin' || user?.role === 'admin' || user?.role === 'blogger' || user?.role === 'seller') && (
+                                        {(user?.role === 'super_admin' || user?.role === 'blogger' || user?.role === 'seller') && (
                                             <VerifiedBadge size={14} className="shrink-0" />
                                         )}
                                     </Button>

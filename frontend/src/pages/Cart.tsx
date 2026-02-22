@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { useCartStore, CartItem } from "@/store/cartStore";
-import { ShoppingBag, Trash2, Minus, Plus, ArrowRight, Package, Truck, Shield, CreditCard, X } from "lucide-react";
+import { ShoppingBag, Trash2, Minus, Plus, ArrowRight, Package, Truck, Shield, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { cn, formatPriceNumber } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { CheckoutForm } from "@/components/cart/CheckoutForm";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 function CartItemCard({ item }: { item: CartItem }) {
   const { removeFromCart, incrementQuantity, decrementQuantity } = useCartStore();

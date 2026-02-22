@@ -4,24 +4,7 @@ import { useCartStore } from "./cartStore";
 import { useFavoritesStore } from "./favoritesStore";
 import { sessionStorage as sessionStorageUtil } from "@/lib/sessionStorage";
 import { referralService } from "@/services/api/referral";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'user' | 'blogger' | 'super_admin' | 'seller' | 'admin';
-  avatarUrl?: string;
-  bio?: string;
-  username?: string;
-  phone?: string;
-  isProfessional: boolean;
-  isBlocked: boolean;
-  address?: string;
-  telegram?: string;
-  instagram?: string;
-  facebook?: string;
-  youtube?: string;
-}
+import type { User } from "@/types/auth";
 
 interface AuthState {
   user: User | null;

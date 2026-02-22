@@ -1,6 +1,7 @@
 /**
- * Rate limiting utilities
- * Prevents abuse and excessive API calls
+ * CLIENT-SIDE RATE LIMITER
+ * Bu XAVFSIZLIK uchun EMAS — faqat UX qulaylik uchun (double-click prevention).
+ * Haqiqiy xavfsizlik Supabase RLS va Backend middleware orqali ta'minlanadi.
  */
 
 interface RateLimitConfig {
@@ -79,19 +80,19 @@ export const RATE_LIMITS = {
   // API calls
   API_CALL: { maxCalls: 60, windowMs: 60000 }, // 60 calls per minute
   API_CALL_STRICT: { maxCalls: 10, windowMs: 10000 }, // 10 calls per 10 seconds
-  
+
   // File uploads
   FILE_UPLOAD: { maxCalls: 5, windowMs: 60000 }, // 5 uploads per minute
-  
+
   // Form submissions
   FORM_SUBMIT: { maxCalls: 10, windowMs: 60000 }, // 10 submissions per minute
-  
+
   // Search
   SEARCH: { maxCalls: 20, windowMs: 10000 }, // 20 searches per 10 seconds
-  
+
   // Comments
   COMMENT: { maxCalls: 30, windowMs: 60000 }, // 30 comments per minute
-  
+
   // Likes
   LIKE: { maxCalls: 100, windowMs: 60000 }, // 100 likes per minute
 } as const;

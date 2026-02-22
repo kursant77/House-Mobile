@@ -409,7 +409,7 @@ export const socialService = {
             fullName: p.full_name || undefined,
             username: p.username || undefined,
             avatarUrl: p.avatar_url || undefined,
-            role: p.role === 'admin' ? 'super_admin' : (['user', 'blogger', 'super_admin', 'seller'].includes(p.role) ? p.role : undefined),
+            role: (['user', 'blogger', 'super_admin', 'seller'].includes(p.role) ? p.role : undefined),
         }));
     },
 
@@ -461,8 +461,7 @@ export const socialService = {
                     fullName: profileData.full_name ?? undefined,
                     username: profileData.username ?? undefined,
                     avatarUrl: profileData.avatar_url ?? undefined,
-                    role: profileData.role === 'admin' ? 'super_admin' :
-                        (['user', 'blogger', 'super_admin', 'seller'].includes(profileData.role) ? profileData.role : undefined),
+                    role: (['user', 'blogger', 'super_admin', 'seller'].includes(profileData.role) ? profileData.role : undefined),
                 } as Profile;
             })
             .filter((p): p is Profile => p !== null && p.id !== undefined);

@@ -26,7 +26,7 @@ export function mapSupabaseProductToProduct(p: SupabaseProductWithRelations): Pr
       fullName: p.profiles.full_name ?? undefined,
       username: p.profiles.username ?? undefined,
       avatarUrl: p.profiles.avatar_url ?? undefined,
-      role: p.profiles.role === 'admin' ? 'super_admin' : p.profiles.role as any,
+      role: p.profiles.role as any,
     } : undefined,
     images: productMedia.filter((m: SupabaseProductMedia) => m.type === 'image').map((m: SupabaseProductMedia) => m.url),
     videoUrl: productMedia.find((m: SupabaseProductMedia) => m.type === 'video')?.url,

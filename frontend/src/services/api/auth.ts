@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase";
 import { checkRateLimit, RATE_LIMITS } from "@/lib/rateLimiter";
-import { handleError, getErrorMessage } from "@/lib/errorHandler";
+import { handleError } from "@/lib/errorHandler";
 import { sessionStorage as sessionStorageUtil } from "@/lib/sessionStorage";
+import { sanitizeEmail, sanitizeUsername, sanitizePhone } from "@/lib/sanitize";
+import type { User, UserRole, AuthResponse } from "@/types/auth";
+
+export type { AuthResponse };
 
 export interface LoginRequest {
   email: string;
@@ -17,33 +21,12 @@ export interface RegisterRequest {
   referral_code?: string;
 }
 
-export interface AuthResponse {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    role: 'user' | 'blogger' | 'super_admin';
-    avatarUrl?: string;
-    bio?: string;
-    username?: string;
-    phone?: string;
-    isProfessional: boolean;
-    isBlocked: boolean;
-    address?: string;
-    telegram?: string;
-    instagram?: string;
-    facebook?: string;
-    youtube?: string;
-  };
-  token: string;
-}
-
 export const authApi = {
   /**
    * Login with email and password
    */
   login: async (data: LoginRequest): Promise<AuthResponse> => {
-    // Rate limiting for login attempts
+    // UX: Prevent rapid re-submission (not a security measure)
     checkRateLimit('login', RATE_LIMITS.API_CALL_STRICT);
 
     const { data: authData, error } = await supabase.auth.signInWithPassword({
@@ -112,23 +95,29 @@ export const authApi = {
    * Register a new user
    */
   register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    // Rate limiting for registration
+    // UX: Prevent rapid re-submission (not a security measure)
     checkRateLimit('register', RATE_LIMITS.FORM_SUBMIT);
 
+    // Sanitize inputs
+    const sanitizedEmail = sanitizeEmail(data.email);
+    const sanitizedUsername = sanitizeUsername(data.username);
+    const sanitizedPhone = sanitizePhone(data.phone);
+    const sanitizedName = data.name.trim();
+
     // Check username availability
-    const isUsernameAvailable = await authApi.checkUsernameAvailability(data.username);
+    const isUsernameAvailable = await authApi.checkUsernameAvailability(sanitizedUsername);
     if (!isUsernameAvailable) {
       throw new Error("Bu username allaqachon olingan");
     }
 
     const { data: authData, error } = await supabase.auth.signUp({
-      email: data.email,
+      email: sanitizedEmail,
       password: data.password,
       options: {
         data: {
-          name: data.name,
-          username: data.username.toLowerCase(),
-          phone: data.phone,
+          name: sanitizedName,
+          username: sanitizedUsername,
+          phone: sanitizedPhone,
           is_professional: false,
         },
       },
@@ -150,9 +139,9 @@ export const authApi = {
       .from('profiles')
       .upsert({
         id: user.id,
-        full_name: data.name,
-        username: data.username.toLowerCase(),
-        phone: data.phone,
+        full_name: sanitizedName,
+        username: sanitizedUsername,
+        phone: sanitizedPhone,
         avatar_url: null,
         role: 'user',
         is_professional: false,
@@ -163,17 +152,17 @@ export const authApi = {
       });
 
     if (profileError) {
-      console.error("Profile creation error:", profileError);
+      // Profile creation failed — log but don't block registration
     }
 
     return {
       user: {
         id: user.id,
-        name: data.name,
+        name: sanitizedName,
         email: user.email || '',
         role: 'user',
-        username: data.username.toLowerCase(),
-        phone: data.phone,
+        username: sanitizedUsername,
+        phone: sanitizedPhone,
         isProfessional: false,
         isBlocked: false,
       },
@@ -195,7 +184,7 @@ export const authApi = {
   /**
    * Get current user profile
    */
-  getProfile: async (): Promise<AuthResponse["user"]> => {
+  getProfile: async (): Promise<User> => {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error || !user) {
@@ -333,12 +322,7 @@ export const authApi = {
     }
   },
 
-  /**
-   * Get auth token
-   */
-  getToken: (): string | null => {
-    return localStorage.getItem("auth_token");
-  },
+
 
   /**
    * Upgrade to professional status
@@ -375,6 +359,11 @@ export const authApi = {
   }): Promise<void> => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
+
+    // Sanitize inputs
+    if (updates.username) updates.username = sanitizeUsername(updates.username);
+    if (updates.phone) updates.phone = sanitizePhone(updates.phone);
+    if (updates.name) updates.name = updates.name.trim();
 
     // Update profiles table
     const { error: profileError } = await supabase
@@ -454,7 +443,12 @@ export const authApi = {
   /**
    * Admin: Update user role
    */
-  updateUserRole: async (userId: string, role: string): Promise<void> => {
+  updateUserRole: async (userId: string, role: UserRole): Promise<void> => {
+    // Validate role before sending
+    const validRoles: UserRole[] = ['user', 'blogger', 'super_admin', 'seller'];
+    if (!validRoles.includes(role)) {
+      throw new Error(`Noto'g'ri rol: ${role}`);
+    }
     const { error } = await supabase
       .from('profiles')
       .update({ role })

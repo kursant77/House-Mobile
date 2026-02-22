@@ -17,7 +17,6 @@ import { useAuthStore } from "@/store/authStore";
 import { historyService } from "@/services/api/history";
 import { handleError } from "@/lib/errorHandler";
 import { ERROR_MESSAGES as ERROR_MSGS } from "@/lib/errorMessages";
-import { formatPriceNumber } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Helmet } from "react-helmet-async";
 import { logger } from "@/lib/logger";

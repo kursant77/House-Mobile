@@ -60,7 +60,7 @@ export const productService = {
                 product_media(*),
                 profiles!seller_id(id, full_name, avatar_url, role)
             `)
-            .in('profiles.role', ['admin', 'super_admin'])
+            .in('profiles.role', ['super_admin'])
             .order('created_at', { ascending: false });
 
         if (error) {
@@ -227,7 +227,7 @@ export const productService = {
                     fullName: p.profiles.full_name ?? undefined,
                     username: p.profiles.username ?? undefined,
                     avatarUrl: p.profiles.avatar_url ?? undefined,
-                    role: p.profiles.role === 'admin' ? 'super_admin' : p.profiles.role,
+                    role: p.profiles.role,
                 } : undefined;
 
                 const reelItem: ReelItem = {

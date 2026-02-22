@@ -74,7 +74,7 @@ export default function OrderDetail() {
     }, [id, navigate]);
 
     useEffect(() => {
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || user.role !== 'super_admin') {
             navigate("/");
             return;
         }

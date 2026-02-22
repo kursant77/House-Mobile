@@ -135,10 +135,10 @@ export default function Profile() {
               {/* Username & Badges */}
               <div className="flex items-center flex-wrap gap-2">
                 <p className="font-bold text-lg leading-none">{user.username || user.name?.split(' ')[0]}</p>
-                {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
+                {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
                   <VerifiedBadge size={16} className="shrink-0" />
                 )}
-                {(user.role === 'super_admin' || user.role === 'admin') && (
+                {(user.role === 'super_admin') && (
                   <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">Admin</span>
                 )}
                 {user.role === 'blogger' && (
@@ -219,10 +219,10 @@ export default function Profile() {
 
                   <div className="px-6 space-y-8">
                     {/* Primary Actions (Dashboard for special roles) */}
-                    {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'seller') && (
+                    {(user.role === 'super_admin' || user.role === 'seller') && (
                       <div className="space-y-3">
                         <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-[0.2em] ml-1">Boshqaruv Paneli</p>
-                        {(user.role === 'super_admin' || user.role === 'admin') && (
+                        {(user.role === 'super_admin') && (
                           <Button
                             variant="ghost"
                             className="w-full flex items-center justify-between p-5 h-20 rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all active:scale-[0.98] group"
@@ -381,12 +381,12 @@ export default function Profile() {
                 <h1 className="text-xl md:text-2xl lg:text-3xl font-light text-foreground truncate">
                   {user.username || user.name?.split(' ')[0] || "username"}
                 </h1>
-                {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'blogger' || user.role === 'seller') && (
+                {(user.role === 'super_admin' || user.role === 'blogger' || user.role === 'seller') && (
                   <VerifiedBadge size={22} className="shrink-0" />
                 )}
               </div>
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                {(user.role === 'super_admin' || user.role === 'admin' || user.role === 'seller') && (
+                {(user.role === 'super_admin' || user.role === 'seller') && (
                   <Button
                     size="sm"
                     className="flex-1 sm:flex-none h-10 font-bold px-6 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 shadow-lg shadow-primary/20 rounded-xl transition-all"

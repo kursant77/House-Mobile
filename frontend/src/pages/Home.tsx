@@ -3,13 +3,12 @@ import { Product } from "@/types/product";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
-import { PackageSearch } from "lucide-react";
+import { PackageSearch, ShoppingBag, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { postService, PublicPost } from "@/services/api/posts";
 import { PostCard } from "@/components/social/PostCard";
 import { Button } from "@/components/ui/button";
 import { Profile } from "@/types/product";
-import { User as UserIcon, ShoppingBag } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProductCard } from "@/components/products/ProductCard";
 import { StoriesSection } from "@/components/home/StoriesSection";
@@ -17,6 +16,7 @@ import { SearchSection } from "@/components/home/SearchSection";
 import { CategoryBar } from "@/components/home/CategoryBar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -58,25 +58,27 @@ export default function Home() {
     }
   }, [postsLoading, queryClient]);
 
+  const debouncedQuery = useDebounce(searchQuery, 300);
+
   const { data: searchUsers = [], isLoading: usersLoading } = useQuery({
-    queryKey: ["search-users", searchQuery],
-    queryFn: () => socialService.searchUsers(searchQuery),
-    enabled: activeTab === "users" && searchQuery.length > 0,
+    queryKey: ["search-users", debouncedQuery],
+    queryFn: () => socialService.searchUsers(debouncedQuery),
+    enabled: activeTab === "users" && debouncedQuery.length >= 2,
   });
 
   const { data: searchProducts = [], isLoading: searchProductsLoading } = useQuery<Product[]>({
-    queryKey: ["search-products", searchQuery],
+    queryKey: ["search-products", debouncedQuery],
     queryFn: async () => {
-      const result = await productService.getProducts();
-      return result.products;
+      const { data, error } = await (await import("@/lib/supabase")).supabase
+        .from('products')
+        .select('*')
+        .or(`title.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%`)
+        .eq('status', 'active')
+        .limit(20);
+      if (error) throw error;
+      return (data || []) as Product[];
     },
-    enabled: activeTab === "products" && searchQuery.length > 0,
-    select: (data: Product[]) => {
-      return data.filter(p =>
-        p?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p?.description?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+    enabled: activeTab === "products" && debouncedQuery.length >= 2,
   });
 
   const unifiedFeed = useMemo(() => {
@@ -97,10 +99,10 @@ export default function Home() {
     let feed = unifiedFeed;
 
     // Filter by category if selected
+    // TODO: Backend'da posts jadvaliga category_id ustuni qo'shilgandan keyin
+    // bu client-side filtrlash o'rniga server-side filter ishlatiladi.
+    // Hozircha bu vaqtinchalik yechim.
     if (selectedCategory !== "all") {
-      // Since we don't have a category field on posts yet, 
-      // we'll simulate it by checking if category name is in title/content
-      // In a real app, posts/products would have a category_id
       feed = feed.filter((item: PublicPost) =>
         item.title?.toLowerCase().includes(selectedCategory) ||
         item.content?.toLowerCase().includes(selectedCategory)
@@ -117,10 +119,7 @@ export default function Home() {
   // stories are now handled in StoriesSection
 
 
-  if (postsError) {
-    // Error is handled by React Query's error state
-    // User will see error message in UI if needed
-  }
+
 
   return (
     <>
@@ -147,7 +146,14 @@ export default function Home() {
       <div className="px-4 md:px-6 lg:px-10 pb-20 w-full text-foreground">
         {activeTab === "posts" && (
           <>
-            {postsLoading ? (
+            {postsError ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <p className="text-destructive font-medium mb-2">Postlarni yuklashda xatolik</p>
+                <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['public-posts'] })}>
+                  Qayta yuklash
+                </Button>
+              </div>
+            ) : postsLoading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-y-8 gap-x-4 md:gap-x-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
                   <div key={i} className="flex flex-col gap-3">

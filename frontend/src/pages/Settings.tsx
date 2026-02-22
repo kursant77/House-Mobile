@@ -87,16 +87,6 @@ export default function Settings() {
         });
     }, []);
 
-    const handleConnectTelegram = async () => {
-        try {
-            const { telegramService } = await import("@/services/api/telegram");
-            const link = await telegramService.getConnectLink();
-            window.open(link, '_blank');
-        } catch (error) {
-            toast.error("Telegramga ulanishda xatolik");
-        }
-    };
-
     useEffect(() => {
         localStorage.setItem("app-language", language);
     }, [language]);

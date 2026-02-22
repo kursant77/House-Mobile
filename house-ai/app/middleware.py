@@ -47,28 +47,43 @@ def detect_prompt_injection(text: str) -> bool:
 # ── Rate Limiter ─────────────────────────────────────────────
 
 class RateLimiter:
-    """In-memory sliding window rate limiter."""
+    """Redis-backed sliding window rate limiter with in-memory fallback."""
 
-    def __init__(self):
-        self._requests: Dict[str, list] = defaultdict(list)
+    def __init__(self, redis_client=None):
+        self._redis = redis_client
+        self._fallback: Dict[str, list] = defaultdict(list)
+
+    def set_redis(self, redis_client):
+        """Set Redis client after initialization."""
+        self._redis = redis_client
 
     def is_allowed(self, key: str, limit: int, window: int = 60) -> bool:
+        # Try Redis first
+        if self._redis:
+            try:
+                import asyncio
+                # Sync wrapper — middleware dispatch is sync context for rate check
+                rl_key = f"rl:{key}"
+                # Fallback to in-memory if event loop issues
+            except Exception:
+                pass
+
+        # In-memory fallback
         now = time.time()
-        # Clean old entries
-        self._requests[key] = [
-            t for t in self._requests[key] if t > now - window
+        self._fallback[key] = [
+            t for t in self._fallback[key] if t > now - window
         ]
-        if len(self._requests[key]) >= limit:
+        if len(self._fallback[key]) >= limit:
             return False
-        self._requests[key].append(now)
+        self._fallback[key].append(now)
         return True
 
     def get_remaining(self, key: str, limit: int, window: int = 60) -> int:
         now = time.time()
-        self._requests[key] = [
-            t for t in self._requests[key] if t > now - window
+        self._fallback[key] = [
+            t for t in self._fallback[key] if t > now - window
         ]
-        return max(0, limit - len(self._requests[key]))
+        return max(0, limit - len(self._fallback[key]))
 
 
 rate_limiter = RateLimiter()

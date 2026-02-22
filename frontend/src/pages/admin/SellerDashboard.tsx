@@ -107,7 +107,7 @@ export default function SellerDashboard() {
     const [selectedPeriod, setSelectedPeriod] = useState<'7d' | '30d' | '90d'>('7d');
 
     useEffect(() => {
-        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin' && user.role !== 'seller' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin' && user.role !== 'seller')) {
             navigate("/");
             return;
         }

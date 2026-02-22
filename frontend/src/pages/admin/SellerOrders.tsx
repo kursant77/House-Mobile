@@ -117,7 +117,7 @@ export default function SellerOrders() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
     useEffect(() => {
-        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin' && user.role !== 'seller' && user.role !== 'admin')) {
+        if (!user || (user.role !== 'blogger' && user.role !== 'super_admin' && user.role !== 'seller')) {
             navigate("/");
             return;
         }

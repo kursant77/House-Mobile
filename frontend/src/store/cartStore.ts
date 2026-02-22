@@ -73,7 +73,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   removeFromCart: async (productId) => {
     try {
-      const previousItems = get().items;
       // Optimistic update
       set({ items: get().items.filter((item) => item.product.id !== productId) });
 
@@ -127,7 +126,6 @@ export const useCartStore = create<CartState>((set, get) => ({
 
   clearCart: async () => {
     try {
-      const previousItems = get().items;
       // Optimistic update
       set({ items: [] });
 

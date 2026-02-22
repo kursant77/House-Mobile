@@ -1,0 +1,441 @@
+================================================================================
+🔥 HOUSE MOBILE — TO'LIQ MUAMMOLARNI HAL QILISH PROMPTI
+================================================================================
+
+Siz "House Mobile" loyihasining senior full-stack dasturchisi va xavfsizlik muhandisisiz.
+Loyihada 15 ta jiddiy muammo aniqlandi. HAMMASINI ketma-ket, mukammal hal qiling.
+Har bir o'zgarishdan keyin izoh yozing va nima uchun o'zgartirilganini tushuntiring.
+
+Loyiha tuzilishi:
+- Frontend: React + Vite + TypeScript + Zustand + React Query + Supabase
+- AI Service: FastAPI + OpenAI + Redis + Supabase
+- Telegram Bot: GrammY + Node.js + Supabase
+
+================================================================================
+📌 MUHIM: 'admin' ROLINI BUTUNLAY OLIB TASHLASH
+================================================================================
+
+Loyihada hozir 5 ta rol bor: 'user', 'blogger', 'super_admin', 'seller', 'admin'.
+'admin' rolini BUTUNLAY olib tashlang. Faqat 4 ta rol qolsin:
+  → 'user' | 'blogger' | 'super_admin' | 'seller'
+
+O'zgartirilishi kerak bo'lgan joylar:
+1. frontend/src/store/authStore.ts — User interface'dagi role tipidan 'admin' ni olib tashlang
+2. frontend/src/services/api/auth.ts — AuthResponse'dagi role tipidan 'admin' ni olib tashlang
+3. frontend/src/App.tsx — ProtectedRoute'lardagi role massivlardan 'admin' ni olib tashlang:
+   - Seller routes: role={['blogger', 'seller', 'super_admin']}
+   - Admin routes: role={['super_admin']}
+4. Barcha komponentlarda 'admin' yozilgan joylarni topib 'super_admin' ga almashtiring
+5. Barcha verified badge tekshiruvlarida 'admin' ni olib tashlang
+
+================================================================================
+🔴 MUAMMO #1: CLIENT-SIDE RATE LIMITING — FOYDASIZ XAVFSIZLIK
+================================================================================
+
+Fayl: frontend/src/lib/rateLimiter.ts
+
+MUAMMO: Rate limiter butunlay brauzer xotirasida ishlaydi. Hacker DevTools yoki
+curl orqali cheksiz so'rov yuborishi mumkin. Bu haqiqiy himoya EMAS.
+
+YECHIM:
+1. rateLimiter.ts'ni to'liq QAYTA YOZING:
+   - Rate limiter'ni UX-qulaylik uchun saqlang (masalan, forma ikki marta bosilishining oldini olish)
+   - Lekin XAVFSIZLIK deb kommentariya yozMANG — bu faqat UX optimization
+   - Fayl boshiga katta kommentariya qo'shing:
+     /**
+      * CLIENT-SIDE RATE LIMITER
+      * Bu XAVFSIZLIK uchun EMAS — faqat UX qulaylik uchun (double-click prevention).
+      * Haqiqiy xavfsizlik Supabase RLS va Backend middleware orqali ta'minlanadi.
+      */
+
+2. auth.ts'da checkRateLimit chaqiruvlari oldiga kommentariya qo'shing:
+     // UX: Prevent rapid re-submission (not a security measure)
+
+================================================================================
+🔴 MUAMMO #2: ROLE TYPE INCONSISTENCY
+================================================================================
+
+Fayllar:
+- frontend/src/store/authStore.ts (User interface)
+- frontend/src/services/api/auth.ts (AuthResponse interface)
+
+MUAMMO: authStore'da 5 ta rol, auth.ts'da 3 ta rol bor. Tiplar mos kelmaydi.
+
+YECHIM:
+1. Yangi fayl yarating: frontend/src/types/auth.ts
+   Ichida YAGONA role tipi:
+     export type UserRole = 'user' | 'blogger' | 'super_admin' | 'seller';
+
+   Va YAGONA User interface:
+     export interface User {
+       id: string;
+       name: string;
+       email: string;
+       role: UserRole;
+       avatarUrl?: string;
+       bio?: string;
+       username?: string;
+       phone?: string;
+       isProfessional: boolean;
+       isBlocked: boolean;
+       address?: string;
+       telegram?: string;
+       instagram?: string;
+       facebook?: string;
+       youtube?: string;
+     }
+
+     export interface AuthResponse {
+       user: User;
+       token: string;
+     }
+
+2. authStore.ts va auth.ts fayllaridan lokal interface'larni O'CHIRIB, types/auth.ts dan import qiling
+3. Barcha fayllarni tekshirib, eski tiplarni yangilang
+
+================================================================================
+🔴 MUAMMO #3: ADMIN FUNKSIYALAR — ROL TEKSHIRUVSIZ
+================================================================================
+
+Fayl: frontend/src/services/api/auth.ts
+
+MUAMMO: updateUserRole funksiyasi role parametri 'string' tipida.
+Har qanday qiymat (masalan "god_mode") yuborish mumkin.
+
+YECHIM:
+1. updateUserRole'ni yangilang:
+     updateUserRole: async (userId: string, role: UserRole): Promise<void> => {
+       // Validate role before sending
+       const validRoles: UserRole[] = ['user', 'blogger', 'super_admin', 'seller'];
+       if (!validRoles.includes(role)) {
+         throw new Error(`Noto'g'ri rol: ${role}`);
+       }
+       const { error } = await supabase
+         .from('profiles')
+         .update({ role })
+         .eq('id', userId);
+       if (error) throw error;
+     }
+
+2. deleteUser va toggleBlock funksiyalariga ham front-end rol tekshiruvi qo'shing:
+     // Bu funksiyalarni chaqirishdan OLDIN foydalanuvchi rolini tekshiring
+     const currentUser = useAuthStore.getState().user;
+     if (currentUser?.role !== 'super_admin') {
+       throw new Error("Bu amal faqat super_admin uchun mavjud");
+     }
+
+================================================================================
+🔴 MUAMMO #4: O'LIK KOD — getToken()
+================================================================================
+
+Fayl: frontend/src/services/api/auth.ts
+
+MUAMMO: getToken() funksiyasi localStorage'dan "auth_token" o'qiydi, lekin
+hech qayerda bu kalitga ma'lumot yozilmaydi. Doim null qaytaradi.
+
+YECHIM:
+1. getToken() funksiyasini to'liq O'CHIRING
+2. grep bilan tekshiring: loyihada boshqa joylarda getToken() ishlatilayotganmi?
+   Agar ishlatilayotgan bo'lsa — Supabase session orqali almashtiring:
+     const getToken = async () => {
+       const { data: { session } } = await supabase.auth.getSession();
+       return session?.access_token || null;
+     };
+
+================================================================================
+🔴 MUAMMO #5: HOME PAGE QIDIRUVI — BARCHA MAHSULOTLARNI YUKLAYDI
+================================================================================
+
+Fayl: frontend/src/pages/Home.tsx
+
+MUAMMO: Mahsulot qidiruvida productService.getProducts() BARCHA mahsulotlarni
+yuklaydi, keyin frontendda filter qiladi. 1000+ mahsulot bo'lsa performance dahshat.
+
+YECHIM:
+1. productService'ga serverda qidirish funksiyasi qo'shing (agar yo'q bo'lsa):
+     searchProducts: async (query: string, limit = 20): Promise<Product[]> => {
+       const { data, error } = await supabase
+         .from('products')
+         .select('*')
+         .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+         .eq('status', 'active')
+         .limit(limit);
+       if (error) throw error;
+       return (data || []).map(mapProduct);
+     }
+
+2. Home.tsx'da qidiruv queryFn'ni yangilang:
+     const { data: searchProducts = [] } = useQuery<Product[]>({
+       queryKey: ["search-products", debouncedQuery],
+       queryFn: () => productService.searchProducts(debouncedQuery),
+       enabled: activeTab === "products" && debouncedQuery.length >= 2,
+     });
+
+3. useDebounce hook'ini qo'llang — har harf bosilganda so'rov ketmasin:
+     const debouncedQuery = useDebounce(searchQuery, 300);
+
+================================================================================
+🔴 MUAMMO #6: KATEGORIYA FILTRLASH — MATN QIDIRISH BILAN
+================================================================================
+
+Fayl: frontend/src/pages/Home.tsx
+
+MUAMMO: Kategoriya filtrlash post sarlavhasida so'z qidirish orqali bo'lmoqda.
+Bu absurd. Ma'lumotlar bazasida category_id ustuni bo'lishi kerak.
+
+YECHIM:
+1. Hozircha (migration yo'q) kategoriya filtrlashni TO'G'RI kommentariya bilan belgilang:
+     // TODO: Backend'da posts jadvaliga category_id ustuni qo'shilgandan keyin
+     // bu client-side filtrlash o'rniga server-side filter ishlatiladi.
+     // Hozircha bu vaqtinchalik yechim.
+
+2. Yoki hozircha kategoriya filtrlashni OLIB TASHLANG va faqat CategoryBar desktop
+   uchun ko'rsatilmasin — chunki u ishlamaydi.
+
+================================================================================
+🟡 MUAMMO #7: DUPLIKAT ROUTELAR
+================================================================================
+
+Fayl: frontend/src/App.tsx
+
+MUAMMO: /upload va /upload-product ikkalasi ham UploadProduct sahifasiga olib boradi.
+
+YECHIM:
+1. Faqat /upload-product ni QOLDIRING (semantik aniqroq)
+2. /upload route'ni O'CHIRING:
+     // O'CHIRISH: <Route path="/upload" element={...} />
+
+================================================================================
+🟡 MUAMMO #8: postsError — HECH NARSA QILMAYDI
+================================================================================
+
+Fayl: frontend/src/pages/Home.tsx
+
+MUAMMO: if (postsError) { } bloki bo'sh — foydalanuvchi xato haqida bilmaydi.
+
+YECHIM: Bo'sh if blokini o'chirib, JSX ichida xato holatini ko'rsating:
+     {postsError && (
+       <div className="flex flex-col items-center justify-center py-16 text-center">
+         <p className="text-destructive font-medium mb-2">Postlarni yuklashda xatolik</p>
+         <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ['public-posts'] })}>
+           Qayta yuklash
+         </Button>
+       </div>
+     )}
+
+================================================================================
+🟡 MUAMMO #9: previousItems — ISHLATILMAYDI
+================================================================================
+
+Fayl: frontend/src/store/cartStore.ts
+
+MUAMMO: removeFromCart va clearCart'da previousItems e'lon qilingan lekin ishlatilmayapti.
+
+YECHIM: previousItems e'lonini O'CHIRING:
+   removeFromCart: async (productId) => {
+     try {
+       // Optimistic update
+       set({ items: get().items.filter((item) => item.product.id !== productId) });
+       await userDataService.removeFromCart(productId);
+     } catch ...
+   }
+
+   clearCart: async () => {
+     try {
+       // Optimistic update
+       set({ items: [] });
+       await userDataService.clearCart();
+     } catch ...
+   }
+
+================================================================================
+🟡 MUAMMO #10: SANITIZE FUNKSIYALAR — ISHLATILMAYAPTI
+================================================================================
+
+Fayl: frontend/src/lib/sanitize.ts
+
+MUAMMO: sanitize funksiyalari yozilgan, lekin auth.ts va boshqa joylarda ISHLATILMAYAPTI.
+
+YECHIM: Quyidagi joylarga sanitize qo'shing:
+
+1. auth.ts → register funksiyasida:
+     import { sanitizeEmail, sanitizeUsername, sanitizePhone } from '@/lib/sanitize';
+
+     register: async (data: RegisterRequest) => {
+       const sanitizedData = {
+         ...data,
+         email: sanitizeEmail(data.email),
+         username: sanitizeUsername(data.username),
+         phone: sanitizePhone(data.phone),
+         name: data.name.trim(),
+       };
+       // ... qolgan kodda sanitizedData ishlatilsin
+     }
+
+2. auth.ts → updateProfile funksiyasida ham sanitize qo'llang:
+     if (updates.username) updates.username = sanitizeUsername(updates.username);
+     if (updates.phone) updates.phone = sanitizePhone(updates.phone);
+
+================================================================================
+🟡 MUAMMO #11: DUPLIKAT CHECKOUT SCHEMA
+================================================================================
+
+Fayllar:
+- frontend/src/lib/validation.ts (checkoutSchema)
+- frontend/src/components/checkout/OneClickCheckout.tsx (checkoutSchema)
+
+MUAMMO: Ikki joyda ikki turli checkout validatsiya sxemasi bor.
+
+YECHIM:
+1. OneClickCheckout.tsx dan lokal checkoutSchema'ni O'CHIRING
+2. validation.ts'dagi umumiy sxemani import qiling va foydalaning:
+     import { checkoutSchema } from '@/lib/validation';
+
+   *Kerak bo'lsa validation.ts'dagi sxemani kengaytiring (paymentMethod qo'shing):
+     export const oneClickCheckoutSchema = checkoutSchema.extend({
+       paymentMethod: z.enum(["cash", "payme", "click"]),
+     });
+
+================================================================================
+🟡 MUAMMO #12: AI MIDDLEWARE — IN-MEMORY RATE LIMITER
+================================================================================
+
+Fayl: house-ai/app/middleware.py
+
+MUAMMO: AI servisida rate limiter xotirada (dict) saqlanadi.
+Server qayta ishga tushsa — hammasi yo'qoladi. Redis BOSHQA JOYLARDA ishlatiladi,
+lekin rate limiter uchun ISHLATILMAYDI.
+
+YECHIM: RateLimiter klassini Redis-based qiling:
+
+1. middleware.py'dagi RateLimiter'ni yangilang:
+     class RateLimiter:
+         """Redis-backed sliding window rate limiter."""
+
+         def __init__(self, redis_client=None):
+             self._redis = redis_client
+             self._fallback: Dict[str, list] = defaultdict(list)
+
+         async def is_allowed(self, key: str, limit: int, window: int = 60) -> bool:
+             if self._redis:
+                 try:
+                     current = await self._redis.incr(f"rl:{key}")
+                     if current == 1:
+                         await self._redis.expire(f"rl:{key}", window)
+                     return current <= limit
+                 except Exception:
+                     pass  # Fallback to in-memory
+             # In-memory fallback (existing logic)
+             now = time.time()
+             self._fallback[key] = [t for t in self._fallback[key] if t > now - window]
+             if len(self._fallback[key]) >= limit:
+                 return False
+             self._fallback[key].append(now)
+             return True
+
+2. setup_middleware'da Redis clientni inject qiling
+
+================================================================================
+🟡 MUAMMO #13: ReelCard.tsx — 1135 QATOR MONOLITH
+================================================================================
+
+Fayl: frontend/src/components/reels/ReelCard.tsx
+
+MUAMMO: Bitta komponentda 1135 qator va 15+ funksiya. Bu qo'llab-quvvatlab bo'lmaydi.
+
+YECHIM: Komponentni quyidagilarga bo'ling:
+
+1. ReelCard.tsx — Asosiy komponent (max 200 qator), boshqalarni import qiladi
+2. ReelVideoPlayer.tsx — Video ko'rsatish, play/pause, touch handling
+3. ReelActions.tsx — O'ng tomondagi tugmalar (like, comment, share, bookmark)
+4. ReelBottomInfo.tsx — Pastdagi ma'lumot (author, description, music)
+5. ReelActionSheet.tsx — Sheet menu (share, save, download, report)
+6. ReelDownloadOverlay.tsx — Yuklab olish progress overlay
+7. hooks/useReelInteractions.ts — Like, follow, share logikasi
+
+Har bir komponentga kerakli props'larni bering va ReelCard'da birlashtiring.
+
+================================================================================
+🔴 MUAMMO #14: TO'LOV TIZIMI YO'Q
+================================================================================
+
+MUAMMO: E-commerce platformasi, lekin faqat "Naqd" to'lov ishlaydi.
+Payme/Click integratsiyasi yo'q.
+
+YECHIM: Hozircha to'lov tizimini ishlab chiqish mumkin emas (API kalitlar kerak),
+lekin quyidagilarni qiling:
+
+1. OneClickCheckout.tsx'dagi "click" radio buttonni yaxshilang:
+   - disabled={false} qiling
+   - "Tez kunda" yozuvini "Online to'lov" ga o'zgartiring
+   - onClick'da toast.info("Online to'lov tez orada ishga tushadi") ko'rsating
+
+2. payments.ts faylini tekshirib, agar bo'sh yoki placeholder bo'lsa,
+   aniq TODO kommentariyalar bilan belgilang:
+     // TODO: Payme API integratsiyasi — https://developer.help.paycom.uz/
+     // TODO: Click API integratsiyasi — https://docs.click.uz/
+
+================================================================================
+🟡 MUAMMO #15: HelmetProvider YO'Q
+================================================================================
+
+Fayl: frontend/src/App.tsx
+
+MUAMMO: ProductDetail.tsx'da <Helmet> ishlatilgan, lekin App.tsx'da HelmetProvider
+o'ralmagan.
+
+YECHIM: App.tsx'da HelmetProvider qo'shing:
+     import { HelmetProvider } from 'react-helmet-async';
+
+     const App = () => (
+       <ErrorBoundary>
+         <HelmetProvider>
+           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+             ...
+           </ThemeProvider>
+         </HelmetProvider>
+       </ErrorBoundary>
+     );
+
+================================================================================
+🛡️ QO'SHIMCHA XAVFSIZLIK YAXSHILASHLARI
+================================================================================
+
+1. SUPABASE RLS TEKSHIRUVI:
+   - profiles jadvalidagi RLS policy'larni tekshiring
+   - Faqat super_admin role'ni update qila olsin
+   - Boshqa foydalanuvchilar faqat o'z profilini o'zgartira olsin
+
+2. XSS HIMOYA:
+   - sanitize.ts'dagi funksiyalarni kommentariya va post yaratishda ISHLATING
+   - Har bir user input'ni display qilishdan OLDIN sanitize qiling
+
+3. SUPABASE ANON KEY:
+   - .env.example faylida anon key'ni hech qachon GITHUB'ga push qilinmasligi
+     haqida OGOHLANTIRISH yozing
+
+4. INPUT VALIDATION:
+   - Barcha API chaqiruvlarida parametrlarni OLDIN tekshiring
+   - validation.ts'dagi sxemalarni haqiqatan ISHLATING — hozir ko'pchilik joyda
+     faqat e'lon qilingan, lekin import qilinmagan
+
+5. ERROR LOGGING:
+   - Barcha catch bloklarida console.error O'RNIGA logger.error ishlating
+   - console.log/error'larni BARCHA production koddan olib tashlang
+
+================================================================================
+✅ YAKUNIY TEKSHIRUV RO'YXATI
+================================================================================
+
+Barcha o'zgarishlardan KEYIN quyidagilarni tekshiring:
+
+[ ] 'admin' roli hech qayerda qolmaganini grep bilan tekshiring
+[ ] TypeScript xatolari yo'qligini: npx tsc --noEmit
+[ ] Barcha importlar to'g'ri ishlashini
+[ ] Role tipi barcha joylarda UserRole ekanini
+[ ] sanitize funksiyalari haqiqatan ishlatilayotganini
+[ ] Duplikat kod qolmaganini
+[ ] Barcha TODO'lar aniq va tushunarli ekanini
+[ ] console.log/error'lar olib tashlanganini
+
+================================================================================

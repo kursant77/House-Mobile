@@ -6,6 +6,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
@@ -184,7 +185,7 @@ const AppContent = () => {
             <Route path="/my-orders" element={<ProtectedRoute><MyOrders /></ProtectedRoute>} />
             <Route path="/apply/seller" element={<ProtectedRoute><ApplySeller /></ProtectedRoute>} />
             <Route path="/apply/blogger" element={<ProtectedRoute><ApplyBlogger /></ProtectedRoute>} />
-            <Route path="/upload" element={<ProtectedRoute><UploadProduct /></ProtectedRoute>} />
+
             <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
             <Route path="/my-videos" element={<ProtectedRoute><MyVideos /></ProtectedRoute>} />
             <Route path="/watch-later" element={<ProtectedRoute><WatchLater /></ProtectedRoute>} />
@@ -204,7 +205,7 @@ const AppContent = () => {
 
           {/* Seller Routes */}
           <Route path="/seller" element={
-            <ProtectedRoute role={['blogger', 'seller', 'admin', 'super_admin']}>
+            <ProtectedRoute role={['blogger', 'seller', 'super_admin']}>
               <SellerLayout />
             </ProtectedRoute>
           }>
@@ -221,7 +222,7 @@ const AppContent = () => {
 
           {/* Admin Routes */}
           <Route path="/admin" element={
-            <ProtectedRoute role={['admin', 'super_admin']}>
+            <ProtectedRoute role={['super_admin']}>
               <AdminLayout />
             </ProtectedRoute>
           }>
@@ -258,16 +259,18 @@ const AppContent = () => {
 
 const App = () => (
   <ErrorBoundary>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner position="top-center" />
-          <AppContent />
-          <VercelAnalytics />
-        </TooltipProvider>
-      </QueryClientProvider>
-    </ThemeProvider>
+    <HelmetProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner position="top-center" />
+            <AppContent />
+            <VercelAnalytics />
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ThemeProvider>
+    </HelmetProvider>
   </ErrorBoundary>
 );
 

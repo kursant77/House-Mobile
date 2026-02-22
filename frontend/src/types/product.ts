@@ -8,7 +8,7 @@ export interface Profile {
   instagram?: string;
   facebook?: string;
   youtube?: string;
-  role?: 'user' | 'blogger' | 'super_admin' | 'seller' | 'admin';
+  role?: 'user' | 'blogger' | 'super_admin' | 'seller';
   username?: string;
   sellerRating?: number;
 }

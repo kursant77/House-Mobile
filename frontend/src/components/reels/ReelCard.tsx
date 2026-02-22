@@ -18,13 +18,11 @@ import {
   UserX,
   User as UserIcon,
   Sparkles,
-  ChevronDown,
-  Music2,
   FileText,
   ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn, formatCurrencySymbol } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
   DropdownMenu,
@@ -56,7 +54,6 @@ import { supabase } from "@/lib/supabase";
 import { historyService } from "@/services/api/history";
 import { useWatchLaterStore } from "@/store/watchLaterStore";
 import { useUiStore } from "@/store/uiStore";
-import { BioDisplay } from "@/components/shared/BioDisplay";
 import { useAiChatStore } from "@/store/aiChatStore";
 
 // Real-time comment count component
@@ -786,7 +783,7 @@ export function ReelCard({
                     <span className="text-white font-bold text-sm tracking-tight">
                       {reel.author?.fullName || "House Mobile"}
                     </span>
-                    {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
+                    {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
                       <VerifiedBadge size={14} />
                     )}
                   </div>
@@ -892,7 +889,7 @@ export function ReelCard({
                       <span className="text-reels-foreground font-bold text-base leading-none">
                         {reel.author?.fullName || "House Mobile"}
                       </span>
-                      {(reel.author?.role === 'super_admin' || reel.author?.role === 'admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
+                      {(reel.author?.role === 'super_admin' || reel.author?.role === 'blogger' || reel.author?.role === 'seller') && (
                         <VerifiedBadge size={15} />
                       )}
                     </div>

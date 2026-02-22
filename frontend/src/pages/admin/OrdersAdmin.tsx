@@ -70,7 +70,7 @@ export default function OrdersAdmin() {
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
-        if (!user || (user.role !== 'super_admin' && user.role !== 'admin')) {
+        if (!user || user.role !== 'super_admin') {
             navigate("/");
             return;
         }

@@ -114,7 +114,7 @@ export const ProductCard = memo(({ product, variant = "default" }: ProductCardPr
                 className="flex items-center flex-nowrap gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors z-10 w-fit"
               >
                 <span>{product.author?.fullName || "House Mobile"}</span>
-                {(product.author?.role === 'super_admin' || product.author?.role === 'admin' || product.author?.role === 'blogger' || product.author?.role === 'seller') && (
+                {(product.author?.role === 'super_admin' || product.author?.role === 'blogger' || product.author?.role === 'seller') && (
                   <VerifiedBadge size={12} />
                 )}
               </Link>

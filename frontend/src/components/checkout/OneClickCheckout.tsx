@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { orderService } from "@/services/api/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Loader2, CreditCard, Banknote, ShoppingBag } from "lucide-react";
@@ -16,6 +16,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useCurrency } from "@/hooks/useCurrency";
+import { checkoutSchema as baseCheckoutSchema } from "@/lib/validation";
 
 interface OneClickCheckoutProps {
     open: boolean;
@@ -29,10 +30,11 @@ interface OneClickCheckoutProps {
     quantity: number;
 }
 
+// Extend base checkout schema with paymentMethod and rename fields
 const checkoutSchema = z.object({
-    fullName: z.string().min(3, "Ism kamida 3 harf bo'lishi kerak"),
-    phone: z.string().min(9, "Telefon raqam noto'g'ri").regex(/^\+998[0-9]{9}$/, "Format: +998901234567"),
-    address: z.string().min(5, "Manzil juda qisqa"),
+    fullName: baseCheckoutSchema.shape.name,
+    phone: baseCheckoutSchema.shape.phone,
+    address: baseCheckoutSchema.shape.address,
     paymentMethod: z.enum(["cash", "payme", "click"]),
 });
 
@@ -48,8 +50,8 @@ export function OneClickCheckout({ open, onOpenChange, product, quantity }: OneC
     const form = useForm<CheckoutFormValues>({
         resolver: zodResolver(checkoutSchema),
         defaultValues: {
-            fullName: user?.user_metadata?.full_name || "",
-            phone: user?.user_metadata?.phone || "+998", // Assuming phone is stored or user enters manually
+            fullName: user?.name || "",
+            phone: user?.phone || "+998", // Assuming phone is stored or user enters manually
             address: "", // Could be pre-filled from last order
             paymentMethod: "cash",
         },
