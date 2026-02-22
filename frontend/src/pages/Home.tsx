@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { Product } from "@/types/product";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { productService } from "@/services/api/products";
 import { socialService } from "@/services/api/social";
 import { PackageSearch, ShoppingBag, User as UserIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +16,7 @@ import { CategoryBar } from "@/components/home/CategoryBar";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
 import { supabase } from "@/lib/supabase";
 import { useDebounce } from "@/hooks/useDebounce";
+import { searchService } from "@/services/api/searchService";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -66,20 +66,12 @@ export default function Home() {
     enabled: activeTab === "users" && debouncedQuery.length >= 2,
   });
 
-  const { data: searchProducts = [], isLoading: searchProductsLoading } = useQuery<Product[]>({
+  const { data: searchProductsResult, isLoading: searchProductsLoading } = useQuery({
     queryKey: ["search-products", debouncedQuery],
-    queryFn: async () => {
-      const { data, error } = await (await import("@/lib/supabase")).supabase
-        .from('products')
-        .select('*')
-        .or(`title.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%`)
-        .eq('status', 'active')
-        .limit(20);
-      if (error) throw error;
-      return (data || []) as Product[];
-    },
+    queryFn: () => searchService.searchProducts(debouncedQuery),
     enabled: activeTab === "products" && debouncedQuery.length >= 2,
   });
+  const searchProducts = searchProductsResult?.products || [];
 
   const unifiedFeed = useMemo(() => {
     if (!Array.isArray(publicPosts)) {

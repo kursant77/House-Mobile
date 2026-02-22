@@ -25,6 +25,7 @@ export interface CreateOrderData {
   items: OrderItem[];
   totalAmount: number;
   currency: string;
+  paymentMethod?: string;
 }
 
 export interface Order {
@@ -59,6 +60,10 @@ export const orderService = {
     // Rate limiting for order creation
     checkRateLimit(`create-order:${user.id}`, RATE_LIMITS.FORM_SUBMIT);
 
+    // Build notes with payment method info
+    const paymentNote = orderData.paymentMethod ? `To'lov usuli: ${orderData.paymentMethod}` : '';
+    const combinedNotes = [orderData.notes, paymentNote].filter(Boolean).join('. ') || null;
+
     // 1. Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
@@ -67,7 +72,7 @@ export const orderService = {
         customer_name: orderData.customerName,
         customer_phone: orderData.customerPhone,
         customer_address: orderData.customerAddress,
-        notes: orderData.notes || null,
+        notes: combinedNotes,
         total_amount: orderData.totalAmount,
         currency: orderData.currency,
         status: 'pending',

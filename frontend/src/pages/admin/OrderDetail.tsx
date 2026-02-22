@@ -97,9 +97,17 @@ export default function OrderDetail() {
     };
 
     const handleSendMessage = () => {
-        toast.info("Xabar yuborish tizimi tez orada ishga tushadi", {
-            description: "Hozircha mijoz telefon raqami orqali bog'lanishingiz mumkin."
-        });
+        const phone = order?.customerPhone;
+        if (phone) {
+            // Clean phone number and open tel: link
+            const cleanPhone = phone.replace(/\s+/g, '').replace(/[^+\d]/g, '');
+            window.open(`tel:${cleanPhone}`, '_self');
+            toast.success("Qo'ng'iroq boshlanmoqda...", {
+                description: `Raqam: ${phone}`
+            });
+        } else {
+            toast.warning("Mijoz telefon raqami topilmadi");
+        }
     };
 
     const handleViewProfile = () => {

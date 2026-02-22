@@ -204,9 +204,7 @@ export function PostComments({ postId }: PostCommentsProps) {
             }
             toast.error("Xatolik yuz berdi");
         },
-        onSettled: () => {
-            queryClient.invalidateQueries({ queryKey: ["post-comments", postId] });
-        }
+        // onSettled invalidate o'chirildi — optimistic update yetarli
     });
 
     const deleteCommentMutation = useMutation({

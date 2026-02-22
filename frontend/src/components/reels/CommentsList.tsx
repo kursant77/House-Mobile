@@ -34,7 +34,8 @@ export function CommentsList({
     const { data: comments = [], isLoading, refetch } = useQuery({
         queryKey: ["comments", productId],
         queryFn: () => socialService.getComments(productId),
-        refetchInterval: 1500, // Har 1.5 soniyada yangilash
+        staleTime: 30000,
+        refetchOnWindowFocus: false,
         enabled: !!productId,
     });
 
@@ -75,10 +76,9 @@ export function CommentsList({
         try {
             await socialService.addComment(productId, commentText);
             setCommentText("");
-            // Invalidate va yangilash
+            // Invalidate — realtime subscription ham yangilaydi
             queryClient.invalidateQueries({ queryKey: ["comments", productId] });
             queryClient.invalidateQueries({ queryKey: ["comment-count", productId] });
-            refetch();
             toast.success("Izoh qo'shildi!");
         } catch (error: any) {
             toast.error(error.message || "Izoh qoldirishda xatolik yuz berdi");
@@ -96,10 +96,9 @@ export function CommentsList({
             await socialService.addCommentReply(commentId, replyText);
             setReplyText("");
             setReplyingTo(null);
-            // Invalidate va yangilash
+            // Invalidate — realtime subscription ham yangilaydi
             queryClient.invalidateQueries({ queryKey: ["comments", productId] });
             queryClient.invalidateQueries({ queryKey: ["comment-replies", commentId] });
-            refetch();
             toast.success("Javob qo'shildi!");
         } catch (error: any) {
             toast.error(error.message || "Javob qoldirishda xatolik yuz berdi");
@@ -227,7 +226,8 @@ function CommentItem({
         queryKey: ["comment-replies", comment.id],
         queryFn: () => socialService.getCommentReplies(comment.id),
         enabled: showReplies,
-        refetchInterval: 1500,
+        staleTime: 30000,
+        refetchOnWindowFocus: false,
     });
 
     // Real-time subscription for replies

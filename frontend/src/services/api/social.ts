@@ -111,14 +111,19 @@ export const socialService = {
         // Rate limiting for likes
         checkRateLimit(`like:${user.id}`, RATE_LIMITS.LIKE);
 
-        const isLiked = await socialService.isLiked(productId);
+        // Single query to check + toggle (2 queries total instead of 3)
+        const { data: existingLike } = await supabase
+            .from('product_likes')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('product_id', productId)
+            .maybeSingle();
 
-        if (isLiked) {
+        if (existingLike) {
             await supabase
                 .from('product_likes')
                 .delete()
-                .eq('user_id', user.id)
-                .eq('product_id', productId);
+                .eq('id', existingLike.id);
         } else {
             await supabase
                 .from('product_likes')
@@ -292,18 +297,13 @@ export const socialService = {
 
         if (error) throw error;
 
-        // Replies count
-        const { count } = await supabase
-            .from('product_comments')
-            .select('*', { count: 'exact', head: true })
-            .eq('parent_comment_id', data.id);
-
+        // Yangi comment uchun replies doim 0
         return {
             id: data.id,
             userId: data.user_id,
             text: data.text,
             createdAt: data.created_at,
-            repliesCount: count || 0,
+            repliesCount: 0,
             user: {
                 id: data.profiles.id,
                 fullName: data.profiles.full_name,

@@ -1,8 +1,10 @@
 import { supabase } from '@/lib/supabase';
 import { logger } from '@/lib/logger';
 
+export type PaymentMethodType = 'payme' | 'click' | 'uzum' | 'cash';
+
 export interface PaymentMethod {
-  type: 'payme' | 'click' | 'stripe' | 'cash';
+  type: PaymentMethodType;
   cardNumber?: string;
   cardHolder?: string;
 }
@@ -22,11 +24,13 @@ export interface PaymentResponse {
 }
 
 /**
- * Payment service for Uzbekistan and international payments
+ * Payment service for Uzbekistan payments
+ * Supported: Payme, Click, Uzum Bank, Naqd (Cash on Delivery)
  */
 export const paymentService = {
   /**
    * Initialize Payme payment (Uzbekistan)
+   * https://developer.help.paycom.uz/initsializatsiya-platezha/
    */
   async initPayme(request: PaymentRequest): Promise<PaymentResponse> {
     try {
@@ -54,6 +58,7 @@ export const paymentService = {
 
   /**
    * Initialize Click payment (Uzbekistan)
+   * https://docs.click.uz/
    */
   async initClick(request: PaymentRequest): Promise<PaymentResponse> {
     try {
@@ -78,28 +83,36 @@ export const paymentService = {
     }
   },
 
-
   /**
-   * Initialize Stripe payment (International)
+   * Initialize Uzum Bank payment (Uzbekistan)
+   * Uses Click infrastructure for card payments
    */
-  async initStripe(request: PaymentRequest): Promise<PaymentResponse> {
+  async initUzum(request: PaymentRequest): Promise<PaymentResponse> {
     try {
-      // TODO: Implement Stripe integration
-      // https://stripe.com/docs/api
+      // Uzum Bank uses its own checkout page
+      const merchantId = import.meta.env.VITE_UZUM_MERCHANT_ID || '';
+      const amount = request.amount;
 
-      logger.log('Initializing Stripe payment:', request);
+      // Fallback to Click if no Uzum merchant ID configured
+      if (!merchantId) {
+        logger.log('Uzum merchant ID not configured, falling back to Click');
+        return this.initClick(request);
+      }
 
-      // Placeholder - replace with actual Stripe API call
+      const paymentUrl = `https://www.uzumbank.uz/pay?merchant_id=${merchantId}&amount=${amount}&order_id=${request.orderId}`;
+
+      logger.log('Initializing Uzum Bank payment:', { orderId: request.orderId, amount });
+
       return {
         success: true,
-        transactionId: `stripe_${Date.now()}`,
-        paymentUrl: 'https://checkout.stripe.com/',
+        transactionId: `uzum_${Date.now()}`,
+        paymentUrl,
       };
     } catch (error) {
-      logger.error('Stripe payment failed:', error);
+      logger.error('Uzum Bank payment failed:', error);
       return {
         success: false,
-        error: 'Payment system error',
+        error: 'To\'lov tizimida xatolik',
       };
     }
   },
@@ -113,8 +126,8 @@ export const paymentService = {
         return this.initPayme(request);
       case 'click':
         return this.initClick(request);
-      case 'stripe':
-        return this.initStripe(request);
+      case 'uzum':
+        return this.initUzum(request);
       case 'cash':
         return {
           success: true,
@@ -123,7 +136,7 @@ export const paymentService = {
       default:
         return {
           success: false,
-          error: 'Invalid payment method',
+          error: 'Noto\'g\'ri to\'lov usuli',
         };
     }
   },
@@ -135,8 +148,6 @@ export const paymentService = {
     try {
       logger.log('Verifying payment for order:', orderId);
 
-      // In a real app, the provider calls our webhook which updates the DB
-      // Here we just fetch the order to see if it's marked as paid/confirmed
       const { data, error } = await supabase
         .from('orders')
         .select('status')
@@ -145,11 +156,23 @@ export const paymentService = {
 
       if (error) throw error;
 
-      // If status is 'paid', 'confirmed', or 'processing', we consider it successful
       return ['paid', 'confirmed', 'processing', 'shipped', 'delivered'].includes(data.status);
     } catch (error) {
       logger.error('Payment status check failed:', error);
       return false;
     }
+  },
+
+  /**
+   * Get payment method display info
+   */
+  getMethodLabel(type: PaymentMethodType): string {
+    const labels: Record<PaymentMethodType, string> = {
+      cash: 'Naqd pul',
+      click: 'Click',
+      payme: 'Payme',
+      uzum: 'Uzum Bank',
+    };
+    return labels[type] || type;
   },
 };

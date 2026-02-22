@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   Info,
   Clock,
-  ArrowRight
+  ArrowRight,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,8 @@ import { checkoutSchema, type CheckoutInput } from "@/lib/validation";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PaymentMethodSelector } from "@/components/checkout/PaymentMethodSelector";
+import { paymentService, type PaymentMethodType } from "@/services/api/payments";
 
 interface CheckoutFormProps {
   onBack: () => void;
@@ -36,7 +39,8 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
   const { items, getTotal, clearCart } = useCartStore();
   const [isLoading, setIsLoading] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
-  const [step, setStep] = useState(1); // 1: Info, 2: Address, 3: Summary
+  const [step, setStep] = useState(1); // 1: Info, 2: Address, 3: Payment, 4: Summary
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cash');
 
   const {
     register,
@@ -60,6 +64,8 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
       isValid = await trigger(['name', 'phone']);
     } else if (step === 2) {
       isValid = await trigger(['address']);
+    } else if (step === 3) {
+      isValid = true; // payment method always has a value
     }
 
     if (isValid) {
@@ -96,9 +102,30 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
         })),
         totalAmount: getTotal(),
         currency: items[0]?.product.currency || "UZS",
+        paymentMethod: paymentService.getMethodLabel(paymentMethod),
       };
 
       const order = await orderService.createOrder(orderData);
+
+      // Process payment if not cash
+      if (paymentMethod !== 'cash') {
+        const paymentResult = await paymentService.processPayment({
+          orderId: order.id,
+          amount: getTotal(),
+          method: { type: paymentMethod },
+          currency: items[0]?.product.currency || 'UZS',
+        });
+
+        if (paymentResult.success && paymentResult.paymentUrl) {
+          toast.success(`To'lov sahifasiga yo'naltirilmoqda...`, {
+            description: `Buyurtma #${order.orderNumber}`,
+          });
+          clearCart();
+          window.open(paymentResult.paymentUrl, '_blank');
+          setOrderPlaced(true);
+          return;
+        }
+      }
 
       toast.success(`Buyurtma qabul qilindi!`, {
         description: `Buyurtma raqami: #${order.orderNumber}`,
@@ -147,7 +174,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-500 font-medium">To'lov usuli:</span>
-                <span className="font-bold text-zinc-900 dark:text-zinc-100">Naqd/Karta (qabulda)</span>
+                <span className="font-bold text-zinc-900 dark:text-zinc-100">{paymentService.getMethodLabel(paymentMethod)}</span>
               </div>
             </div>
           </Card>
@@ -166,7 +193,8 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
   const steps = [
     { id: 1, label: "Ma'lumotlar", icon: User },
     { id: 2, label: "Manzil", icon: MapPin },
-    { id: 3, label: "Xulosa", icon: ShoppingBag },
+    { id: 3, label: "To'lov", icon: CreditCard },
+    { id: 4, label: "Xulosa", icon: ShoppingBag },
   ];
 
   return (
@@ -183,7 +211,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
             </button>
             <div className="hidden sm:block">
               <h1 className="text-lg md:text-xl font-black tracking-tight text-zinc-900 dark:text-white uppercase transition-all duration-300">
-                Checkout {step}/3
+                Checkout {step}/4
               </h1>
             </div>
           </div>
@@ -303,8 +331,41 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                 </div>
               )}
 
-              {/* STEP 3: FINAL SUMMARY */}
+              {/* STEP 3: PAYMENT METHOD */}
               {step === 3 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">To'lov usulini tanlang</h2>
+                    <p className="text-zinc-500 dark:text-zinc-400 font-medium">Qulay to'lov usulini tanlang</p>
+                  </div>
+
+                  <PaymentMethodSelector
+                    value={paymentMethod}
+                    onChange={setPaymentMethod}
+                  />
+
+                  {paymentMethod !== 'cash' && (
+                    <div className="p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 flex items-start gap-3">
+                      <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        Buyurtmani tasdiqlangandan so'ng, {paymentService.getMethodLabel(paymentMethod)} to'lov sahifasiga yo'naltirilasiz.
+                      </p>
+                    </div>
+                  )}
+
+                  {paymentMethod === 'cash' && (
+                    <div className="p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 flex items-start gap-3">
+                      <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                        Mahsulot qo'lingizga yetib borganida naqd yoki terminal orqali to'lov qilasiz.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* STEP 4: FINAL SUMMARY */}
+              {step === 4 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
                   <div className="space-y-2">
                     <h2 className="text-2xl md:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">Yakuniy tekshiruv</h2>
@@ -359,14 +420,24 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
 
                   <div className="p-6 bg-[#3C50E0]/5 rounded-3xl border border-[#3C50E0]/10 flex items-start gap-4">
                     <div className="h-10 w-10 rounded-xl bg-[#3C50E0] flex items-center justify-center shrink-0">
-                      <Check className="h-5 w-5 text-white" />
+                      <CreditCard className="h-5 w-5 text-white" />
                     </div>
                     <div>
                       <h4 className="font-black text-[#3C50E0] text-sm uppercase tracking-wider mb-1">To'lov usuli</h4>
                       <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
-                        Mahsulot qo'lingizga yetib borganida naqd yoki terminal orqali to'lov qilasiz. Oldindan to'lov shart emas.
+                        {paymentService.getMethodLabel(paymentMethod)}
+                        {paymentMethod === 'cash' && ' — yetkazib berilganda to\'lash'}
+                        {paymentMethod !== 'cash' && ' — onlayn to\'lov'}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setStep(3)}
+                      className="text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:text-[#3C50E0] hover:bg-[#3C50E0]/5 h-8 rounded-lg ml-auto shrink-0"
+                    >
+                      O'zgartirish
+                    </Button>
                   </div>
                 </div>
               )}
@@ -384,7 +455,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                   </Button>
                 )}
 
-                {step < 3 ? (
+                {step < 4 ? (
                   <Button
                     type="button"
                     onClick={nextStep}
@@ -458,7 +529,7 @@ export function CheckoutForm({ onBack }: CheckoutFormProps) {
                     <div className="pt-4 mt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800 flex justify-between items-end">
                       <div className="space-y-0.5">
                         <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[2px]">Jami To'lov</p>
-                        <p className="text-xs font-bold text-zinc-500">Naqd yoki Karta</p>
+                        <p className="text-xs font-bold text-zinc-500">{paymentService.getMethodLabel(paymentMethod)}</p>
                       </div>
                       <p className="text-3xl font-black text-[#3C50E0] tracking-tighter">
                         {formatPriceNumber(getTotal())}

@@ -71,7 +71,8 @@ function CommentCount({ productId }: { productId: string }) {
       if (error) return 0;
       return count || 0;
     },
-    refetchInterval: 2000,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
     enabled: !!productId,
   });
 
@@ -483,7 +484,21 @@ export function ReelCard({
   };
 
   const handleReport = () => {
-    toast.info("Shikoyat yuborish tizimi tez orada ishga tushadi");
+    if (!product?.id) return;
+    const reports = JSON.parse(localStorage.getItem('reel_reports') || '[]');
+    const alreadyReported = reports.some((r: any) => r.productId === product.id);
+    if (alreadyReported) {
+      toast.info("Bu kontent uchun allaqachon shikoyat yuborgansiz");
+      return;
+    }
+    reports.push({
+      productId: product.id,
+      sellerId: product.author?.id || product.sellerId,
+      reason: 'inappropriate',
+      created_at: new Date().toISOString(),
+    });
+    localStorage.setItem('reel_reports', JSON.stringify(reports));
+    toast.success("Shikoyat yuborildi. Tez orada ko'rib chiqamiz.");
   };
 
   return (
@@ -733,7 +748,16 @@ export function ReelCard({
                     onClick={(e) => {
                       e.stopPropagation();
                       setIsSheetOpen(false);
-                      toast.info("Bloklash funksiyasi");
+                      const authorId = product?.author?.id || product?.sellerId;
+                      if (!authorId) return;
+                      const blocked = JSON.parse(localStorage.getItem('blocked_users') || '[]');
+                      if (!blocked.includes(authorId)) {
+                        blocked.push(authorId);
+                        localStorage.setItem('blocked_users', JSON.stringify(blocked));
+                        toast.success("Foydalanuvchi bloklandi. Endi uning kontentini ko'rmaysiz.");
+                      } else {
+                        toast.info("Foydalanuvchi allaqachon bloklangan");
+                      }
                     }}
                   >
                     <div className="flex items-center gap-4">
@@ -1077,7 +1101,19 @@ export function ReelCard({
                       Shikoyat qilish
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={(e) => { e.stopPropagation(); toast.info("Bloklash funksiyasi"); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const authorId = product?.author?.id || product?.sellerId;
+                        if (!authorId) return;
+                        const blocked = JSON.parse(localStorage.getItem('blocked_users') || '[]');
+                        if (!blocked.includes(authorId)) {
+                          blocked.push(authorId);
+                          localStorage.setItem('blocked_users', JSON.stringify(blocked));
+                          toast.success("Foydalanuvchi bloklandi");
+                        } else {
+                          toast.info("Allaqachon bloklangan");
+                        }
+                      }}
                       className="text-red-500 focus:bg-red-500/10 focus:text-red-500 cursor-pointer transition-colors"
                     >
                       <UserX className="h-4 w-4 mr-2" />

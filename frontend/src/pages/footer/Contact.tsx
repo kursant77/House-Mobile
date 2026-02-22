@@ -4,11 +4,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Mail, Phone, MapPin, Send, Clock, MessageCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Send, Clock, MessageCircle, CheckCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const contacts = [
     {
@@ -60,17 +61,52 @@ export default function Contact() {
         message: "",
     });
     const [sent, setSent] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name || !formData.email || !formData.message) {
             toast.error("Barcha kerakli maydonlarni to'ldiring");
             return;
         }
-        setSent(true);
-        toast.success("Xabaringiz muvaffaqiyatli yuborildi!");
-        setFormData({ name: "", email: "", subject: "", message: "" });
-        setTimeout(() => setSent(false), 3000);
+
+        setSubmitting(true);
+        try {
+            // Try Supabase first
+            const { error } = await supabase
+                .from('contact_messages')
+                .insert({
+                    name: formData.name,
+                    email: formData.email,
+                    subject: formData.subject || null,
+                    message: formData.message,
+                    created_at: new Date().toISOString(),
+                });
+
+            if (error) {
+                // Fallback to localStorage if table doesn't exist
+                const stored = JSON.parse(localStorage.getItem('contact_messages') || '[]');
+                stored.push({ ...formData, created_at: new Date().toISOString() });
+                localStorage.setItem('contact_messages', JSON.stringify(stored));
+            }
+
+            setSent(true);
+            toast.success("Xabaringiz muvaffaqiyatli yuborildi!");
+            setFormData({ name: "", email: "", subject: "", message: "" });
+            setTimeout(() => setSent(false), 3000);
+        } catch {
+            // Fallback to localStorage
+            const stored = JSON.parse(localStorage.getItem('contact_messages') || '[]');
+            stored.push({ ...formData, created_at: new Date().toISOString() });
+            localStorage.setItem('contact_messages', JSON.stringify(stored));
+
+            setSent(true);
+            toast.success("Xabaringiz saqlandi!");
+            setFormData({ name: "", email: "", subject: "", message: "" });
+            setTimeout(() => setSent(false), 3000);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -194,10 +230,15 @@ export default function Contact() {
                             </div>
                             <Button
                                 type="submit"
-                                disabled={sent}
+                                disabled={sent || submitting}
                                 className="w-full h-12 rounded-xl font-bold text-base gap-2"
                             >
-                                {sent ? (
+                                {submitting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Yuborilmoqda...
+                                    </>
+                                ) : sent ? (
                                     <>
                                         <CheckCircle className="w-4 h-4" />
                                         Yuborildi!

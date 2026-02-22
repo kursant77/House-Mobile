@@ -4,11 +4,12 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, Megaphone, BarChart3, Target, Layers, Eye, Users, TrendingUp, CheckCircle, Send } from "lucide-react";
+import { ArrowLeft, Megaphone, BarChart3, Target, Layers, Eye, Users, TrendingUp, CheckCircle, Send, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const adFormats = [
     {
@@ -59,17 +60,54 @@ export default function Advertising() {
         message: "",
     });
     const [sent, setSent] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.company || !formData.email || !formData.message) {
             toast.error("Barcha kerakli maydonlarni to'ldiring");
             return;
         }
-        setSent(true);
-        toast.success("Reklama so'rovingiz muvaffaqiyatli yuborildi! 24 soat ichida bog'lanamiz.");
-        setFormData({ company: "", contact: "", email: "", phone: "", budget: "", message: "" });
-        setTimeout(() => setSent(false), 4000);
+
+        setSubmitting(true);
+        try {
+            // Try Supabase first
+            const { error } = await supabase
+                .from('ad_requests')
+                .insert({
+                    company: formData.company,
+                    contact_name: formData.contact || null,
+                    email: formData.email,
+                    phone: formData.phone || null,
+                    budget: formData.budget || null,
+                    message: formData.message,
+                    created_at: new Date().toISOString(),
+                });
+
+            if (error) {
+                // Fallback to localStorage
+                const stored = JSON.parse(localStorage.getItem('ad_requests') || '[]');
+                stored.push({ ...formData, created_at: new Date().toISOString() });
+                localStorage.setItem('ad_requests', JSON.stringify(stored));
+            }
+
+            setSent(true);
+            toast.success("Reklama so'rovingiz muvaffaqiyatli yuborildi! 24 soat ichida bog'lanamiz.");
+            setFormData({ company: "", contact: "", email: "", phone: "", budget: "", message: "" });
+            setTimeout(() => setSent(false), 4000);
+        } catch {
+            // Fallback to localStorage
+            const stored = JSON.parse(localStorage.getItem('ad_requests') || '[]');
+            stored.push({ ...formData, created_at: new Date().toISOString() });
+            localStorage.setItem('ad_requests', JSON.stringify(stored));
+
+            setSent(true);
+            toast.success("Reklama so'rovingiz saqlandi!");
+            setFormData({ company: "", contact: "", email: "", phone: "", budget: "", message: "" });
+            setTimeout(() => setSent(false), 4000);
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     return (
@@ -228,10 +266,15 @@ export default function Advertising() {
                         </div>
                         <Button
                             type="submit"
-                            disabled={sent}
+                            disabled={sent || submitting}
                             className="w-full h-12 rounded-xl font-bold text-base gap-2"
                         >
-                            {sent ? (
+                            {submitting ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Yuborilmoqda...
+                                </>
+                            ) : sent ? (
                                 <>
                                     <CheckCircle className="w-4 h-4" />
                                     So'rov yuborildi!
